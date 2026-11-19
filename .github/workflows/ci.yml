@@ -1,0 +1,25 @@
+# This fixture's own CI, deliberately `on: push`.
+#
+# Acceptance criterion: a full factory run — its data, media and live-status
+# writes — must start none of these runs. Those writes go to refs/factory/*,
+# which sit outside refs/heads/, and a push to a non-branch ref fires no
+# `push` workflow.
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
