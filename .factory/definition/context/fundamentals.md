@@ -10,7 +10,7 @@
   removed later.
 -->
 
-# Fundamentals — bsf-fixtures/ts-webapp
+# Fundamentals — {{REPO_NAME}}
 
 ## Dominant patterns
 
@@ -19,26 +19,24 @@ Follow it rather than introducing a second way of doing the same thing.
 
 | Concern | The pattern here | Source |
 | --- | --- | --- |
-| Money | integer cents, formatted only at the edge with `formatAmount` | `lib/invoices.ts` |
-| Tests | beside the file they test, `*.test.ts(x)`, vitest | `lib/`, `components/` |
-| Data | `readonly` types and arrays | `lib/invoices.ts` |
+{{DOMINANT_PATTERN_ROWS}}
 
 ## Product intent
 
 What this product is trying to be, where that would change a decision an
 agent has to make.
 
-An export is something a customer acts on, so it contains only invoices a customer was actually sent: never drafts, never voids.
+{{PRODUCT_INTENT}}
 
 ## Taste
 
 Things a reviewer would ask for that no rule states.
 
-- A doc comment says why, not what.
+{{TASTE_LINES}}
 
 ## Deliberate exceptions
 
 Places that look like they break a rule and should stay as they are, with the
 reason. Without this section, cleanup keeps rediscovering them.
 
-| (none yet) | |
+{{EXCEPTION_ROWS}}

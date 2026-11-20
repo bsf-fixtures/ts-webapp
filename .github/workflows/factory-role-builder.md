@@ -53,6 +53,8 @@ on:
         required: true
       FACTORY_APP_PRIVATE_KEY:
         required: true
+      FACTORY_SANDBOX_ENV:
+        required: false
 
 # One block at the top covers every nested github-app token minting, so safe
 # outputs are applied with the factory App's token and their pushes start
@@ -74,11 +76,20 @@ permissions:
 
 # gh-aw's firewall: the model API and package registries only.
 network:
+  # Every common package ecosystem, so installing dependencies works in any
+  # repo. A repo whose sandbox manifest needs more hosts is recompiled at
+  # setup with them added; this is a compile-time literal.
   allowed:
     - api.anthropic.com
-    - registry.npmjs.org
-    - pypi.org
-    - files.pythonhosted.org
+    - defaults
+    - node
+    - python
+    - go
+    - rust
+    - ruby
+    - java
+    - dotnet
+    - playwright
 
 sandbox:
   agent:
@@ -88,11 +99,18 @@ sandbox:
     mounts:
       - ${{ github.workspace }}:/workspace:rw
 
-timeout-minutes: 45
+# Long enough for a real write, run, look, fix loop on a slow build; a
+# builder that times out mid-loop ships a worse diff than one that never looped.
+timeout-minutes: 75
 
 tools:
   bash: [":*"]
   edit:
+  # The builder looks at what it builds. It does not certify it — the
+  # verifier does that in a job with no path to this transcript — but a
+  # builder that never loads the page finds a visual break one full gate
+  # cycle late.
+  playwright:
 
 safe-outputs:
   # Attempt 1 opens the draft PR; later attempts push to its branch.
@@ -127,7 +145,10 @@ pre-agent-steps:
     with:
       ref: ${{ github.event.repository.default_branch }}
       path: .factory-trusted
-      sparse-checkout: .factory/bin
+      sparse-checkout: |
+        .factory/bin
+        .factory/definition
+        .factory/sandbox
       sparse-checkout-cone-mode: false
       persist-credentials: false
   - name: Put the trusted runner on PATH
@@ -135,33 +156,76 @@ pre-agent-steps:
     run: |
       mkdir -p "$RUNNER_TEMP/bsf"
       cp -R .factory-trusted/.factory/bin/. "$RUNNER_TEMP/bsf/"
+      # The definition and the sandbox decide how a change is judged, so
+      # bsf reads them from this copy, never from the checkout.
+      mkdir -p "$RUNNER_TEMP/bsf-trusted/.factory"
+      for d in definition sandbox; do
+        if [ -d ".factory-trusted/.factory/$d" ]; then cp -R ".factory-trusted/.factory/$d" "$RUNNER_TEMP/bsf-trusted/.factory/"; fi
+      done
+      echo "BSF_TRUSTED_ROOT=$RUNNER_TEMP/bsf-trusted" >> "$GITHUB_ENV"
       rm -rf .factory-trusted
       echo "$RUNNER_TEMP/bsf" >> "$GITHUB_PATH"
       "$RUNNER_TEMP/bsf/bsf" --version
-  # Build and start the app's own environment. The agent stays in AWF's
-  # container and reaches the app from there (spike §4b).
-  - name: Start the devcontainer and any services the app needs
+  # Read-only, for the steps that fetch this item's data before the agent
+  # starts. Minted here rather than handed to the agent: step outputs never
+  # reach the agent's sandbox.
+  - name: Mint a read-only token for the factory's data
+    id: read-token
+    uses: actions/create-github-app-token@v1
+    with:
+      app-id: ${{ vars.FACTORY_APP_CLIENT_ID }}
+      private-key: ${{ secrets.FACTORY_APP_PRIVATE_KEY }}
+      permission-contents: read
+      permission-actions: read
+      # Scoped to this repository: an App token otherwise reaches every repo
+      # the installation covers.
+      owner: ${{ github.repository_owner }}
+      repositories: ${{ github.event.repository.name }}
+  # The frozen sandbox, as the manifest on the default branch declares it:
+  # its services, its closed environment, its install. It used to be a script
+  # run from the workspace, which on a retry is the PR branch — code from the
+  # change under judgement, running before the agent did.
+  - name: Start the sandbox
     shell: bash
-    run: .factory/sandbox/start.sh
+    env:
+      FACTORY_SANDBOX_ENV: ${{ secrets.FACTORY_SANDBOX_ENV }}
+    run: bsf sandbox start
   - name: Fetch the work item and its spec from factory-data
     shell: bash
     env:
+      GH_TOKEN: ${{ steps.read-token.outputs.token }}
       WORK_ITEM: ${{ inputs.work_item }}
     run: bsf fetch-work-item "$WORK_ITEM" --out /tmp/gh-aw/agent/bsf/work-item.json
   - name: Fetch the previous attempt's gate failures, if any
     if: inputs.attempt > 1
     shell: bash
     env:
+      GH_TOKEN: ${{ steps.read-token.outputs.token }}
       GATE_FAILURES: ${{ inputs.gate_failures }}
     run: bsf fetch-artifact "$GATE_FAILURES" --out /tmp/gh-aw/agent/bsf/gate-failures.json
 
 post-steps:
+  # Write access, only after the agent has exited, for the steps that store
+  # what it produced on the factory's data ref.
+  - name: Mint a token to store this step's results
+    id: write-token
+    uses: actions/create-github-app-token@v1
+    with:
+      app-id: ${{ vars.FACTORY_APP_CLIENT_ID }}
+      private-key: ${{ secrets.FACTORY_APP_PRIVATE_KEY }}
+      permission-contents: write
+      permission-actions: read
+      # Scoped to this repository: an App token otherwise reaches every repo
+      # the installation covers.
+      owner: ${{ github.repository_owner }}
+      repositories: ${{ github.event.repository.name }}
   # memex reads the harness's own session log for tokens and cost. The log is
   # the source of truth; agents' own cost reporting is uneven (doc 07).
   - name: Write the StepReport with memex
     id: report
     shell: bash
     env:
+      GH_TOKEN: ${{ steps.write-token.outputs.token }}
       ROLE: builder
       ATTEMPT: ${{ inputs.attempt }}
     run: bsf step-report --role "$ROLE" --attempt "$ATTEMPT" --out /tmp/gh-aw/agent/bsf/step-report.json
@@ -171,33 +235,69 @@ post-steps:
       name: step-report-builder-${{ inputs.attempt }}
       path: /tmp/gh-aw/agent/bsf/step-report.json
 ---
-
 # Builder
 
 You are the builder for `${{ github.repository }}`.
 
-Implement the spec in `/tmp/gh-aw/agent/bsf/work-item.json` with the **smallest correct
-change**, plus tests for new behavior.
+Implement the spec in `/tmp/gh-aw/agent/bsf/work-item.json` with the **smallest
+correct change**, plus tests for new behavior.
 
 ## Read first
 
 - `.factory/definition/context/feature-map.md` — what exists and where
 - `.factory/definition/context/runbook.md` — how to build, run and test
 - `.factory/definition/context/fundamentals.md` — conventions no check enforces
+- `.factory/definition/context/practices.md` — what this repo's owners have asked for, in their words
 - `.factory/definition/context/history.md` — lessons from past failures
+- `.factory/definition/policy.yaml` — which paths this pipeline may change, and which are protected
+- `.factory/guardrails/` — the static rules your change is gated on, and their baselines
+- `.factory/sandbox/manifest.json` — how the app runs here, and what this sandbox can and cannot exercise
 
-## What to do
+The guardrails and the policy are not suggestions. A change that breaks one
+fails the gate after you have finished; reading them first is cheaper.
+
+## The app is already set up
+
+The sandbox has installed the app's dependencies and started any services it
+needs. Its environment is in `.factory/sandbox/.runtime.env`: **source it in
+every shell you start the app from**, because the sandbox gives the app exactly
+those variables and nothing else.
+
+```bash
+source .factory/sandbox/.runtime.env
+```
+
+The manifest's `commands` say how to build, run and test, and `app_url` says
+where the running app answers.
+
+## How to work
 
 1. Read the spec. Change only the files it names, in the feature folders it names.
 2. Follow the dominant pattern for each concern. The codebase is the largest
    input you get: copy the patterns already there, and do not introduce a second
    way of doing something that already has one.
-3. Add tests for new or changed behavior. You may modify or delete an existing
+3. Work in a loop, the way a developer does:
+   - make a change;
+   - run the repo's fast checks — the manifest's `test` command, plus any lint
+     or type check the runbook names;
+   - **if the change is visible, start the app and look at it.** Run the
+     manifest's `run` command in the background, open `app_url` with the
+     browser tool, and go to the screen the spec is about. Do what a user would
+     do there. Check the console for errors;
+   - when what you see is not what the spec asks for, fix it and look again.
+
+   Stop when your own checks pass and the screen does what the spec says. Do
+   not stop at "the tests pass" for a change someone will look at.
+4. Add tests for new or changed behavior. You may modify or delete an existing
    test **only if the spec's `tests_changed` lists it** — an undeclared edit
    fails the policy check, and new test files are always fine.
-4. Run the repo's own fast checks as you go, from the runbook's `## Test` section.
 5. Keep the change minimal. Unrequested refactors, new dependencies and new
    markdown files all fail review.
+
+Your own looking is for you. The verifier checks the result separately, in a
+job with no access to anything you did here, and the gates re-run everything.
+That is why you are free to look as much as you like: looking is not
+certifying.
 
 ## If this is a retry
 
@@ -206,6 +306,20 @@ attempt and that file says why. Fix exactly those failures. Do not take the
 opportunity to change anything else: each gate allows 3 attempts per work item,
 and the third failure escalates to a human.
 
+## If the sandbox cannot run what you need
+
+If the change touches something the manifest lists under
+`capabilities.not_exercised`, or the app cannot do what the spec needs because
+a service or credential it relies on is not in the sandbox, do the change
+anyway, and write `/tmp/gh-aw/agent/bsf/sandbox-report.json`:
+
+```json
+{ "role": "builder", "needs": "what you could not exercise", "paths": ["the files involved"], "why": "what stopped you" }
+```
+
+That report is how the sandbox gets amended. Do not work around a missing
+service by editing the sandbox, the manifest or the runtime environment
+yourself.
 
 ## Do not
 

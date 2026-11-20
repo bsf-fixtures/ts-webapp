@@ -47,7 +47,10 @@ jobs:
         with:
           ref: ${{ github.event.repository.default_branch }}
           path: .factory-trusted
-          sparse-checkout: .factory/bin
+          sparse-checkout: |
+            .factory/bin
+            .factory/definition
+            .factory/sandbox
           sparse-checkout-cone-mode: false
           persist-credentials: false
       - name: Put the trusted runner on PATH
@@ -55,6 +58,13 @@ jobs:
         run: |
           mkdir -p "$RUNNER_TEMP/bsf"
           cp -R .factory-trusted/.factory/bin/. "$RUNNER_TEMP/bsf/"
+          # The definition and the sandbox decide how a change is judged, so
+          # bsf reads them from this copy, never from the checkout.
+          mkdir -p "$RUNNER_TEMP/bsf-trusted/.factory"
+          for d in definition sandbox; do
+            if [ -d ".factory-trusted/.factory/$d" ]; then cp -R ".factory-trusted/.factory/$d" "$RUNNER_TEMP/bsf-trusted/.factory/"; fi
+          done
+          echo "BSF_TRUSTED_ROOT=$RUNNER_TEMP/bsf-trusted" >> "$GITHUB_ENV"
           rm -rf .factory-trusted
           echo "$RUNNER_TEMP/bsf" >> "$GITHUB_PATH"
           "$RUNNER_TEMP/bsf/bsf" --version
@@ -68,6 +78,8 @@ jobs:
       # the PR's feature folders.
       - name: Plan the gates for this commit
         id: plan
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: bsf gates plan
 
   static:
@@ -87,7 +99,10 @@ jobs:
         with:
           ref: ${{ github.event.repository.default_branch }}
           path: .factory-trusted
-          sparse-checkout: .factory/bin
+          sparse-checkout: |
+            .factory/bin
+            .factory/definition
+            .factory/sandbox
           sparse-checkout-cone-mode: false
           persist-credentials: false
       - name: Put the trusted runner on PATH
@@ -95,12 +110,21 @@ jobs:
         run: |
           mkdir -p "$RUNNER_TEMP/bsf"
           cp -R .factory-trusted/.factory/bin/. "$RUNNER_TEMP/bsf/"
+          # The definition and the sandbox decide how a change is judged, so
+          # bsf reads them from this copy, never from the checkout.
+          mkdir -p "$RUNNER_TEMP/bsf-trusted/.factory"
+          for d in definition sandbox; do
+            if [ -d ".factory-trusted/.factory/$d" ]; then cp -R ".factory-trusted/.factory/$d" "$RUNNER_TEMP/bsf-trusted/.factory/"; fi
+          done
+          echo "BSF_TRUSTED_ROOT=$RUNNER_TEMP/bsf-trusted" >> "$GITHUB_ENV"
           rm -rf .factory-trusted
           echo "$RUNNER_TEMP/bsf" >> "$GITHUB_PATH"
           "$RUNNER_TEMP/bsf/bsf" --version
       # All static rules, the per-file ratchet across each linter's native
       # baseline and baselines.json, the weakening check and suppression control.
       - name: Gate 1 — static rules
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: bsf gates static --report-check factory/gate-static
 
   verification:
@@ -120,7 +144,10 @@ jobs:
         with:
           ref: ${{ github.event.repository.default_branch }}
           path: .factory-trusted
-          sparse-checkout: .factory/bin
+          sparse-checkout: |
+            .factory/bin
+            .factory/definition
+            .factory/sandbox
           sparse-checkout-cone-mode: false
           persist-credentials: false
       - name: Put the trusted runner on PATH
@@ -128,6 +155,13 @@ jobs:
         run: |
           mkdir -p "$RUNNER_TEMP/bsf"
           cp -R .factory-trusted/.factory/bin/. "$RUNNER_TEMP/bsf/"
+          # The definition and the sandbox decide how a change is judged, so
+          # bsf reads them from this copy, never from the checkout.
+          mkdir -p "$RUNNER_TEMP/bsf-trusted/.factory"
+          for d in definition sandbox; do
+            if [ -d ".factory-trusted/.factory/$d" ]; then cp -R ".factory-trusted/.factory/$d" "$RUNNER_TEMP/bsf-trusted/.factory/"; fi
+          done
+          echo "BSF_TRUSTED_ROOT=$RUNNER_TEMP/bsf-trusted" >> "$GITHUB_ENV"
           rm -rf .factory-trusted
           echo "$RUNNER_TEMP/bsf" >> "$GITHUB_PATH"
           "$RUNNER_TEMP/bsf/bsf" --version
@@ -135,14 +169,27 @@ jobs:
       # branches, this reads its result for the same commit rather than
       # re-running the tests; after wait_minutes with no result, it runs them.
       - name: Gate 2 — tests, or the repo's own test check
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: bsf gates tests --report-check factory/gate-tests
       - name: Gate 2 — diff and total coverage
         if: needs.plan.outputs.coverage == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: bsf gates coverage --report-check factory/gate-coverage
 
   agent-verification:
     needs: [plan, verification]
     if: needs.plan.outputs.agent_verification == 'true'
+    # What the compiled role's own jobs request. A caller must grant at
+    # least this, or GitHub refuses to start the run; derived from the lock
+    # file and checked by a test, so a gh-aw upgrade cannot silently break it.
+    permissions:
+      actions: read
+      checks: read
+      contents: read
+      issues: write
+      pull-requests: write
     uses: ./.github/workflows/factory-role-verifier.lock.yml
     with:
       model: ${{ needs.plan.outputs.model_verifier }}
@@ -167,7 +214,10 @@ jobs:
         with:
           ref: ${{ github.event.repository.default_branch }}
           path: .factory-trusted
-          sparse-checkout: .factory/bin
+          sparse-checkout: |
+            .factory/bin
+            .factory/definition
+            .factory/sandbox
           sparse-checkout-cone-mode: false
           persist-credentials: false
       - name: Put the trusted runner on PATH
@@ -175,10 +225,31 @@ jobs:
         run: |
           mkdir -p "$RUNNER_TEMP/bsf"
           cp -R .factory-trusted/.factory/bin/. "$RUNNER_TEMP/bsf/"
+          # The definition and the sandbox decide how a change is judged, so
+          # bsf reads them from this copy, never from the checkout.
+          mkdir -p "$RUNNER_TEMP/bsf-trusted/.factory"
+          for d in definition sandbox; do
+            if [ -d ".factory-trusted/.factory/$d" ]; then cp -R ".factory-trusted/.factory/$d" "$RUNNER_TEMP/bsf-trusted/.factory/"; fi
+          done
+          echo "BSF_TRUSTED_ROOT=$RUNNER_TEMP/bsf-trusted" >> "$GITHUB_ENV"
           rm -rf .factory-trusted
           echo "$RUNNER_TEMP/bsf" >> "$GITHUB_PATH"
           "$RUNNER_TEMP/bsf/bsf" --version
-      # Records each gate and its attempt against the commit, so nothing is
-      # ever re-run for the same commit.
-      - name: Record the gate results for this commit
-        run: bsf gates record
+      # Reports factory/gates, the one check branch protection requires: the
+      # verdict over every gate the plan called for. Always runs, because a
+      # required check that only reports on some PRs blocks the rest forever.
+      # Each gate's own check run is what keeps a passed gate from re-running.
+      - name: Report factory/gates
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COMMIT: ${{ needs.plan.outputs.commit }}
+          PLAN_STATIC: ${{ needs.plan.outputs.static }}
+          PLAN_VERIFICATION: ${{ needs.plan.outputs.tests == 'true' || needs.plan.outputs.coverage == 'true' }}
+          PLAN_AGENT: ${{ needs.plan.outputs.agent_verification }}
+          STATIC: ${{ needs.static.result }}
+          VERIFICATION: ${{ needs.verification.result }}
+          AGENT: ${{ needs.agent-verification.result }}
+        run: >-
+          bsf gates record --commit "$COMMIT"
+          --plan-static "$PLAN_STATIC" --plan-verification "$PLAN_VERIFICATION" --plan-agent "$PLAN_AGENT"
+          --static "$STATIC" --verification "$VERIFICATION" --agent "$AGENT"

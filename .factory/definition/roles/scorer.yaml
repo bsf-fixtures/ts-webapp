@@ -7,7 +7,7 @@ schema: role/1
 id: scorer
 purpose: >-
   Grade recent work against the rubrics so failures become work rather than folklore.
-reads_context: [feature-map, runbook, fundamentals, history]
+reads_context: [feature-map, fundamentals, practices, policy]
 tools: [read]
 prompt: |
   See .github/workflows/factory-role-scorer.md, which holds this role's prompt

@@ -7,7 +7,7 @@ schema: role/1
 id: gardener
 purpose: >-
   Find drift and pick the night's cleanup items.
-reads_context: [feature-map, runbook, fundamentals, history]
+reads_context: [feature-map, runbook, fundamentals, history, practices, policy, guardrails]
 tools: [read, shell]
 prompt: |
   See .github/workflows/factory-role-gardener.md, which holds this role's prompt

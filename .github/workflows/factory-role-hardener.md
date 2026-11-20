@@ -32,6 +32,8 @@ on:
         required: true
       FACTORY_APP_PRIVATE_KEY:
         required: true
+      FACTORY_SANDBOX_ENV:
+        required: false
 
 github-app:
   client-id: ${{ vars.FACTORY_APP_CLIENT_ID }}
@@ -49,11 +51,19 @@ permissions:
   issues: read
 
 network:
+  # Every common package ecosystem, so the app's dependencies install in any
+  # repo. Extra hosts a sandbox manifest needs are added by a recompile at setup.
   allowed:
     - api.anthropic.com
-    - registry.npmjs.org
-    - pypi.org
-    - files.pythonhosted.org
+    - defaults
+    - node
+    - python
+    - go
+    - rust
+    - ruby
+    - java
+    - dotnet
+    - playwright
 
 sandbox:
   agent:
@@ -96,7 +106,10 @@ pre-agent-steps:
     with:
       ref: ${{ github.event.repository.default_branch }}
       path: .factory-trusted
-      sparse-checkout: .factory/bin
+      sparse-checkout: |
+        .factory/bin
+        .factory/definition
+        .factory/sandbox
       sparse-checkout-cone-mode: false
       persist-credentials: false
   - name: Put the trusted runner on PATH
@@ -104,22 +117,66 @@ pre-agent-steps:
     run: |
       mkdir -p "$RUNNER_TEMP/bsf"
       cp -R .factory-trusted/.factory/bin/. "$RUNNER_TEMP/bsf/"
+      # The definition and the sandbox decide how a change is judged, so
+      # bsf reads them from this copy, never from the checkout.
+      mkdir -p "$RUNNER_TEMP/bsf-trusted/.factory"
+      for d in definition sandbox; do
+        if [ -d ".factory-trusted/.factory/$d" ]; then cp -R ".factory-trusted/.factory/$d" "$RUNNER_TEMP/bsf-trusted/.factory/"; fi
+      done
+      echo "BSF_TRUSTED_ROOT=$RUNNER_TEMP/bsf-trusted" >> "$GITHUB_ENV"
       rm -rf .factory-trusted
       echo "$RUNNER_TEMP/bsf" >> "$GITHUB_PATH"
       "$RUNNER_TEMP/bsf/bsf" --version
-  - name: Start the devcontainer and any services the app needs
+  # Read-only, for the steps that fetch this item's data before the agent
+  # starts. Minted here rather than handed to the agent: step outputs never
+  # reach the agent's sandbox.
+  - name: Mint a read-only token for the factory's data
+    id: read-token
+    uses: actions/create-github-app-token@v1
+    with:
+      app-id: ${{ vars.FACTORY_APP_CLIENT_ID }}
+      private-key: ${{ secrets.FACTORY_APP_PRIVATE_KEY }}
+      permission-contents: read
+      permission-actions: read
+      # Scoped to this repository: an App token otherwise reaches every repo
+      # the installation covers.
+      owner: ${{ github.repository_owner }}
+      repositories: ${{ github.event.repository.name }}
+  # The frozen sandbox, as the manifest on the default branch declares it:
+  # its services, its closed environment, its install. It used to be a script
+  # run from the workspace, which on a retry is the PR branch — code from the
+  # change under judgement, running before the agent did.
+  - name: Start the sandbox
     shell: bash
-    run: .factory/sandbox/start.sh
+    env:
+      FACTORY_SANDBOX_ENV: ${{ secrets.FACTORY_SANDBOX_ENV }}
+    run: bsf sandbox start
   - name: Fetch the correction or failure, the candidates and the ledger
     shell: bash
     env:
+      GH_TOKEN: ${{ steps.read-token.outputs.token }}
       WORK_ITEM: ${{ inputs.work_item }}
     run: bsf harden-context "$WORK_ITEM" --out /tmp/gh-aw/agent/bsf/harden.json
 
 post-steps:
+  # Write access, only after the agent has exited, for the steps that store
+  # what it produced on the factory's data ref.
+  - name: Mint a token to store this step's results
+    id: write-token
+    uses: actions/create-github-app-token@v1
+    with:
+      app-id: ${{ vars.FACTORY_APP_CLIENT_ID }}
+      private-key: ${{ secrets.FACTORY_APP_PRIVATE_KEY }}
+      permission-contents: write
+      permission-actions: read
+      # Scoped to this repository: an App token otherwise reaches every repo
+      # the installation covers.
+      owner: ${{ github.repository_owner }}
+      repositories: ${{ github.event.repository.name }}
   - name: Write the StepReport with memex
     shell: bash
     env:
+      GH_TOKEN: ${{ steps.write-token.outputs.token }}
       ROLE: hardener
       ATTEMPT: ${{ inputs.attempt }}
     run: bsf step-report --role "$ROLE" --attempt "$ATTEMPT" --out /tmp/gh-aw/agent/bsf/step-report.json
@@ -130,6 +187,15 @@ post-steps:
 You are the hardener for `${{ github.repository }}`. Someone corrected the
 factory, or the same failure happened three times. Your job is to make that
 whole *class* of mistake impossible, not to fix the one instance.
+
+## The factory's own rules
+
+Read these before anything else, and keep to them:
+
+- `.factory/definition/context/practices.md` — what this repo's owners have asked for, in their words
+- `.factory/definition/policy.yaml` — what this pipeline may change, and what is protected
+- `.factory/guardrails/` — the static rules every change is gated on
+
 
 `/tmp/gh-aw/agent/bsf/harden.json` has the correction or failure, the existing
 `candidates.json`, and the ledger. Read `fundamentals.md` and `history.md`.

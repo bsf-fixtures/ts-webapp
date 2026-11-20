@@ -31,7 +31,9 @@ review:
 
 limits:
   retry_cap: 3
-  step_time_budget_sec: 2700
+  # The longest any one role may run. The builder's write, run, look, fix
+  # loop is the longest; each role workflow's timeout stays within this.
+  step_time_budget_sec: 4500
   concurrency:
     max_runs: 5
 

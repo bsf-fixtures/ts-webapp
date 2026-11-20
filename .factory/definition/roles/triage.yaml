@@ -7,7 +7,7 @@ schema: role/1
 id: triage
 purpose: >-
   Understand the work item, reproduce a bug in the sandbox, and decide whether it is real, understood and in scope.
-reads_context: [feature-map, runbook, fundamentals, history]
+reads_context: [feature-map, fundamentals, history, practices, policy, sandbox]
 tools: [read, shell, browser]
 prompt: |
   See .github/workflows/factory-role-triage.md, which holds this role's prompt

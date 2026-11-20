@@ -7,50 +7,45 @@
   confident unverified PRs.
 -->
 
-# Runbook — bsf-fixtures/ts-webapp
+# Runbook — {{REPO_NAME}}
 
 ## Build
 
 ```bash
-npm ci
-npm run build
+{{BUILD_COMMAND}}
 ```
 
-Next.js 15. No environment variables are read; the build needs nothing but the registry.
+{{BUILD_NOTES}}
 
 ## Run
 
 ```bash
-npm run dev -- --port 3000
+{{RUN_COMMAND}}
 ```
 
-The app is then at http://localhost:3000/invoices.
+The app is then at {{APP_URL}}.
 
 ## Test
 
 ```bash
-npm test
-npm run typecheck
-npm run lint
+{{TEST_COMMAND}}
 ```
 
-`npm test` is vitest over `lib/` and `components/`.
+{{TEST_NOTES}}
 
 ## Verify
 
 How to see for yourself that the app works, as a developer would:
 
-1. Open `/invoices`. Five invoices are listed.
-2. The button reads **Export 3 invoices as CSV** — the draft and the void were never sent.
-3. Click it. `invoices-YYYY-MM-DD.csv` downloads: a header row and three data rows.
+{{VERIFY_STEPS}}
 
 ## Seed data
 
 ```bash
-# none: the invoices are a constant in lib/invoices.ts
+{{SEED_COMMAND}}
 ```
 
-There is no database. The five fixture invoices are the data.
+{{SEED_NOTES}}
 
 ## Commands that change persistent state
 
@@ -60,13 +55,13 @@ of mistake that cannot be undone by reverting a commit.
 
 | Command | Writes to | Only when |
 | --- | --- | --- |
-| (none) | | |
+{{STATEFUL_COMMAND_ROWS}}
 
 ## Services this app needs
 
 | Service | How it starts | Reached at |
 | --- | --- | --- |
-| (none) | | |
+{{SERVICE_ROWS}}
 
 ## The sandbox's environment
 
@@ -77,4 +72,4 @@ whatever a developer's credentials happen to point at.
 
 | Variable | Value in the sandbox |
 | --- | --- |
-| (none) | the app reads no environment variables |
+{{SANDBOX_ENV_ROWS}}

@@ -7,7 +7,7 @@ schema: role/1
 id: hardener
 purpose: >-
   Generalise a correction into a problem class and pick the strongest fix that eliminates it.
-reads_context: [feature-map, runbook, fundamentals, history]
+reads_context: [feature-map, runbook, fundamentals, history, practices, policy, guardrails, sandbox]
 tools: [read, edit, shell]
 prompt: |
   See .github/workflows/factory-role-hardener.md, which holds this role's prompt

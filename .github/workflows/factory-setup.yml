@@ -1,0 +1,225 @@
+# Phase 2 of setup: design the sandbox, prove it, freeze it.
+#
+# Each round, the setup agent reads the repo and writes a complete candidate —
+# context files and a sandbox manifest — and the runner, which has Docker,
+# brings up exactly what the candidate declares and measures the tier it
+# actually reaches. A round runs only while the measured tier falls short of
+# what the agent claimed, three at most. The best measured round is frozen
+# into one pull request: the factory exists once someone merges it.
+#
+# Also the only way the sandbox changes afterwards: a role that could not
+# exercise what a change needed files a report, and this runs again with it.
+name: factory-setup
+
+on:
+  workflow_dispatch:
+    inputs:
+      amend:
+        description: An inadequacy report (JSON), for an amendment; empty for first setup
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: factory-setup
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      model_builder: ${{ steps.models.outputs.model_builder }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch the factory runner from the default branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          path: .factory-trusted
+          sparse-checkout: |
+            .factory/bin
+            .factory/definition
+            .factory/sandbox
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+      - name: Put the trusted runner on PATH
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/bsf"
+          cp -R .factory-trusted/.factory/bin/. "$RUNNER_TEMP/bsf/"
+          mkdir -p "$RUNNER_TEMP/bsf-trusted/.factory"
+          for d in definition sandbox; do
+            if [ -d ".factory-trusted/.factory/$d" ]; then cp -R ".factory-trusted/.factory/$d" "$RUNNER_TEMP/bsf-trusted/.factory/"; fi
+          done
+          echo "BSF_TRUSTED_ROOT=$RUNNER_TEMP/bsf-trusted" >> "$GITHUB_ENV"
+          rm -rf .factory-trusted
+          echo "$RUNNER_TEMP/bsf" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/bsf/bsf" --version
+      # Setup uses the builder's model: it reads code and writes working
+      # configuration, which is the builder's kind of work.
+      - name: Read each role's model from factory.yaml
+        id: models
+        run: bsf models
+
+  design-1:
+    needs: plan
+    # What the compiled agent's own jobs request; checked against the lock.
+    permissions:
+      actions: read
+      checks: read
+      contents: read
+      issues: write
+      pull-requests: write
+    uses: ./.github/workflows/factory-setup-agent.lock.yml
+    with:
+      model: ${{ needs.plan.outputs.model_builder }}
+      round: 1
+      amend: ${{ inputs.amend }}
+    secrets: inherit
+
+  trial-1:
+    needs: design-1
+    uses: ./.github/workflows/factory-setup-trial.yml
+    with:
+      round: 1
+    secrets: inherit
+
+  design-2:
+    needs: [plan, trial-1]
+    if: needs.trial-1.outputs.met != 'true'
+    # What the compiled agent's own jobs request; checked against the lock.
+    permissions:
+      actions: read
+      checks: read
+      contents: read
+      issues: write
+      pull-requests: write
+    uses: ./.github/workflows/factory-setup-agent.lock.yml
+    with:
+      model: ${{ needs.plan.outputs.model_builder }}
+      round: 2
+      amend: ${{ inputs.amend }}
+    secrets: inherit
+
+  trial-2:
+    needs: design-2
+    uses: ./.github/workflows/factory-setup-trial.yml
+    with:
+      round: 2
+    secrets: inherit
+
+  design-3:
+    needs: [plan, trial-2]
+    if: needs.trial-2.outputs.met != 'true'
+    # What the compiled agent's own jobs request; checked against the lock.
+    permissions:
+      actions: read
+      checks: read
+      contents: read
+      issues: write
+      pull-requests: write
+    uses: ./.github/workflows/factory-setup-agent.lock.yml
+    with:
+      model: ${{ needs.plan.outputs.model_builder }}
+      round: 3
+      amend: ${{ inputs.amend }}
+    secrets: inherit
+
+  trial-3:
+    needs: design-3
+    uses: ./.github/workflows/factory-setup-trial.yml
+    with:
+      round: 3
+    secrets: inherit
+
+  # Runs whenever at least one round was designed and tried. Freezes the best
+  # measured round and opens the setup pull request.
+  freeze:
+    needs: [trial-1, trial-2, trial-3]
+    if: always() && needs.trial-1.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Fetch the factory runner from the default branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          path: .factory-trusted
+          sparse-checkout: |
+            .factory/bin
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+      - name: Put the trusted runner on PATH
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/bsf"
+          cp -R .factory-trusted/.factory/bin/. "$RUNNER_TEMP/bsf/"
+          rm -rf .factory-trusted
+          echo "$RUNNER_TEMP/bsf" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/bsf/bsf" --version
+      - name: Fetch every round
+        uses: actions/download-artifact@v4
+        with:
+          pattern: '*-round-*'
+          path: ${{ runner.temp }}/rounds
+      - name: Freeze the best measured round
+        id: freeze
+        shell: bash
+        env:
+          ROUNDS_DIR: ${{ runner.temp }}/rounds
+        run: |
+          rounds=""
+          for n in 1 2 3; do
+            c="$ROUNDS_DIR/setup-round-$n/manifest.json"; t="$ROUNDS_DIR/trial-round-$n/trial.json"
+            if [ -f "$c" ] && [ -f "$t" ]; then rounds="${rounds:+$rounds,}$c:$t"; fi
+          done
+          bsf sandbox freeze --rounds "$rounds" --out "$RUNNER_TEMP/manifest.json"
+      - name: Mint a token to open the setup pull request
+        id: token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.FACTORY_APP_CLIENT_ID }}
+          private-key: ${{ secrets.FACTORY_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+      - name: Open the setup pull request
+        shell: bash
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+          ROUNDS_DIR: ${{ runner.temp }}/rounds
+          CHOSEN: ${{ steps.freeze.outputs.chosen }}
+          TIER: ${{ steps.freeze.outputs.tier }}
+          AMEND: ${{ inputs.amend }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          design="$ROUNDS_DIR/setup-round-$CHOSEN"
+          mkdir -p .factory/sandbox .factory/definition/context
+          cp "$RUNNER_TEMP/manifest.json" .factory/sandbox/manifest.json
+          if [ -d "$design/stubs" ]; then rm -rf .factory/sandbox/stubs; cp -R "$design/stubs" .factory/sandbox/stubs; fi
+          if [ -f "$design/research-domains.txt" ]; then cp "$design/research-domains.txt" .factory/sandbox/research-domains.txt; fi
+          # An amendment changes the sandbox only; the context stays the
+          # user's once it has been merged.
+          if [ -z "$AMEND" ] && [ -d "$design/context" ]; then cp "$design/context/"*.md .factory/definition/context/; fi
+          branch="factory/setup-${GITHUB_RUN_ID}"
+          git config user.name "factory[bot]"
+          git config user.email "factory[bot]@users.noreply.github.com"
+          git checkout -b "$branch"
+          git add .factory
+          if git diff --cached --quiet; then echo "nothing changed"; exit 0; fi
+          if [ -z "$AMEND" ]; then title="Set up the software factory"; else title="Amend the factory's sandbox"; fi
+          git commit -q -m "$title (sandbox tier: $TIER)"
+          git push -q "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "$branch"
+          body=$(printf '%s\n\n%s\n\n%s\n' \
+            "The sandbox reached **$TIER** when the runner brought it up and measured it; see \`.factory/sandbox/manifest.json\` for what it contains, what it can exercise, and every round that was tried." \
+            "No credential of yours is in it. Every value is local, fake, a throwaway service, or a named test-mode secret." \
+            "Rounds and the screenshot: $RUN_URL")
+          gh api "repos/${GITHUB_REPOSITORY}/pulls" -f title="$title" -f head="$branch" \
+            -f base="${{ github.event.repository.default_branch }}" -f body="$body" --jq .html_url

@@ -7,13 +7,13 @@
   and repeating it in prose means two things to keep in step.
 -->
 
-# History — bsf-fixtures/ts-webapp
+# History — {{REPO_NAME}}
 
 ## Lessons
 
 | What happened | What to do instead | Where it came from |
 | --- | --- | --- |
-| (none yet) | | |
+{{LESSON_ROWS}}
 
 ## Problem classes already eliminated
 
@@ -22,7 +22,7 @@ recognisable as one.
 
 | Problem class | How it was eliminated | When |
 | --- | --- | --- |
-| (none yet) | | |
+{{ELIMINATED_ROWS}}
 
 ## Escalations
 
@@ -31,4 +31,4 @@ is a signal about the factory rather than about the work.
 
 | Work item | Where it stopped | Cause |
 | --- | --- | --- |
-| (none yet) | | |
+{{ESCALATION_ROWS}}

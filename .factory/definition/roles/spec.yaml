@@ -7,8 +7,8 @@ schema: role/1
 id: spec
 purpose: >-
   Turn a triaged work item into a plan precise enough that the builder has nothing left to decide.
-reads_context: [feature-map, runbook, fundamentals, history]
-tools: [read]
+reads_context: [feature-map, runbook, fundamentals, history, practices, policy, guardrails, sandbox]
+tools: [read, shell, git, web]
 prompt: |
   See .github/workflows/factory-role-spec.md, which holds this role's prompt
   and is what gh-aw compiles. This file records the role's shape for the

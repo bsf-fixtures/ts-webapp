@@ -6,34 +6,33 @@
   this change go?" — so it names folders and what each one owns, not what the
   product does.
 
-  Placeholders are filled in by setup.
+  {{PLACEHOLDERS}} are filled in by setup.
 -->
 
-# Feature map — bsf-fixtures/ts-webapp
+# Feature map — {{REPO_NAME}}
 
-A small Next.js invoices app whose one real feature is exporting the invoices that were actually sent as CSV.
+{{ONE_LINE_WHAT_THIS_REPO_IS}}
 
 ## Feature folders
 
 | Folder | Owns | Depends on |
 | --- | --- | --- |
-| `app/invoices/` | the invoices page and its CSV export route |
+{{FEATURE_FOLDER_ROWS}}
 
 ## Shared
 
 | Folder | What it is | Rule |
 | --- | --- | --- |
-| `lib/` | the invoice model and CSV formatting |
-| `components/` | client components, with their tests beside them |
+{{SHARED_FOLDER_ROWS}}
 
 ## Where things go
 
-- **A new feature** gets its own folder under `app/`.
-- **Something used by two features** moves to `lib/` or `components/`, and not before
+- **A new feature** gets its own folder under {{FEATURE_ROOT}}.
+- **Something used by two features** moves to {{SHARED_ROOT}}, and not before
   the second use. One caller is not a shared concern.
 - **Nothing in a feature folder imports from another feature folder.** Where
   two features need the same thing, it belongs in shared.
 
 ## Not in this repo
 
-Persistence, auth and payments: there are none, and adding them is not a cleanup.
+{{OUT_OF_SCOPE}}

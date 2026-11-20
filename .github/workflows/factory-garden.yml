@@ -31,7 +31,10 @@ jobs:
         with:
           ref: ${{ github.event.repository.default_branch }}
           path: .factory-trusted
-          sparse-checkout: .factory/bin
+          sparse-checkout: |
+            .factory/bin
+            .factory/definition
+            .factory/sandbox
           sparse-checkout-cone-mode: false
           persist-credentials: false
       - name: Put the trusted runner on PATH
@@ -39,6 +42,13 @@ jobs:
         run: |
           mkdir -p "$RUNNER_TEMP/bsf"
           cp -R .factory-trusted/.factory/bin/. "$RUNNER_TEMP/bsf/"
+          # The definition and the sandbox decide how a change is judged, so
+          # bsf reads them from this copy, never from the checkout.
+          mkdir -p "$RUNNER_TEMP/bsf-trusted/.factory"
+          for d in definition sandbox; do
+            if [ -d ".factory-trusted/.factory/$d" ]; then cp -R ".factory-trusted/.factory/$d" "$RUNNER_TEMP/bsf-trusted/.factory/"; fi
+          done
+          echo "BSF_TRUSTED_ROOT=$RUNNER_TEMP/bsf-trusted" >> "$GITHUB_ENV"
           rm -rf .factory-trusted
           echo "$RUNNER_TEMP/bsf" >> "$GITHUB_PATH"
           "$RUNNER_TEMP/bsf/bsf" --version
@@ -51,6 +61,10 @@ jobs:
           permission-contents: write
           permission-issues: write
           permission-actions: write
+          # Scoped to this repository: an App token otherwise reaches every repo
+          # the installation covers.
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
       # Stops before spending anything if gardening's budget share is used.
       - name: Check the budget share
         id: budget

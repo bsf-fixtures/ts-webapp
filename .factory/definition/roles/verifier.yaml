@@ -7,7 +7,7 @@ schema: role/1
 id: verifier
 purpose: >-
   Find out whether the change does what the spec said, by running it.
-reads_context: [feature-map, runbook, fundamentals, history]
+reads_context: [feature-map, runbook, fundamentals, practices, sandbox]
 tools: [read, shell, browser, devtools]
 prompt: |
   See .github/workflows/factory-role-verifier.md, which holds this role's prompt

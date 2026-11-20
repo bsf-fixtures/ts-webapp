@@ -1,0 +1,77 @@
+# One trial of a setup round: bring up exactly what the candidate manifest
+# declares, run each of its commands, start the app, and record the tier it
+# actually reaches. Mechanical on purpose — the agent's claim is measured,
+# not believed. Runs on the runner, where Docker is.
+name: factory-setup-trial
+
+on:
+  workflow_call:
+    inputs:
+      round:
+        required: true
+        type: number
+    secrets:
+      FACTORY_SANDBOX_ENV:
+        required: false
+    outputs:
+      met:
+        description: Whether the measured tier matched the claim
+        value: ${{ jobs.trial.outputs.met }}
+
+permissions:
+  contents: read
+
+jobs:
+  trial:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    outputs:
+      met: ${{ steps.trial.outputs.met }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Fetch the factory runner from the default branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          path: .factory-trusted
+          sparse-checkout: |
+            .factory/bin
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+      - name: Put the trusted runner on PATH
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/bsf"
+          cp -R .factory-trusted/.factory/bin/. "$RUNNER_TEMP/bsf/"
+          rm -rf .factory-trusted
+          echo "$RUNNER_TEMP/bsf" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/bsf/bsf" --version
+      - name: Fetch this round's design
+        uses: actions/download-artifact@v4
+        with:
+          name: setup-round-${{ inputs.round }}
+          path: ${{ runner.temp }}/design
+      # Stubs the design wrote are placed where its run command expects them.
+      - name: Place the round's stubs
+        shell: bash
+        env:
+          DESIGN: ${{ runner.temp }}/design
+        run: |
+          if [ -d "$DESIGN/stubs" ]; then mkdir -p .factory/sandbox && cp -R "$DESIGN/stubs" .factory/sandbox/stubs; fi
+      - name: Trial
+        id: trial
+        env:
+          FACTORY_SANDBOX_ENV: ${{ secrets.FACTORY_SANDBOX_ENV }}
+          DESIGN: ${{ runner.temp }}/design
+        run: |
+          mkdir -p "$RUNNER_TEMP/trial"
+          bsf sandbox trial --candidate "$DESIGN/manifest.json" --out "$RUNNER_TEMP/trial/trial.json"
+      - name: Keep the trial for the next round and the freeze
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trial-round-${{ inputs.round }}
+          path: ${{ runner.temp }}/trial/
+          if-no-files-found: warn

@@ -54,11 +54,19 @@ permissions:
   issues: read
 
 network:
+  # Every common package ecosystem, so the app's dependencies install in any
+  # repo. Extra hosts a sandbox manifest needs are added by a recompile at setup.
   allowed:
     - api.anthropic.com
-    - registry.npmjs.org
-    - pypi.org
-    - files.pythonhosted.org
+    - defaults
+    - node
+    - python
+    - go
+    - rust
+    - ruby
+    - java
+    - dotnet
+    - playwright
 
 sandbox:
   agent:
@@ -86,7 +94,10 @@ pre-agent-steps:
     with:
       ref: ${{ github.event.repository.default_branch }}
       path: .factory-trusted
-      sparse-checkout: .factory/bin
+      sparse-checkout: |
+        .factory/bin
+        .factory/definition
+        .factory/sandbox
       sparse-checkout-cone-mode: false
       persist-credentials: false
   - name: Put the trusted runner on PATH
@@ -94,9 +105,31 @@ pre-agent-steps:
     run: |
       mkdir -p "$RUNNER_TEMP/bsf"
       cp -R .factory-trusted/.factory/bin/. "$RUNNER_TEMP/bsf/"
+      # The definition and the sandbox decide how a change is judged, so
+      # bsf reads them from this copy, never from the checkout.
+      mkdir -p "$RUNNER_TEMP/bsf-trusted/.factory"
+      for d in definition sandbox; do
+        if [ -d ".factory-trusted/.factory/$d" ]; then cp -R ".factory-trusted/.factory/$d" "$RUNNER_TEMP/bsf-trusted/.factory/"; fi
+      done
+      echo "BSF_TRUSTED_ROOT=$RUNNER_TEMP/bsf-trusted" >> "$GITHUB_ENV"
       rm -rf .factory-trusted
       echo "$RUNNER_TEMP/bsf" >> "$GITHUB_PATH"
       "$RUNNER_TEMP/bsf/bsf" --version
+  # Read-only, for the steps that fetch this item's data before the agent
+  # starts. Minted here rather than handed to the agent: step outputs never
+  # reach the agent's sandbox.
+  - name: Mint a read-only token for the factory's data
+    id: read-token
+    uses: actions/create-github-app-token@v1
+    with:
+      app-id: ${{ vars.FACTORY_APP_CLIENT_ID }}
+      private-key: ${{ secrets.FACTORY_APP_PRIVATE_KEY }}
+      permission-contents: read
+      permission-actions: read
+      # Scoped to this repository: an App token otherwise reaches every repo
+      # the installation covers.
+      owner: ${{ github.repository_owner }}
+      repositories: ${{ github.event.repository.name }}
   # gh-aw allows only a fixed set of expressions in a prompt, so the budget
   # reaches the agent as a file. Validated as a number because it lands in
   # JSON the agent parses.
@@ -110,17 +143,36 @@ pre-agent-steps:
       printf '{"max_prs": %s}\n' "$MAX_PRS" > /tmp/gh-aw/agent/bsf/garden-budget.json
   - name: Read the baselines, the ledger and recent merges
     shell: bash
+    env:
+      GH_TOKEN: ${{ steps.read-token.outputs.token }}
     run: bsf garden-scan --out /tmp/gh-aw/agent/bsf/drift.json
 
 post-steps:
+  # Write access, only after the agent has exited, for the steps that store
+  # what it produced on the factory's data ref.
+  - name: Mint a token to store this step's results
+    id: write-token
+    uses: actions/create-github-app-token@v1
+    with:
+      app-id: ${{ vars.FACTORY_APP_CLIENT_ID }}
+      private-key: ${{ secrets.FACTORY_APP_PRIVATE_KEY }}
+      permission-contents: write
+      permission-actions: read
+      # Scoped to this repository: an App token otherwise reaches every repo
+      # the installation covers.
+      owner: ${{ github.repository_owner }}
+      repositories: ${{ github.event.repository.name }}
   - name: Write the StepReport with memex
     shell: bash
     env:
+      GH_TOKEN: ${{ steps.write-token.outputs.token }}
       ROLE: gardener
       ATTEMPT: ${{ inputs.attempt }}
     run: bsf step-report --role "$ROLE" --attempt "$ATTEMPT" --out /tmp/gh-aw/agent/bsf/step-report.json
   - name: File the chosen items as work items
     shell: bash
+    env:
+      GH_TOKEN: ${{ steps.write-token.outputs.token }}
     run: bsf garden-file --from /tmp/gh-aw/agent/bsf/picks.json
 ---
 
@@ -129,6 +181,15 @@ post-steps:
 You are the gardener for `${{ github.repository }}`. Once a night you look for
 drift and pick what to clean. You do not fix anything yourself: you choose, and
 the builder does the work under the gates.
+
+## The factory's own rules
+
+Read these before anything else, and keep to them:
+
+- `.factory/definition/context/practices.md` — what this repo's owners have asked for, in their words
+- `.factory/definition/policy.yaml` — what this pipeline may change, and what is protected
+- `.factory/guardrails/` — the static rules every change is gated on
+
 
 `/tmp/gh-aw/agent/bsf/drift.json` has the raw material: baseline counts per rule per file,
 the ledger's open PRs and what each is fixing, and what merged in the last 14

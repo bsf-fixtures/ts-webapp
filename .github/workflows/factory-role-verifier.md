@@ -39,6 +39,8 @@ on:
         required: true
       FACTORY_APP_PRIVATE_KEY:
         required: true
+      FACTORY_SANDBOX_ENV:
+        required: false
 
 github-app:
   client-id: ${{ vars.FACTORY_APP_CLIENT_ID }}
@@ -55,11 +57,19 @@ permissions:
   pull-requests: read
 
 network:
+  # Every common package ecosystem, so the app's dependencies install in any
+  # repo. Extra hosts a sandbox manifest needs are added by a recompile at setup.
   allowed:
     - api.anthropic.com
-    - registry.npmjs.org
-    - pypi.org
-    - files.pythonhosted.org
+    - defaults
+    - node
+    - python
+    - go
+    - rust
+    - ruby
+    - java
+    - dotnet
+    - playwright
 
 sandbox:
   agent:
@@ -99,7 +109,10 @@ pre-agent-steps:
     with:
       ref: ${{ github.event.repository.default_branch }}
       path: .factory-trusted
-      sparse-checkout: .factory/bin
+      sparse-checkout: |
+        .factory/bin
+        .factory/definition
+        .factory/sandbox
       sparse-checkout-cone-mode: false
       persist-credentials: false
   - name: Put the trusted runner on PATH
@@ -107,12 +120,40 @@ pre-agent-steps:
     run: |
       mkdir -p "$RUNNER_TEMP/bsf"
       cp -R .factory-trusted/.factory/bin/. "$RUNNER_TEMP/bsf/"
+      # The definition and the sandbox decide how a change is judged, so
+      # bsf reads them from this copy, never from the checkout.
+      mkdir -p "$RUNNER_TEMP/bsf-trusted/.factory"
+      for d in definition sandbox; do
+        if [ -d ".factory-trusted/.factory/$d" ]; then cp -R ".factory-trusted/.factory/$d" "$RUNNER_TEMP/bsf-trusted/.factory/"; fi
+      done
+      echo "BSF_TRUSTED_ROOT=$RUNNER_TEMP/bsf-trusted" >> "$GITHUB_ENV"
       rm -rf .factory-trusted
       echo "$RUNNER_TEMP/bsf" >> "$GITHUB_PATH"
       "$RUNNER_TEMP/bsf/bsf" --version
-  - name: Start the devcontainer and any services the app needs
+  # Read-only, for the steps that fetch this item's data before the agent
+  # starts. Minted here rather than handed to the agent: step outputs never
+  # reach the agent's sandbox.
+  - name: Mint a read-only token for the factory's data
+    id: read-token
+    uses: actions/create-github-app-token@v1
+    with:
+      app-id: ${{ vars.FACTORY_APP_CLIENT_ID }}
+      private-key: ${{ secrets.FACTORY_APP_PRIVATE_KEY }}
+      permission-contents: read
+      permission-actions: read
+      # Scoped to this repository: an App token otherwise reaches every repo
+      # the installation covers.
+      owner: ${{ github.repository_owner }}
+      repositories: ${{ github.event.repository.name }}
+  # The frozen sandbox, as the manifest on the default branch declares it:
+  # its services, its closed environment, its install. It used to be a script
+  # run from the workspace, which on a retry is the PR branch — code from the
+  # change under judgement, running before the agent did.
+  - name: Start the sandbox
     shell: bash
-    run: .factory/sandbox/start.sh
+    env:
+      FACTORY_SANDBOX_ENV: ${{ secrets.FACTORY_SANDBOX_ENV }}
+    run: bsf sandbox start
   - name: Check out the exact commit under verification
     shell: bash
     env:
@@ -121,18 +162,36 @@ pre-agent-steps:
   - name: Fetch the spec only — never the builder's transcript
     shell: bash
     env:
+      GH_TOKEN: ${{ steps.read-token.outputs.token }}
       WORK_ITEM: ${{ inputs.work_item }}
     run: bsf fetch-work-item "$WORK_ITEM" --spec-only --out /tmp/gh-aw/agent/bsf/spec.json
 
 post-steps:
+  # Write access, only after the agent has exited, for the steps that store
+  # what it produced on the factory's data ref.
+  - name: Mint a token to store this step's results
+    id: write-token
+    uses: actions/create-github-app-token@v1
+    with:
+      app-id: ${{ vars.FACTORY_APP_CLIENT_ID }}
+      private-key: ${{ secrets.FACTORY_APP_PRIVATE_KEY }}
+      permission-contents: write
+      permission-actions: read
+      # Scoped to this repository: an App token otherwise reaches every repo
+      # the installation covers.
+      owner: ${{ github.repository_owner }}
+      repositories: ${{ github.event.repository.name }}
   - name: Write the StepReport with memex
     shell: bash
     env:
+      GH_TOKEN: ${{ steps.write-token.outputs.token }}
       ROLE: verifier
       ATTEMPT: ${{ inputs.attempt }}
     run: bsf step-report --role "$ROLE" --attempt "$ATTEMPT" --out /tmp/gh-aw/agent/bsf/step-report.json
   - name: Store the reviewed media and upload the raw artifacts
     shell: bash
+    env:
+      GH_TOKEN: ${{ steps.write-token.outputs.token }}
     run: bsf store-media --run-dir /tmp/gh-aw/agent/bsf/media
   - name: Upload the StepReport and evidence
     uses: actions/upload-artifact@v4
@@ -154,10 +213,20 @@ its own work.
 ## Read first
 
 - `.factory/definition/context/runbook.md` — `## Run`, `## Verify`, `## Seed data`
+- `.factory/sandbox/manifest.json` — the `run` command, `app_url`, and
+  `capabilities`: what this sandbox can and cannot exercise
+- `.factory/definition/context/practices.md` — what this repo's owners asked for
 
 ## What to do
 
-1. Start the app the way the runbook's `## Run` section says.
+1. Start the app with the manifest's `run` command, from a shell that has
+   sourced the sandbox's environment first:
+
+   ```bash
+   source .factory/sandbox/.runtime.env
+   ```
+
+   The sandbox gives the app exactly those variables and nothing else.
 2. Work through the spec's `acceptance_checks` **one at a time**. For each, use
    the app the way a developer would: click through it in the browser, call the
    API, query the database. Record what you observe, not what you expect.
@@ -177,6 +246,18 @@ each. Otherwise `fail`, with, for each failed check: what you did, what you
 expected, what happened, and the artifact that shows it.
 
 A check you could not run is not a pass. Say so, and say why.
+
+When a check could not run because the sandbox cannot exercise what it needs —
+the manifest lists it under `capabilities.not_exercised`, or a service or
+credential the path depends on is not there — also write
+`/tmp/gh-aw/agent/bsf/sandbox-report.json`:
+
+```json
+{ "role": "verifier", "needs": "what you could not exercise", "paths": ["the files involved"], "why": "what stopped you" }
+```
+
+That report is how the sandbox gets amended so the next change like this one
+can be verified. It does not turn the check into a pass.
 
 ## Do not
 
