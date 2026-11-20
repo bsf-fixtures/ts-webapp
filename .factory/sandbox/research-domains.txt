@@ -1,0 +1,11 @@
+nextjs.org
+react.dev
+vitest.dev
+testing-library.com
+www.typescriptlang.org
+typescript-eslint.io
+eslint.org
+vite.dev
+nodejs.org
+developer.mozilla.org
+playwright.dev
