@@ -47,3 +47,5 @@ export function toCsv(invoices: readonly Invoice[]): string {
   // A trailing newline, so appending to the file doesn't join two rows.
   return `${rows.join("\n")}\n`;
 }
+
+export const isOverdue = (dueDate: string, now: Date): boolean => new Date(dueDate) < now;
