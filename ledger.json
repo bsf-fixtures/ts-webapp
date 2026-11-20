@@ -1,6 +1,6 @@
 {
   "schema": "ledger/1",
-  "updated_at": "2026-11-20T23:22:01.253Z",
+  "updated_at": "2026-11-20T23:22:30.275Z",
   "open": [
     {
       "work_item": "wi_01M7XH7270DH2WAFKX6ZB36YRA",
@@ -41,6 +41,14 @@
       "fingerprint": "sha256:20d9556cbbf6c7f5d2af850cc9c79c2e7eba9ea31281f61cf03ab2320ad6d39d",
       "priority": "normal",
       "created_at": "2026-11-20T23:22:01.253Z"
+    },
+    {
+      "work_item": "wi_01M7XM9H03KSP8MPA0RAG4RRMJ",
+      "pipeline": "product_work",
+      "status": "waiting_trust",
+      "fingerprint": "sha256:20d9556cbbf6c7f5d2af850cc9c79c2e7eba9ea31281f61cf03ab2320ad6d39d",
+      "priority": "normal",
+      "created_at": "2026-11-20T23:22:30.275Z"
     }
   ],
   "recent": [],
