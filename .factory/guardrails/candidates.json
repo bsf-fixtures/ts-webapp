@@ -1,0 +1,41 @@
+{
+  "schema": "candidates/1",
+  "candidates": [
+    {
+      "id": "cand_01JDF8YQKX7M3N2PQRS4TVWXYZ",
+      "problem_class": "network calls must go through apiClient, not raw fetch",
+      "occurrences": 7,
+      "first_seen": "2026-10-02T09:14:00Z",
+      "last_seen": "2026-11-18T16:40:00Z",
+      "sources": [
+        {
+          "kind": "agent_chat",
+          "harness": "claude-code",
+          "session": "sess-a1",
+          "quote": "no, use apiClient here",
+          "at": "2026-11-18T16:40:00Z"
+        }
+      ],
+      "proposed_fix": "static_rule",
+      "status": "pending",
+      "contributed_by": "ChampPhil"
+    },
+    {
+      "id": "cand_01JDF8YQKX7M3N2PQRS4TVWY00",
+      "problem_class": "invoice totals need to be computed in cents, never floats",
+      "occurrences": 3,
+      "sources": [
+        {
+          "kind": "agent_chat",
+          "harness": "cursor-cli",
+          "session": "sess-b2",
+          "quote": "that rounds wrong, use cents"
+        }
+      ],
+      "proposed_fix": "verification",
+      "status": "pending",
+      "critical_logic": true,
+      "contributed_by": "ChampPhil"
+    }
+  ]
+}
