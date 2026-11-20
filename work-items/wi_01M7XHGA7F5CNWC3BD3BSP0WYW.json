@@ -1,0 +1,23 @@
+{
+  "schema": "work-item/1",
+  "id": "wi_01M7XHGA7F5CNWC3BD3BSP0WYW",
+  "created_at": "2026-11-20T22:33:46.991Z",
+  "source": {
+    "kind": "dashboard",
+    "ref": null,
+    "actor": "ChampPhil",
+    "via": null
+  },
+  "trigger_class": "request",
+  "pipeline": "product_work",
+  "title": "Show the total of the sent invoices under the invoices table",
+  "body": "Under the invoices table, show one line with the total amount of the invoices that were actually sent to customers — the same set the Export button counts. Drafts and voids do not count. With today's data that line should read: Total sent: $1,497.50",
+  "priority": "normal",
+  "fingerprint": "sha256:da3a2ef8b0a410e85e4ecf60ab72999ad4697d60df6a11cf343882eed7389b41",
+  "status": "queued",
+  "runs": [],
+  "pr": null,
+  "parent": null,
+  "related": [],
+  "spec": null
+}
