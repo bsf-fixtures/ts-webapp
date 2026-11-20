@@ -242,9 +242,18 @@ would otherwise have to decide. Then write the plan.
   delete.** This list is load-bearing: the policy check fails the PR for editing
   an existing test that is not here. New test files need no declaration.
 - **`research`** — what you found and where. One entry per finding the plan
-  depends on: `{ "claim": "...", "source": "path/to/file.ts:42" }` for the
-  codebase, or `{ "claim": "...", "source": "https://..." }` for the world. A
-  plan whose decisions do not trace to a source is rejected.
+  depends on. A `source` starts with one of three references, optionally
+  followed by a note:
+  - `path/to/file.ts` or `path/to/file.ts:42` — a file in this repo
+  - `https://...` — a page in the world
+  - `ran: <command>` — an experiment you ran here, with the command, so a
+    reviewer can run it again
+  A plan whose decisions do not trace to a source is rejected.
+
+Before you finish, run
+`.factory/bin/bsf spec check --file /tmp/gh-aw/agent/bsf/spec.json --pipeline P`,
+with `P` the work item's `pipeline`. It applies the gate the spec must pass to be stored. Fix whatever it reports
+and run it again until it passes.
 
 ## How to size it
 
