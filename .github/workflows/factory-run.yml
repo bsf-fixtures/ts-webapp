@@ -1,0 +1,305 @@
+# factory-run — orchestrates one pipeline.
+#
+# The roles are gh-aw workflow_call reusable workflows, called here as jobs
+# (spike §3). Actions sequences them with `needs:`, so nothing polls and no job
+# is billed while waiting for another. Each role is its own job on its own
+# runner, which is what makes the builder/verifier transcript isolation
+# structural rather than a rule bsf has to keep.
+#
+# Gate retries are this workflow re-dispatching itself for attempt n+1, so each
+# attempt's cost is billed and reported separately.
+name: factory-run
+
+on:
+  workflow_dispatch:
+    inputs:
+      work_item:
+        description: Work item id
+        required: true
+        type: string
+      attempt:
+        description: Gate attempt, 1..retry_cap
+        required: false
+        default: '1'
+        type: string
+      pr_number:
+        description: Set from attempt 2 onward
+        required: false
+        default: '0'
+        type: string
+      gate_failures:
+        description: Artifact id of the previous attempt's failures
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  # Capped by factory.yaml concurrency.max_runs, well under GitHub Free's 20
+  # concurrent jobs. One group per work item so a retry never races itself.
+  group: factory-run-${{ inputs.work_item }}
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      model_triage: ${{ steps.models.outputs.model_triage }}
+      model_spec: ${{ steps.models.outputs.model_spec }}
+      model_builder: ${{ steps.models.outputs.model_builder }}
+      model_hardener: ${{ steps.models.outputs.model_hardener }}
+      needs_hardener: ${{ steps.plan.outputs.needs_hardener }}
+      needs_gardener: ${{ steps.plan.outputs.needs_gardener }}
+      model_gardener: ${{ steps.models.outputs.model_gardener }}
+      garden_max_prs: ${{ steps.models.outputs.garden_max_prs }}
+      needs_spec: ${{ steps.plan.outputs.needs_spec }}
+      pipeline: ${{ steps.plan.outputs.pipeline }}
+      protected_files_policy: ${{ steps.plan.outputs.protected_files_policy }}
+      needs_triage: ${{ steps.plan.outputs.needs_triage }}
+      proceed: ${{ steps.plan.outputs.proceed }}
+    steps:
+      - uses: actions/checkout@v4
+      # The runner that judges a change must not come from the change. A pull
+      # request, a merge-group commit or an agent's workspace can all modify
+      # .factory/bin, so it is taken from the default branch and parked outside the
+      # workspace, which is the only directory the agent sandbox can write to.
+      - name: Fetch the factory runner from the default branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          path: .factory-trusted
+          sparse-checkout: |
+            .factory/bin
+            .factory/definition
+            .factory/sandbox
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+      - name: Put the trusted runner on PATH
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/bsf"
+          cp -R .factory-trusted/.factory/bin/. "$RUNNER_TEMP/bsf/"
+          # The definition and the sandbox decide how a change is judged, so
+          # bsf reads them from this copy, never from the checkout.
+          mkdir -p "$RUNNER_TEMP/bsf-trusted/.factory"
+          for d in definition sandbox; do
+            if [ -d ".factory-trusted/.factory/$d" ]; then cp -R ".factory-trusted/.factory/$d" "$RUNNER_TEMP/bsf-trusted/.factory/"; fi
+          done
+          echo "BSF_TRUSTED_ROOT=$RUNNER_TEMP/bsf-trusted" >> "$GITHUB_ENV"
+          rm -rf .factory-trusted
+          echo "$RUNNER_TEMP/bsf" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/bsf/bsf" --version
+      - name: Read each role's model from factory.yaml
+        id: models
+        run: bsf models
+      - name: Mint a down-scoped token for this job
+        id: token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.FACTORY_APP_CLIENT_ID }}
+          private-key: ${{ secrets.FACTORY_APP_PRIVATE_KEY }}
+          permission-contents: read
+          permission-issues: read
+          # Scoped to this repository: an App token otherwise reaches every repo
+          # the installation covers.
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+      # Reads the work item and policy.yaml, and resolves this pipeline's
+      # gh-aw protected-files policy and path allowlist.
+      - name: Plan this run
+        id: plan
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+          WORK_ITEM: ${{ inputs.work_item }}
+          ATTEMPT: ${{ inputs.attempt }}
+        run: bsf run plan "$WORK_ITEM" --attempt "$ATTEMPT"
+
+  triage:
+    needs: plan
+    if: needs.plan.outputs.needs_triage == 'true' && needs.plan.outputs.proceed == 'true'
+    # What the compiled role's own jobs request. A caller must grant at
+    # least this, or GitHub refuses to start the run; derived from the lock
+    # file and checked by a test, so a gh-aw upgrade cannot silently break it.
+    permissions:
+      actions: read
+      checks: read
+      contents: read
+      issues: write
+      pull-requests: write
+    uses: ./.github/workflows/factory-role-triage.lock.yml
+    with:
+      model: ${{ needs.plan.outputs.model_triage }}
+      work_item: ${{ inputs.work_item }}
+      pipeline: ${{ needs.plan.outputs.pipeline }}
+      attempt: ${{ fromJSON(inputs.attempt) }}
+    secrets: inherit
+
+  # Hardening starts here instead of at triage: its intent comes from a found
+  # weakness, not a request. Nothing called this role before, so the hardening
+  # pipeline that run-plan describes could not run.
+  hardener:
+    needs: plan
+    if: needs.plan.outputs.needs_hardener == 'true' && needs.plan.outputs.proceed == 'true'
+    # What the compiled role's own jobs request. A caller must grant at
+    # least this, or GitHub refuses to start the run; derived from the lock
+    # file and checked by a test, so a gh-aw upgrade cannot silently break it.
+    permissions:
+      actions: read
+      checks: read
+      contents: write
+      issues: write
+      pull-requests: write
+    uses: ./.github/workflows/factory-role-hardener.lock.yml
+    with:
+      model: ${{ needs.plan.outputs.model_hardener }}
+      work_item: ${{ inputs.work_item }}
+      pipeline: ${{ needs.plan.outputs.pipeline }}
+      attempt: ${{ fromJSON(inputs.attempt) }}
+      protected_files_policy: ${{ needs.plan.outputs.protected_files_policy }}
+    secrets: inherit
+
+  # Gardening's intent comes from drift the nightly scan found.
+  gardener:
+    needs: plan
+    if: needs.plan.outputs.needs_gardener == 'true' && needs.plan.outputs.proceed == 'true'
+    # What the compiled role's own jobs request. A caller must grant at
+    # least this, or GitHub refuses to start the run; derived from the lock
+    # file and checked by a test, so a gh-aw upgrade cannot silently break it.
+    permissions:
+      actions: read
+      checks: read
+      contents: read
+      issues: write
+      pull-requests: read
+    uses: ./.github/workflows/factory-role-gardener.lock.yml
+    with:
+      model: ${{ needs.plan.outputs.model_gardener }}
+      max_prs: ${{ fromJSON(needs.plan.outputs.garden_max_prs) }}
+      work_item: ${{ inputs.work_item }}
+      pipeline: ${{ needs.plan.outputs.pipeline }}
+      attempt: ${{ fromJSON(inputs.attempt) }}
+      protected_files_policy: ${{ needs.plan.outputs.protected_files_policy }}
+    secrets: inherit
+
+  spec:
+    needs: [plan, triage, hardener]
+    if: >-
+      always() && needs.plan.outputs.proceed == 'true' && needs.plan.outputs.needs_spec == 'true' &&
+      (needs.triage.result == 'success' || needs.triage.result == 'skipped') &&
+      (needs.hardener.result == 'success' || needs.hardener.result == 'skipped')
+    # What the compiled role's own jobs request. A caller must grant at
+    # least this, or GitHub refuses to start the run; derived from the lock
+    # file and checked by a test, so a gh-aw upgrade cannot silently break it.
+    permissions:
+      actions: read
+      checks: read
+      contents: read
+      issues: write
+      pull-requests: write
+    uses: ./.github/workflows/factory-role-spec.lock.yml
+    with:
+      model: ${{ needs.plan.outputs.model_spec }}
+      work_item: ${{ inputs.work_item }}
+      pipeline: ${{ needs.plan.outputs.pipeline }}
+      attempt: ${{ fromJSON(inputs.attempt) }}
+    secrets: inherit
+
+  # Runs when spec ran, and also when the pipeline has no spec step at all
+  # (conflict, gardening). A failed spec still stops it.
+  build:
+    needs: [plan, spec, gardener]
+    if: >-
+      always() && needs.plan.outputs.proceed == 'true' &&
+      (needs.spec.result == 'success' || needs.spec.result == 'skipped') &&
+      (needs.gardener.result == 'success' || needs.gardener.result == 'skipped')
+    # What the compiled role's own jobs request. A caller must grant at
+    # least this, or GitHub refuses to start the run; derived from the lock
+    # file and checked by a test, so a gh-aw upgrade cannot silently break it.
+    permissions:
+      actions: read
+      checks: read
+      contents: write
+      issues: write
+      pull-requests: write
+    uses: ./.github/workflows/factory-role-builder.lock.yml
+    with:
+      model: ${{ needs.plan.outputs.model_builder }}
+      work_item: ${{ inputs.work_item }}
+      pipeline: ${{ needs.plan.outputs.pipeline }}
+      attempt: ${{ fromJSON(inputs.attempt) }}
+      pr_number: ${{ fromJSON(inputs.pr_number) }}
+      gate_failures: ${{ inputs.gate_failures }}
+      protected_files_policy: ${{ needs.plan.outputs.protected_files_policy }}
+    secrets: inherit
+
+  # The builder's safe output pushes with the factory App's token, which starts
+  # factory-gates on the branch as a separate workflow. This job waits only for
+  # the gate *results*, which are keyed by commit, and decides what happens next.
+  after-gates:
+    needs: [plan, build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # The runner that judges a change must not come from the change. A pull
+      # request, a merge-group commit or an agent's workspace can all modify
+      # .factory/bin, so it is taken from the default branch and parked outside the
+      # workspace, which is the only directory the agent sandbox can write to.
+      - name: Fetch the factory runner from the default branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          path: .factory-trusted
+          sparse-checkout: |
+            .factory/bin
+            .factory/definition
+            .factory/sandbox
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+      - name: Put the trusted runner on PATH
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/bsf"
+          cp -R .factory-trusted/.factory/bin/. "$RUNNER_TEMP/bsf/"
+          # The definition and the sandbox decide how a change is judged, so
+          # bsf reads them from this copy, never from the checkout.
+          mkdir -p "$RUNNER_TEMP/bsf-trusted/.factory"
+          for d in definition sandbox; do
+            if [ -d ".factory-trusted/.factory/$d" ]; then cp -R ".factory-trusted/.factory/$d" "$RUNNER_TEMP/bsf-trusted/.factory/"; fi
+          done
+          echo "BSF_TRUSTED_ROOT=$RUNNER_TEMP/bsf-trusted" >> "$GITHUB_ENV"
+          rm -rf .factory-trusted
+          echo "$RUNNER_TEMP/bsf" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/bsf/bsf" --version
+      - name: Mint a token for reading checks and dispatching
+        id: token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.FACTORY_APP_CLIENT_ID }}
+          private-key: ${{ secrets.FACTORY_APP_PRIVATE_KEY }}
+          permission-contents: read
+          permission-checks: read
+          permission-actions: write
+          permission-pull-requests: write
+          # Scoped to this repository: an App token otherwise reaches every repo
+          # the installation covers.
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+      # On a gate failure under the retry cap, this re-dispatches factory-run
+      # with attempt+1 and the failures artifact. At the cap it escalates. On a
+      # pass it labels the PR factory:cleared and fills in the evidence. Either
+      # way it ends by dispatching the next queued work item, so the queue
+      # drains without a timer.
+      - name: Record the attempt and decide what happens next
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+          WORK_ITEM: ${{ inputs.work_item }}
+          ATTEMPT: ${{ inputs.attempt }}
+        run: bsf run after-gates "$WORK_ITEM" --attempt "$ATTEMPT"
+
+  rollup:
+    needs: [plan, after-gates]
+    if: always()
+    uses: ./.github/workflows/factory-rollup.yml
+    secrets: inherit

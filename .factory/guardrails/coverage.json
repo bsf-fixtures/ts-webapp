@@ -1,0 +1,8 @@
+{
+  "schema": "coverage/1",
+  "high_pct": 0,
+  "floor_pct": 0,
+  "tolerance_pts": 1,
+  "diff_min_pct": 80,
+  "skips": { "count": 0, "cap": 10 }
+}

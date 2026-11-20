@@ -1,0 +1,84 @@
+# factory-policy — the `factory/policy` required check.
+#
+# It runs on pull_request_target, so GitHub always uses main's copy of this
+# file and of the code it calls. That is what closes the hole where a PR — a
+# fork's above all — rewrites the workflow that judges it.
+#
+# It never checks out or runs the PR's code. It reads the changed-file list,
+# the reviews and the labels, and nothing else.
+name: factory-policy
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+  pull_request_review:
+    types: [submitted, dismissed]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: factory-policy-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  policy:
+    runs-on: ubuntu-latest
+    steps:
+      # Checks out main — never the PR's head. policy.yaml and the runner come
+      # from main, so the PR cannot change what judges it.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      # The runner that judges a change must not come from the change. A pull
+      # request, a merge-group commit or an agent's workspace can all modify
+      # .factory/bin, so it is taken from the default branch and parked outside the
+      # workspace, which is the only directory the agent sandbox can write to.
+      - name: Fetch the factory runner from the default branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          path: .factory-trusted
+          sparse-checkout: |
+            .factory/bin
+            .factory/definition
+            .factory/sandbox
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+      - name: Put the trusted runner on PATH
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/bsf"
+          cp -R .factory-trusted/.factory/bin/. "$RUNNER_TEMP/bsf/"
+          # The definition and the sandbox decide how a change is judged, so
+          # bsf reads them from this copy, never from the checkout.
+          mkdir -p "$RUNNER_TEMP/bsf-trusted/.factory"
+          for d in definition sandbox; do
+            if [ -d ".factory-trusted/.factory/$d" ]; then cp -R ".factory-trusted/.factory/$d" "$RUNNER_TEMP/bsf-trusted/.factory/"; fi
+          done
+          echo "BSF_TRUSTED_ROOT=$RUNNER_TEMP/bsf-trusted" >> "$GITHUB_ENV"
+          rm -rf .factory-trusted
+          echo "$RUNNER_TEMP/bsf" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/bsf/bsf" --version
+
+      - name: Mint a read-only token
+        id: token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.FACTORY_APP_CLIENT_ID }}
+          private-key: ${{ secrets.FACTORY_APP_PRIVATE_KEY }}
+          permission-contents: read
+          permission-pull-requests: read
+          permission-checks: write
+          # Scoped to this repository: an App token otherwise reaches every repo
+          # the installation covers.
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+
+      - name: Run the policy check
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: bsf policy --pr "$PR_NUMBER" --report-check factory/policy

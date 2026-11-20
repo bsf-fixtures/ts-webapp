@@ -1,0 +1,166 @@
+# factory-review — the scheduled review that makes the factory improve itself.
+#
+# Scores recent runs against the rubrics, groups the failures, and routes each
+# one: a code-level problem to hardening, a factory-level problem to a
+# definition change. A definition change is benchmark-gated and needs a human.
+name: factory-review
+
+on:
+  schedule:
+    # Daily check; the review itself runs on its cadence from factory.yaml, or
+    # early if enough runs have piled up.
+    - cron: "0 8 * * *"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Run the review now, whatever the cadence says
+        required: false
+        default: 'false'
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: factory-review
+  cancel-in-progress: false
+
+jobs:
+  due:
+    runs-on: ubuntu-latest
+    outputs:
+      model_scorer: ${{ steps.models.outputs.model_scorer }}
+      due: ${{ steps.check.outputs.due }}
+      reason: ${{ steps.check.outputs.reason }}
+    steps:
+      - uses: actions/checkout@v4
+      # The runner that judges a change must not come from the change. A pull
+      # request, a merge-group commit or an agent's workspace can all modify
+      # .factory/bin, so it is taken from the default branch and parked outside the
+      # workspace, which is the only directory the agent sandbox can write to.
+      - name: Fetch the factory runner from the default branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          path: .factory-trusted
+          sparse-checkout: |
+            .factory/bin
+            .factory/definition
+            .factory/sandbox
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+      - name: Put the trusted runner on PATH
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/bsf"
+          cp -R .factory-trusted/.factory/bin/. "$RUNNER_TEMP/bsf/"
+          # The definition and the sandbox decide how a change is judged, so
+          # bsf reads them from this copy, never from the checkout.
+          mkdir -p "$RUNNER_TEMP/bsf-trusted/.factory"
+          for d in definition sandbox; do
+            if [ -d ".factory-trusted/.factory/$d" ]; then cp -R ".factory-trusted/.factory/$d" "$RUNNER_TEMP/bsf-trusted/.factory/"; fi
+          done
+          echo "BSF_TRUSTED_ROOT=$RUNNER_TEMP/bsf-trusted" >> "$GITHUB_ENV"
+          rm -rf .factory-trusted
+          echo "$RUNNER_TEMP/bsf" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/bsf/bsf" --version
+      - name: Read each role's model from factory.yaml
+        id: models
+        run: bsf models
+      - name: Mint a token
+        id: token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.FACTORY_APP_CLIENT_ID }}
+          private-key: ${{ secrets.FACTORY_APP_PRIVATE_KEY }}
+          permission-contents: read
+          permission-actions: read
+          # Scoped to this repository: an App token otherwise reaches every repo
+          # the installation covers.
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+      # Skips below the minimum run count, so a quiet week does not spend a
+      # review's budget grading four runs.
+      - name: Is a review due?
+        id: check
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+          FORCE: ${{ inputs.force }}
+        run: bsf review due --force "${FORCE:-false}"
+
+  score:
+    needs: due
+    if: needs.due.outputs.due == 'true'
+    # What the compiled role's own jobs request. A caller must grant at
+    # least this, or GitHub refuses to start the run; derived from the lock
+    # file and checked by a test, so a gh-aw upgrade cannot silently break it.
+    permissions:
+      actions: read
+      checks: read
+      contents: read
+      issues: write
+      pull-requests: read
+    uses: ./.github/workflows/factory-role-scorer.lock.yml
+    with:
+      model: ${{ needs.due.outputs.model_scorer }}
+      work_item: review
+      pipeline: definition
+    secrets: inherit
+
+  route:
+    needs: [due, score]
+    if: needs.due.outputs.due == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # The runner that judges a change must not come from the change. A pull
+      # request, a merge-group commit or an agent's workspace can all modify
+      # .factory/bin, so it is taken from the default branch and parked outside the
+      # workspace, which is the only directory the agent sandbox can write to.
+      - name: Fetch the factory runner from the default branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          path: .factory-trusted
+          sparse-checkout: |
+            .factory/bin
+            .factory/definition
+            .factory/sandbox
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+      - name: Put the trusted runner on PATH
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/bsf"
+          cp -R .factory-trusted/.factory/bin/. "$RUNNER_TEMP/bsf/"
+          # The definition and the sandbox decide how a change is judged, so
+          # bsf reads them from this copy, never from the checkout.
+          mkdir -p "$RUNNER_TEMP/bsf-trusted/.factory"
+          for d in definition sandbox; do
+            if [ -d ".factory-trusted/.factory/$d" ]; then cp -R ".factory-trusted/.factory/$d" "$RUNNER_TEMP/bsf-trusted/.factory/"; fi
+          done
+          echo "BSF_TRUSTED_ROOT=$RUNNER_TEMP/bsf-trusted" >> "$GITHUB_ENV"
+          rm -rf .factory-trusted
+          echo "$RUNNER_TEMP/bsf" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/bsf/bsf" --version
+      - name: Mint a token
+        id: token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.FACTORY_APP_CLIENT_ID }}
+          private-key: ${{ secrets.FACTORY_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-issues: write
+          permission-pull-requests: write
+          permission-actions: write
+          # Scoped to this repository: an App token otherwise reaches every repo
+          # the installation covers.
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+      # Writes the review report, then files hardening work items and opens
+      # definition PRs. A definition PR carries its benchmark comparison, and
+      # says "no clear winner" where the difference sits inside the spread.
+      - name: Route what the review found
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+        run: bsf review route

@@ -1,0 +1,87 @@
+# Factory config. Part of the factory definition, so changes need a trusted
+# human's approval. Setup fills in the placeholders.
+schema: factory/1
+
+harness: claude-code
+
+# Model per step. The scheduled review may change these, benchmark-gated.
+models:
+  triage: claude-haiku-5-5
+  spec: claude-opus-5
+  builder: claude-opus-5
+  verifier: claude-opus-5
+  gardener: claude-sonnet-5-5
+  hardener: claude-opus-5
+  scorer: claude-sonnet-5-5
+
+pipelines:
+  product_work:
+    auto_merge: false
+  gardening:
+    auto_merge: false
+    schedule: "0 6 * * *"
+    max_prs_per_run: 5
+  hardening:
+    auto_merge: false
+
+review:
+  every_days: 3
+  run_early_at_runs: 50
+  skip_below_runs: 10
+
+limits:
+  retry_cap: 3
+  # The longest any one role may run. The builder's write, run, look, fix
+  # loop is the longest; each role workflow's timeout stays within this.
+  step_time_budget_sec: 4500
+  concurrency:
+    max_runs: 5
+
+budget:
+  monthly_usd: 200
+  # Defaults to the plan's included minutes; null on public repos, where
+  # standard runners are free.
+  monthly_actions_minutes: 2000
+  shares:
+    product_work: 60
+    gardening: 25
+    review_and_benchmarks: 15
+  product_work_hard_stop_pct: 110
+
+triggers:
+  issues: true
+  comments: true
+  ci_failure_on_main: true
+  dashboard_dispatch: true
+
+data:
+  location: same_repo
+  repo: null
+  # auto = capture local sessions only when the data store is private.
+  sessions: auto
+  media_retention_months: 12
+
+enforcement:
+  merge_queue: auto
+  branch_protection: auto
+  audit_revert_pr: false
+
+# Set at setup. docker-sudo-iptables only where the app needs an Actions
+# services: sidecar, because every other AWF profile rejects published service
+# connectivity. That profile runs AWF with host privileges, so setup tells the
+# user which posture their repo gets.
+sandbox:
+  agent_runtime: docker
+
+human_prs:
+  gates: deterministic
+  verify_label: "factory:verify"
+
+existing_ci:
+  test_check: null
+  wait_minutes: 15
+
+# The second, minimal App that recompiles gh-aw lock files in Actions. Without
+# it, the skill's repair mode is the upgrade path.
+recompiler:
+  enabled: false

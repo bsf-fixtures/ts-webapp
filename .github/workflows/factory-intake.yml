@@ -1,0 +1,97 @@
+# factory-intake — every trigger becomes one standard work item.
+#
+# One concurrency group with queue behaviour, and each run processes every
+# event not yet handled rather than only the one that started it. That is what
+# makes "ten issues in a minute, none lost" true even if a queued run is
+# dropped: the next run picks up its events too, by cursor.
+name: factory-intake
+
+on:
+  issues:
+    types: [opened, labeled, reopened]
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+  workflow_run:
+    workflows: ["ci"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      title:
+        description: What needs doing
+        required: true
+        type: string
+      body:
+        description: Any detail
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+
+concurrency:
+  # Never cancel: a cancelled intake would be the one way to lose a request.
+  group: factory-intake
+  cancel-in-progress: false
+
+jobs:
+  intake:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # The runner that judges a change must not come from the change. A pull
+      # request, a merge-group commit or an agent's workspace can all modify
+      # .factory/bin, so it is taken from the default branch and parked outside the
+      # workspace, which is the only directory the agent sandbox can write to.
+      - name: Fetch the factory runner from the default branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          path: .factory-trusted
+          sparse-checkout: |
+            .factory/bin
+            .factory/definition
+            .factory/sandbox
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+      - name: Put the trusted runner on PATH
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/bsf"
+          cp -R .factory-trusted/.factory/bin/. "$RUNNER_TEMP/bsf/"
+          # The definition and the sandbox decide how a change is judged, so
+          # bsf reads them from this copy, never from the checkout.
+          mkdir -p "$RUNNER_TEMP/bsf-trusted/.factory"
+          for d in definition sandbox; do
+            if [ -d ".factory-trusted/.factory/$d" ]; then cp -R ".factory-trusted/.factory/$d" "$RUNNER_TEMP/bsf-trusted/.factory/"; fi
+          done
+          echo "BSF_TRUSTED_ROOT=$RUNNER_TEMP/bsf-trusted" >> "$GITHUB_ENV"
+          rm -rf .factory-trusted
+          echo "$RUNNER_TEMP/bsf" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/bsf/bsf" --version
+      - name: Mint a read-only token
+        id: token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.FACTORY_APP_CLIENT_ID }}
+          private-key: ${{ secrets.FACTORY_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-issues: write
+          permission-pull-requests: read
+          permission-actions: write
+          # Scoped to this repository: an App token otherwise reaches every repo
+          # the installation covers.
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+      # Reads policy.yaml from the default branch for the trust rules, writes
+      # a work item per unhandled event, and dispatches what there are slots
+      # for. An untrusted author's text is stripped before anything reaches a
+      # prompt.
+      - name: Take in every unhandled event
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: bsf intake

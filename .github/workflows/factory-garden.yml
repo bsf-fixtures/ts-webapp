@@ -1,0 +1,83 @@
+# factory-garden — the nightly cleanup pass.
+#
+# One of only three scheduled workflows in the factory; everything else is
+# event-driven, which is what keeps an idle factory nearly free.
+name: factory-garden
+
+on:
+  schedule:
+    # Overridden by factory.yaml's gardening.schedule at setup.
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: factory-garden
+  cancel-in-progress: false
+
+jobs:
+  garden:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # The runner that judges a change must not come from the change. A pull
+      # request, a merge-group commit or an agent's workspace can all modify
+      # .factory/bin, so it is taken from the default branch and parked outside the
+      # workspace, which is the only directory the agent sandbox can write to.
+      - name: Fetch the factory runner from the default branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          path: .factory-trusted
+          sparse-checkout: |
+            .factory/bin
+            .factory/definition
+            .factory/sandbox
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+      - name: Put the trusted runner on PATH
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/bsf"
+          cp -R .factory-trusted/.factory/bin/. "$RUNNER_TEMP/bsf/"
+          # The definition and the sandbox decide how a change is judged, so
+          # bsf reads them from this copy, never from the checkout.
+          mkdir -p "$RUNNER_TEMP/bsf-trusted/.factory"
+          for d in definition sandbox; do
+            if [ -d ".factory-trusted/.factory/$d" ]; then cp -R ".factory-trusted/.factory/$d" "$RUNNER_TEMP/bsf-trusted/.factory/"; fi
+          done
+          echo "BSF_TRUSTED_ROOT=$RUNNER_TEMP/bsf-trusted" >> "$GITHUB_ENV"
+          rm -rf .factory-trusted
+          echo "$RUNNER_TEMP/bsf" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/bsf/bsf" --version
+      - name: Mint a token
+        id: token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.FACTORY_APP_CLIENT_ID }}
+          private-key: ${{ secrets.FACTORY_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-issues: write
+          permission-actions: write
+          # Scoped to this repository: an App token otherwise reaches every repo
+          # the installation covers.
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+      # Stops before spending anything if gardening's budget share is used.
+      - name: Check the budget share
+        id: budget
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+        run: bsf budget check --pipeline gardening
+      # Files each item and dispatches factory-run for it, into free slots.
+      # factory-run then runs the gardening pipeline: gardener, builder,
+      # verifier. There was also a job here calling the gardener directly, left
+      # from an earlier design; it read outputs this job never set, so the
+      # gardener would have started with no work item.
+      - name: Pick tonight's cleanup and file it as work items
+        if: steps.budget.outputs.paused != 'true'
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+        run: bsf garden

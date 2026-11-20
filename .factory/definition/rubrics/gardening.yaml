@@ -1,0 +1,24 @@
+schema: rubric/1
+pipeline: gardening
+criteria:
+  - id: behaviour_unchanged
+    question: >-
+      Is there evidence that behaviour did not change? Gardening that changes
+      behaviour is product work that skipped a spec.
+  - id: one_problem_class
+    question: >-
+      Does the PR clean one thing? A PR that cleans two is one a reviewer
+      cannot judge.
+  - id: lowered_its_target
+    question: >-
+      Did it actually lower the count it was filed against, rather than
+      merely not raising anything?
+  - id: no_count_rose_anywhere
+    question: Did any rule's count rise in any file?
+scale: "1-5"
+failure_tags:
+  - behaviour_changed
+  - two_problems_at_once
+  - no_progress
+  - count_rose_elsewhere
+  - too_large_to_review

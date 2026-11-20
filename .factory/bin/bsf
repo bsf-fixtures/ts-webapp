@@ -1,0 +1,19 @@
+#!/usr/bin/env sh
+# Build Software Factory runner launcher. The runner itself is in runner.tgz,
+# packed so that no linter, formatter or type checker in this repo reads it.
+set -eu
+here=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+base="${TMPDIR:-/tmp}"
+dir="$base/bsf-29ef6f0eb8fa"
+if [ ! -f "$dir/bsf.mjs" ]; then
+  tmp=$(mktemp -d "$base/bsf-unpack.XXXXXX")
+  tar -xzf "$here/runner.tgz" -C "$tmp"
+  if mkdir "$dir" 2>/dev/null; then
+    mv "$tmp/schema" "$tmp/vendor" "$dir/"
+    mv "$tmp/bsf.mjs" "$dir/bsf.mjs"
+    rmdir "$tmp"
+  else
+    exec node "$tmp/bsf.mjs" "$@"
+  fi
+fi
+exec node "$dir/bsf.mjs" "$@"

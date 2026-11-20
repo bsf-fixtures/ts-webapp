@@ -1,0 +1,31 @@
+schema: rubric/1
+pipeline: hardening
+criteria:
+  - id: generalised_the_problem
+    question: >-
+      Did it eliminate the class of mistake, or fix the one instance? Fixing
+      the instance is the commonest failure in this role.
+  - id: took_the_strongest_fix
+    question: >-
+      Did it stop at a weaker fix than was available — a rule where the API
+      could have changed, or a context line where a check would have worked?
+  - id: proved_the_check_works
+    question: >-
+      Does the PR show the new check failing on the original bad example and
+      passing on the correct pattern? A rule not tested against the example
+      that caused it is not evidence of anything.
+  - id: reviewer_can_judge_it
+    question: >-
+      Can a reviewer tell whether this is a rule they want, without reading
+      the rule's implementation?
+  - id: handled_the_existing_violations
+    question: >-
+      Were existing violations fixed or baselined deliberately, with the count
+      stated?
+scale: "1-5"
+failure_tags:
+  - fixed_the_instance
+  - settled_for_prose
+  - unproven_check
+  - unreviewable_rule
+  - violations_left_unaccounted

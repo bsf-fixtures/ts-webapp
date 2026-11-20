@@ -1,0 +1,18 @@
+# Gardener role. The pipelines are fixed; this prompt is part of the factory
+# definition, so changing it needs a trusted human's approval.
+#
+# The model is NOT here: it comes from factory.yaml, because the scheduled
+# review may change a model per step and that should not rewrite a prompt.
+schema: role/1
+id: gardener
+purpose: >-
+  Find drift and pick the night's cleanup items.
+reads_context: [feature-map, runbook, fundamentals, history, practices, policy, guardrails]
+tools: [read, shell]
+prompt: |
+  See .github/workflows/factory-role-gardener.md, which holds this role's prompt
+  and is what gh-aw compiles. This file records the role's shape for the
+  dashboard and for the policy check; the prompt lives with the workflow so
+  the two cannot drift apart.
+outputs: [picks]
+sees_builder_transcript: false

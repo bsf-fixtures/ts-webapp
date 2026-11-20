@@ -1,0 +1,18 @@
+# Builder role. The pipelines are fixed; this prompt is part of the factory
+# definition, so changing it needs a trusted human's approval.
+#
+# The model is NOT here: it comes from factory.yaml, because the scheduled
+# review may change a model per step and that should not rewrite a prompt.
+schema: role/1
+id: builder
+purpose: >-
+  Implement the spec with the smallest correct change, plus tests for new behaviour.
+reads_context: [feature-map, runbook, fundamentals, history, practices, policy, guardrails, sandbox]
+tools: [read, edit, shell, git, browser]
+prompt: |
+  See .github/workflows/factory-role-builder.md, which holds this role's prompt
+  and is what gh-aw compiles. This file records the role's shape for the
+  dashboard and for the policy check; the prompt lives with the workflow so
+  the two cannot drift apart.
+outputs: [diff, tests, notes]
+sees_builder_transcript: false
