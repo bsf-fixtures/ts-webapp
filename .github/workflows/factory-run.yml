@@ -27,11 +27,6 @@ on:
         required: false
         default: '0'
         type: string
-      gate_failures:
-        description: Artifact id of the previous attempt's failures
-        required: false
-        default: ''
-        type: string
 
 permissions:
   contents: read
@@ -58,7 +53,10 @@ jobs:
       pipeline: ${{ steps.plan.outputs.pipeline }}
       protected_files_policy: ${{ steps.plan.outputs.protected_files_policy }}
       needs_triage: ${{ steps.plan.outputs.needs_triage }}
-      proceed: ${{ steps.plan.outputs.proceed }}
+      # Proceed only once the run has claimed the item: a run that could not
+      # (the item was already taken, or escalated) starts no role.
+      proceed: ${{ steps.start.outputs.run_id != '' && steps.plan.outputs.proceed == 'true' }}
+      run_id: ${{ steps.start.outputs.run_id }}
     steps:
       - uses: actions/checkout@v4
       # The runner that judges a change must not come from the change. A pull
@@ -115,6 +113,26 @@ jobs:
           WORK_ITEM: ${{ inputs.work_item }}
           ATTEMPT: ${{ inputs.attempt }}
         run: bsf run plan "$WORK_ITEM" --attempt "$ATTEMPT"
+      - name: Mint a token for claiming the work item
+        id: write-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.FACTORY_APP_CLIENT_ID }}
+          private-key: ${{ secrets.FACTORY_APP_PRIVATE_KEY }}
+          permission-contents: write
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+      # Moves the item off queued, so intake and rollup stop dispatching it,
+      # and records the run as live, which is what the concurrency cap counts.
+      - name: Claim the work item for this run
+        id: start
+        env:
+          GH_TOKEN: ${{ steps.write-token.outputs.token }}
+          WORK_ITEM: ${{ inputs.work_item }}
+          ATTEMPT: ${{ inputs.attempt }}
+          ESCALATE: ${{ steps.plan.outputs.escalate }}
+          FIRST_STEP: ${{ steps.plan.outputs.first_step }}
+        run: bsf run start "$WORK_ITEM" --attempt "$ATTEMPT" --escalate "$ESCALATE" --first-step "$FIRST_STEP"
 
   triage:
     needs: plan
@@ -230,7 +248,6 @@ jobs:
       pipeline: ${{ needs.plan.outputs.pipeline }}
       attempt: ${{ fromJSON(inputs.attempt) }}
       pr_number: ${{ fromJSON(inputs.pr_number) }}
-      gate_failures: ${{ inputs.gate_failures }}
       protected_files_policy: ${{ needs.plan.outputs.protected_files_policy }}
     secrets: inherit
 
@@ -239,7 +256,10 @@ jobs:
   # the gate *results*, which are keyed by commit, and decides what happens next.
   after-gates:
     needs: [plan, build]
+    # Runs whatever the build did, so the item always leaves "running".
+    if: always() && needs.plan.outputs.proceed == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
       # The runner that judges a change must not come from the change. A pull
@@ -278,25 +298,29 @@ jobs:
         with:
           app-id: ${{ vars.FACTORY_APP_CLIENT_ID }}
           private-key: ${{ secrets.FACTORY_APP_PRIVATE_KEY }}
-          permission-contents: read
+          permission-contents: write
           permission-checks: read
           permission-actions: write
+          permission-issues: write
           permission-pull-requests: write
           # Scoped to this repository: an App token otherwise reaches every repo
           # the installation covers.
           owner: ${{ github.repository_owner }}
           repositories: ${{ github.event.repository.name }}
-      # On a gate failure under the retry cap, this re-dispatches factory-run
-      # with attempt+1 and the failures artifact. At the cap it escalates. On a
-      # pass it labels the PR factory:cleared and fills in the evidence. Either
-      # way it ends by dispatching the next queued work item, so the queue
-      # drains without a timer.
-      - name: Record the attempt and decide what happens next
+      # Waits for factory/gates on the PR's head, then: on a pass, marks the PR
+      # ready and labels it factory:cleared; on a failure under the retry cap,
+      # stores the failures on the data ref and re-dispatches factory-run with
+      # attempt+1; at the cap, escalates. The rollup that follows dispatches
+      # the next queued item, so the queue drains without a timer.
+      - name: Wait for the gates and decide what happens next
         env:
           GH_TOKEN: ${{ steps.token.outputs.token }}
           WORK_ITEM: ${{ inputs.work_item }}
           ATTEMPT: ${{ inputs.attempt }}
-        run: bsf run after-gates "$WORK_ITEM" --attempt "$ATTEMPT"
+          RUN_ID: ${{ needs.plan.outputs.run_id }}
+          PR: ${{ needs.build.outputs.created_pr_number || inputs.pr_number }}
+          BUILD_RESULT: ${{ needs.build.result }}
+        run: bsf run after-gates "$WORK_ITEM" --run-id "$RUN_ID" --attempt "$ATTEMPT" --pr "$PR" --build-result "$BUILD_RESULT"
 
   rollup:
     needs: [plan, after-gates]

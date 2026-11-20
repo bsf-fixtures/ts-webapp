@@ -40,11 +40,6 @@ on:
         required: false
         default: 0
         type: number
-      gate_failures:
-        description: Artifact id holding the previous attempt's gate failures
-        required: false
-        default: ''
-        type: string
       protected_files_policy:
         description: >-
           gh-aw's protected-file policy for the calling pipeline. gh-aw protects
@@ -208,8 +203,8 @@ pre-agent-steps:
     shell: bash
     env:
       GH_TOKEN: ${{ steps.read-token.outputs.token }}
-      GATE_FAILURES: ${{ inputs.gate_failures }}
-    run: bsf fetch-artifact "$GATE_FAILURES" --out /tmp/gh-aw/agent/bsf/gate-failures.json
+      WORK_ITEM: ${{ inputs.work_item }}
+    run: bsf fetch-gate-failures "$WORK_ITEM" --out /tmp/gh-aw/agent/bsf/gate-failures.json
 
 post-steps:
   # Write access, only after the agent has exited, for the steps that store
