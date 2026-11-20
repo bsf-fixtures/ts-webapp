@@ -1,0 +1,23 @@
+{
+  "schema": "work-item/1",
+  "id": "wi_01M7XJWR17KA1PCZXT635DF731",
+  "created_at": "2026-11-20T22:58:02.919Z",
+  "source": {
+    "kind": "issue",
+    "ref": "#12",
+    "actor": "build-software-factory-bsf-fixture[bot]",
+    "via": null
+  },
+  "trigger_class": "request",
+  "pipeline": "product_work",
+  "title": "[aw] Spec: reported incomplete result",
+  "body": null,
+  "priority": "normal",
+  "fingerprint": "sha256:74944fbb62bc9ab6bf38178e8d2b6f33ae6c4311d06f0c5598057d62e59c7f1d",
+  "status": "waiting_trust",
+  "runs": [],
+  "pr": null,
+  "parent": null,
+  "related": [],
+  "spec": null
+}
