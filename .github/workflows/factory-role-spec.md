@@ -174,9 +174,10 @@ post-steps:
   - name: Write the spec back onto the work item
     shell: bash
     env:
+      PIPELINE: ${{ inputs.pipeline }}
       GH_TOKEN: ${{ steps.write-token.outputs.token }}
       WORK_ITEM: ${{ inputs.work_item }}
-    run: bsf write-spec "$WORK_ITEM" --from /tmp/gh-aw/agent/bsf/spec.json
+    run: bsf write-spec "$WORK_ITEM" --from /tmp/gh-aw/agent/bsf/spec.json --pipeline "$PIPELINE"
 ---
 # Spec
 
