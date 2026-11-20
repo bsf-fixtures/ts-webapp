@@ -77,3 +77,5 @@ describe("listInvoices", () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 });
+
+// probe: an edit to an existing test that no spec declared
