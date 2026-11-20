@@ -1,0 +1,138 @@
+{
+  "schema": "sandbox/1",
+  "tier": "renders",
+  "tier_reason": null,
+  "commands": {
+    "install": "npm ci",
+    "build": "npm run build",
+    "run": "npm run start -- --port 3000",
+    "test": "npm test",
+    "seed": null
+  },
+  "app_url": "http://localhost:3000/invoices",
+  "env": [
+    {
+      "name": "PORT",
+      "kind": "self",
+      "value": "3000",
+      "why": "The app's own listening port. No application code reads any environment variable; PORT is read by the Next.js CLI (`next start`). Pinned so app_url is deterministic, and passed again as --port on the run command so the two cannot drift."
+    },
+    {
+      "name": "NEXT_TELEMETRY_DISABLED",
+      "kind": "self",
+      "value": "1",
+      "why": "Next.js posts anonymous build telemetry to telemetry.nextjs.org. The sandbox has no reason to make that call, and in a closed network an outbound attempt only costs build time. This is the app's own setting, not a credential."
+    }
+  ],
+  "services": [],
+  "egress": [
+    "cdn.playwright.dev",
+    "playwright.download.prss.microsoft.com"
+  ],
+  "stubs": [],
+  "dropped": [
+    {
+      "from": ".github/workflows/ci.yml",
+      "what": "actions/setup-node@v4 with node-version: '22' and cache: npm",
+      "why": "Runner provisioning, not something the app needs installed. Node and npm are already on the trial runner (verified here on Node v24.22.3 / npm 11.19.1, and the app's only floor is Next 15's Node >= 18.18), and the npm cache is a CI speed trick with no bearing on whether the app works."
+    },
+    {
+      "from": ".github/workflows/ci.yml",
+      "what": "The `npm run typecheck` and `npm run lint` steps, as part of the sandbox `test` command",
+      "why": "Both pass here (verified), but they are static checks and the factory's static gate runs the repo's own linters itself. Folding them into `test` would make one failure look like the other. They are recorded in the runbook so a human still runs them."
+    },
+    {
+      "from": "README.md",
+      "what": "`npm run dev` (next dev) as the way to run the app",
+      "why": "That is the development server: it compiles per request and serves un-minified output, so a page that works there can still fail a production build. The sandbox builds first and runs `next start`, which is the same code path a built artefact takes. The dev server's hot-reload behaviour is therefore not exercised here."
+    },
+    {
+      "from": ".github/workflows/ci.yml",
+      "what": "The workflow's `on: push` / `on: pull_request` triggers",
+      "why": "Describes when GitHub runs CI, not what the app needs. The README is explicit that this fixture's acceptance criterion is that a factory run starts none of these runs, so the sandbox must not reproduce or depend on them."
+    }
+  ],
+  "capabilities": {
+    "exercised": [
+      "`npm ci` installs the full dependency tree from package-lock.json with no network host beyond the npm registry",
+      "`npm run build` (next build) compiles the App Router app, type-checks it, and prerenders / and /invoices as static pages; /invoices/export stays a dynamic route handler",
+      "`npm test` (vitest, jsdom) runs 21 tests across lib/invoices.test.ts, app/invoices/export/route.test.ts and components/ExportButton.test.tsx",
+      "`npm run typecheck` (tsc --noEmit) and `npm run lint` (eslint .) both run clean, so the static gate has a working baseline",
+      "The production server starts and /invoices answers 200, rendering the five seeded invoices and the button labelled 'Export 3 invoices as CSV'",
+      "GET /invoices/export answers 200 over HTTP with Content-Type text/csv; charset=utf-8, Content-Disposition attachment, Cache-Control no-store, a header row and three data rows, with INV-1004 (draft) and INV-1005 (void) absent",
+      "A browser can be pointed at http://localhost:3000/invoices: the page is server-rendered, so a screenshot shows the real table and the real button label",
+      "Clicking the export button in a browser, which fetches /invoices/export and triggers a blob download named invoices-YYYY-MM-DD.csv — a driver that captures downloads (Playwright) can assert the file's contents"
+    ],
+    "not_exercised": [
+      {
+        "what": "Development-server-only behaviour: hot reload, React Fast Refresh, dev-mode error overlays, and anything that differs between `next dev` and `next start`",
+        "paths": [
+          "next.config.ts",
+          "app/",
+          "components/"
+        ],
+        "why": "The sandbox builds the app and runs the production server, because that is the code path that must work. A change whose whole effect is in the dev server cannot be seen here."
+      },
+      {
+        "what": "Any browser other than Chromium",
+        "paths": [
+          "components/ExportButton.tsx"
+        ],
+        "why": "The trial's screenshot step installs Chromium only. The export relies on URL.createObjectURL and the anchor `download` attribute, whose behaviour differs most across engines, so a Safari- or Firefox-specific regression would not be caught."
+      },
+      {
+        "what": "The repository's own CI workflow (.github/workflows/ci.yml)",
+        "paths": [
+          ".github/workflows/"
+        ],
+        "why": "The sandbox runs the app's commands directly; it does not execute GitHub Actions. A change to the workflow file itself is checked by reading, not by running. This is deliberate: the fixture's stated acceptance criterion is that a factory run starts none of those runs."
+      },
+      {
+        "what": "Persistence, authentication, outbound API calls and multi-user behaviour",
+        "paths": [
+          "lib/invoices.ts"
+        ],
+        "why": "None of these exist in the repo — the invoice list is a hard-coded readonly array in lib/invoices.ts and no code reads a database, a secret or a third party. Listed so it is clear nothing was stubbed away: there is nothing to stub. A change that introduces any of them needs an amendment to this manifest."
+      }
+    ]
+  },
+  "episode": [
+    {
+      "attempt": 1,
+      "tried": "Read package.json, package-lock.json, README.md, next.config.ts, tsconfig.json, vitest.config.ts, eslint.config.mjs and .github/workflows/ci.yml, then grepped app/, lib/, components/ and the root config files for process.env, import.meta.env and NEXT_PUBLIC_ to find every place configuration is read.",
+      "observed": "A Next.js 15 / React 19 App Router app with no application-level configuration at all: zero matches for any environment-variable read, no .env.example, no config module, no Dockerfile, compose file or devcontainer. The only runtime knob is the port, which the Next CLI itself reads from PORT. So the closed sandbox environment needs two self variables and nothing else.",
+      "changed": "Settled the hypothesis: no services, no stubs, no secrets; env is PORT plus NEXT_TELEMETRY_DISABLED."
+    },
+    {
+      "attempt": 2,
+      "tried": "npm ci",
+      "observed": "333 packages, exit 0, in about 7s. npm warned that esbuild@0.21.5's postinstall is not covered by allowScripts; vitest nonetheless ran later without error, so the esbuild binary present in the tree is usable and no workaround is needed.",
+      "changed": "Kept `npm ci` rather than `npm install`: package-lock.json is committed, and ci is the reproducible form."
+    },
+    {
+      "attempt": 3,
+      "tried": "npm run build, then npm run typecheck and npm run lint",
+      "observed": "Build compiled in 2.9s and generated 6 pages; / and /invoices prerendered static, /invoices/export marked dynamic. One cosmetic warning: 'The Next.js plugin was not detected in your ESLint configuration'. tsc --noEmit and eslint . both exited 0 with no output.",
+      "changed": "Left the build command as plain `npm run build`; recorded the ESLint-plugin warning in fundamentals.md as a known state of the repo rather than treating it as a failure."
+    },
+    {
+      "attempt": 4,
+      "tried": "npm test",
+      "observed": "vitest 2.1.9 ran 3 files and 21 tests, all passing in under a second (lib 12, route 5, component 4). Vite printed its usual 'CJS build of Vite's Node API is deprecated' notice, which is not an error.",
+      "changed": null
+    },
+    {
+      "attempt": 5,
+      "tried": "Started the built app the way the trial will — `env -i` carrying only PATH, HOME, TMPDIR, LANG and CI plus the two manifest variables, running `npm run start -- --port 3000` — then polled http://localhost:3000/invoices and fetched /invoices/export with curl.",
+      "observed": "Ready in ~0.4s. /invoices answered 200 and its HTML contains 'Export 3 invoices as CSV'. /invoices/export answered 200 with Content-Type text/csv; charset=utf-8, Content-Disposition attachment; filename=\"invoices.csv\", Cache-Control no-store, and a body of one header row plus INV-1001, INV-1002 and INV-1003 — INV-1004 (draft) and INV-1005 (void) absent, which is the product rule this fixture exists to show.",
+      "changed": "Pinned the port in two places (the PORT variable and --port on the run command) so app_url cannot drift from what the server binds. Claimed tier `renders` on this evidence."
+    },
+    {
+      "attempt": 6,
+      "tried": "trial of round 1: install, build, test, run",
+      "observed": "reached renders, as claimed",
+      "changed": null
+    }
+  ],
+  "frozen_at": "2026-11-20T22:30:02.548Z"
+}

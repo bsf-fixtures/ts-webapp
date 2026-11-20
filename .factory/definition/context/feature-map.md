@@ -5,34 +5,61 @@
   Every agent reads this first. The question it has to answer is "where would
   this change go?" — so it names folders and what each one owns, not what the
   product does.
-
-  {{PLACEHOLDERS}} are filled in by setup.
 -->
 
-# Feature map — {{REPO_NAME}}
+# Feature map — ts-webapp
 
-{{ONE_LINE_WHAT_THIS_REPO_IS}}
+A small Next.js 15 (App Router) + React 19 invoices app in TypeScript, with
+one feature worth verifying: a CSV export of the invoices that were actually
+sent to a customer. Nine source files in four folders; no backend, no
+database, no third party.
 
 ## Feature folders
 
 | Folder | Owns | Depends on |
 | --- | --- | --- |
-{{FEATURE_FOLDER_ROWS}}
+| `app/` | The route tree and the root layout (`layout.tsx` sets `<html>`, the page title and the body's inline styles; `page.tsx` is the landing page at `/`, whose only content is a link to `/invoices`). | `next/link` |
+| `app/invoices/` | The `/invoices` page: a server component that lists every invoice in a table and renders the export button with the count of exportable ones. | `lib/invoices` (`listInvoices`, `exportableInvoices`, `formatAmount`), `components/ExportButton` |
+| `app/invoices/export/` | The `GET /invoices/export` route handler: serves the CSV as a download with `text/csv`, `Content-Disposition: attachment` and `Cache-Control: no-store`. | `lib/invoices` (`listInvoices`, `exportableInvoices`, `toCsv`) |
 
 ## Shared
 
 | Folder | What it is | Rule |
 | --- | --- | --- |
-{{SHARED_FOLDER_ROWS}}
+| `lib/` | The domain. `invoices.ts` holds the `Invoice` type, the seeded list, the sent/paid filter, cents-to-amount formatting, CSV cell quoting and `toCsv`. | Pure functions over `readonly` data. No React, no I/O, no framework imports — so it is testable without a DOM and usable from both a server component and a route handler. |
+| `components/` | Shared React components. `ExportButton.tsx` is the only one: a `"use client"` component that fetches the export, turns the response into a blob and clicks a synthetic anchor to download it. | A component lands here when a page and something else both need it, or when it needs browser APIs a server component cannot have. `"use client"` goes at the top of the component that needs it, not on the page. |
+| _(root)_ | `next.config.ts`, `tsconfig.json`, `vitest.config.ts`, `eslint.config.mjs`, `package.json`. | Build and tooling configuration only; no application logic. |
 
 ## Where things go
 
-- **A new feature** gets its own folder under {{FEATURE_ROOT}}.
-- **Something used by two features** moves to {{SHARED_ROOT}}, and not before
-  the second use. One caller is not a shared concern.
+- **A new feature** gets its own folder under `app/` — a route segment with
+  its `page.tsx`, and a nested segment for any route handler it needs
+  (`app/<feature>/<thing>/route.ts`), mirroring how `invoices` and
+  `invoices/export` are laid out.
+- **Something used by two features** moves to `lib/` if it is logic and
+  `components/` if it is UI, and not before the second use. One caller is not
+  a shared concern.
 - **Nothing in a feature folder imports from another feature folder.** Where
-  two features need the same thing, it belongs in shared.
+  two features need the same thing, it belongs in shared. Today nothing under
+  `app/` imports from anywhere else under `app/`; both route segments reach
+  down into `lib/` and `components/` only.
+- **Tests live beside the code**, as `<name>.test.ts` / `.test.tsx` in the
+  same folder. There is no `tests/` or `__tests__/` directory.
 
 ## Not in this repo
 
-{{OUT_OF_SCOPE}}
+- No database, ORM, migration or persistence of any kind — the invoice list is
+  a hard-coded `readonly` array in `lib/invoices.ts`.
+- No authentication, authorization, sessions or users.
+- No outbound API client, SDK or third-party integration; the only `fetch` in
+  the codebase is `ExportButton` calling this app's own `/invoices/export`.
+- No environment-variable reads anywhere in application code.
+- No styling system — styles are inline `style={{}}` objects. No CSS modules,
+  Tailwind, or global stylesheet.
+- No end-to-end test suite in the repo (Playwright is used by the factory to
+  drive the app, not by a committed spec). The committed tests are vitest unit
+  and component tests.
+- No Dockerfile, compose file, devcontainer, deploy config or infrastructure
+  code; `.github/workflows/ci.yml` is the only build pipeline, and the rest of
+  `.github/workflows/` belongs to the factory, not to the app.
+- No internationalization, no analytics, no error-reporting service.
