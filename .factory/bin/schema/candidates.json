@@ -1,0 +1,136 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://build-software-factory.dev/schema/candidates.json",
+  "title": "Guardrail candidates",
+  "description": "Every mined correction becomes a candidate; setup and hardening decide what each becomes. Doc 09.",
+  "type": "object",
+  "required": [
+    "schema",
+    "candidates"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema": {
+      "const": "candidates/1"
+    },
+    "candidates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "problem_class",
+          "occurrences",
+          "sources",
+          "proposed_fix",
+          "status"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "$ref": "_common.json#/$defs/candidateId"
+          },
+          "problem_class": {
+            "type": "string",
+            "minLength": 1
+          },
+          "occurrences": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "first_seen": {
+            "$ref": "_common.json#/$defs/timestamp"
+          },
+          "last_seen": {
+            "$ref": "_common.json#/$defs/timestamp"
+          },
+          "sources": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": [
+                "kind"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "agent_chat",
+                    "review_comment",
+                    "revert",
+                    "fix_commit",
+                    "bug",
+                    "prose_rule",
+                    "escalation",
+                    "review_failure"
+                  ]
+                },
+                "harness": {
+                  "$ref": "_common.json#/$defs/harness"
+                },
+                "session": {
+                  "type": "string"
+                },
+                "quote": {
+                  "type": "string"
+                },
+                "pr": {
+                  "type": "integer"
+                },
+                "commit": {
+                  "$ref": "_common.json#/$defs/gitSha"
+                },
+                "issue": {
+                  "type": "integer"
+                },
+                "path": {
+                  "type": "string"
+                },
+                "at": {
+                  "$ref": "_common.json#/$defs/timestamp"
+                }
+              }
+            }
+          },
+          "proposed_fix": {
+            "type": "string",
+            "enum": [
+              "api_change",
+              "static_rule",
+              "verification",
+              "context"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "accepted",
+              "rejected",
+              "installed"
+            ]
+          },
+          "installed_as": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "critical_logic": {
+            "type": "boolean",
+            "description": "Money, permissions or concurrency. Gets a targeted formal check."
+          },
+          "contributed_by": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The GitHub login of the teammate who submitted this candidate with `bsf contribute-corrections`, or null for one mined by setup from the repository itself. A reviewer needs to know a candidate came from someone's own machine: the quote is from their private session, and they are the person to ask about it."
+          }
+        }
+      }
+    }
+  }
+}

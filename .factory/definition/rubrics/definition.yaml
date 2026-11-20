@@ -1,0 +1,24 @@
+schema: rubric/1
+pipeline: definition
+criteria:
+  - id: change_was_benchmark_gated
+    question: >-
+      Was the change measured against frozen tasks, with enough repeats to
+      tell a difference from noise?
+  - id: difference_was_outside_the_noise
+    question: >-
+      Did the result sit outside the spread of the runs, or was it adopted on
+      a difference that could have been chance?
+  - id: nothing_regressed
+    question: Did anything that was passing start failing?
+  - id: smallest_change_that_fixes_it
+    question: >-
+      Was it a context line where a code check would have worked, or a model
+      change where a context line would have done?
+scale: "1-5"
+failure_tags:
+  - unmeasured_change
+  - adopted_inside_the_noise
+  - regression_accepted
+  - prose_instead_of_a_check
+  - cost_increase_unjustified

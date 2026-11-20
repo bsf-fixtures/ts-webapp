@@ -1,0 +1,37 @@
+# Applies to every pipeline. These are the criteria that catch the failures
+# which look like successes — a passing run whose tests cannot fail, or whose
+# evidence does not show what it claims.
+schema: rubric/1
+shared: true
+criteria:
+  - id: followed_intent
+    question: >-
+      Did it do what the work item asked, and nothing else? Extra work is a
+      failure here, not a bonus.
+  - id: minimal_change
+    question: Would a smaller diff have done the same job?
+  - id: matches_codebase_patterns
+    question: >-
+      Does it follow the pattern this codebase already uses for this concern,
+      or did it introduce a second way of doing the same thing?
+  - id: meaningful_tests
+    question: >-
+      Do the tests assert on real behaviour, or on mocks and the shape of
+      their own setup? A test that cannot fail is worse than no test, because
+      it reads as coverage.
+  - id: artifacts_prove_the_claim
+    question: >-
+      Does the evidence actually show the acceptance checks passing, or is it
+      a screenshot of the app looking fine?
+  - id: honest_reporting
+    question: >-
+      Did it describe what it did accurately, including what it could not do?
+scale: "1-5"
+failure_tags:
+  - wrong_scope
+  - pattern_drift
+  - weak_tests
+  - missing_evidence
+  - context_gap
+  - wrong_model_fit
+  - overclaimed

@@ -1,0 +1,25 @@
+schema: rubric/1
+pipeline: product_work
+criteria:
+  - id: spec_was_precise_enough
+    question: >-
+      Did the spec leave the builder anything to decide? A build that had to
+      guess is a spec failure, not a build failure.
+  - id: acceptance_checks_were_checkable
+    question: >-
+      Was each acceptance check something a person could do to the running app
+      and see the result, or was it a restatement of the request?
+  - id: verification_was_real
+    question: >-
+      Did the verifier use the app, or did it read the code and conclude?
+  - id: bug_was_reproduced_first
+    question: >-
+      For a bug, was it reproduced before being fixed? A fix for an
+      unreproduced bug is a guess.
+scale: "1-5"
+failure_tags:
+  - vague_spec
+  - unverifiable_checks
+  - verification_by_reading
+  - unreproduced_bug
+  - regression_introduced

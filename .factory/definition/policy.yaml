@@ -1,0 +1,99 @@
+# Policy. The gates always read this from main, never from the PR.
+schema: policy/1
+
+trust:
+  associations: [OWNER, MEMBER, COLLABORATOR]
+  accept_label: "factory:accept"
+  harden_label: "factory:harden"
+  require_write_access: true
+  # Trust belongs to people, never integrations: an issue these accounts
+  # create waits like any outside issue.
+  integration_bots:
+    - "linear[bot]"
+    - "sentry-io[bot]"
+
+paths:
+  definition:
+    - ".factory/definition/**"
+  guardrails:
+    - ".factory/guardrails/**"
+    # Existing tool configs, found at setup. They are guardrails too.
+    - ".eslintrc*"
+    - "eslint.config.*"
+    - "eslint-suppressions.json"
+    - ".semgrep.yml"
+    - ".dependency-cruiser.js"
+    - ".gitleaks.toml"
+    - "pyproject.toml#tool.ruff"
+  tests:
+    - "**/*.test.*"
+    - "**/*.spec.*"
+    - "**/test_*.py"
+    - "tests/**"
+  protected:
+    - ".github/workflows/**"
+    - ".github/dependabot.yml"
+    # The vendored runner is the program every gate runs. Jobs take it from
+    # the default branch, so a PR cannot grade itself with a modified copy;
+    # this is the other half — a PR cannot put a modified copy ON the default
+    # branch without a trusted human approving it.
+    - ".factory/bin/**"
+    # The policy and the sandbox manifest decide what an agent may do and
+    # reach. Changing either is a change to the factory's own boundary.
+    - ".factory/definition/policy.yaml"
+    - ".factory/sandbox/**"
+  # One-way for everyone: any pipeline may lower a count or raise the floor.
+  baselines:
+    - ".factory/guardrails/baselines.json"
+  coverage:
+    - ".factory/guardrails/coverage.json"
+
+pipelines:
+  product_work:
+    may_change: [code, tests]
+  gardening:
+    may_change: [code, tests]
+  hardening:
+    may_change: [code, tests, "guardrails:tighten"]
+  definition:
+    may_change: [definition]
+    requires: trusted_human_approval
+  conflict:
+    may_change: [code, tests]
+
+tests:
+  # Edits to existing test files must be listed in the spec's tests_changed.
+  # New test files are always allowed.
+  declared_edits: required
+
+runner_upgrades:
+  author: "dependabot[bot]"
+  may_change: runner_pin
+  requires: trusted_human_approval
+
+weakening:
+  requires: trusted_human_approval
+  detects:
+    - rule_removed
+    - rule_loosened
+    - baseline_raised
+    - native_suppressions_added
+    - unpruned_suppressions_allowed
+    - coverage_floor_lowered
+    - skip_without_reason
+
+# gh-aw's own protected-file check, passed to each role workflow by
+# factory-run. gh-aw protects every top-level dot-folder by default, .factory/
+# included, plus dependency manifests and .github/. Without a per-pipeline
+# exclusion, hardening PRs arrive carrying an automatic REQUEST_CHANGES.
+# .github/ is never excluded, in any pipeline.
+protected_files:
+  policy: request-review
+  exclude:
+    product_work: []
+    gardening: []
+    hardening:
+      - ".factory/guardrails/"
+    definition:
+      - ".factory/definition/"
+    conflict: []

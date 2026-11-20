@@ -1,0 +1,175 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://build-software-factory.dev/schema/rulepack.json",
+  "title": "Language rule pack",
+  "description": "The universal rules for one language, each mapped onto a tool the repo already runs, and each carrying the examples that prove it discriminates. Phase 3 of setup installs a rule only once it has failed on the bad example and passed on the good one.",
+  "type": "object",
+  "required": [
+    "schema",
+    "language",
+    "tools",
+    "rules"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema": {
+      "const": "rulepack/1"
+    },
+    "language": {
+      "type": "string",
+      "enum": [
+        "typescript",
+        "javascript",
+        "python",
+        "go",
+        "java",
+        "rust",
+        "csharp",
+        "ruby"
+      ]
+    },
+    "verification": {
+      "type": "string",
+      "enum": [
+        "documented_not_run"
+      ],
+      "description": "Present only when this pack's tool could not be installed where the pack was written, so no rule's examples have been run against it. Absent means every rule was verified by running the tool. Phase 3 checks a pack either way before installing a rule."
+    },
+    "extensions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "File extensions this pack's rules apply to."
+    },
+    "tools": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "kind"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "linter",
+              "formatter",
+              "typechecker",
+              "secrets",
+              "deps",
+              "coverage",
+              "dataflow",
+              "consistency"
+            ]
+          },
+          "detect": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Config globs that mean the repo already runs this tool. Setup extends an existing config rather than adding a second tool."
+          },
+          "config_file": {
+            "type": "string"
+          },
+          "install": {
+            "type": "string",
+            "description": "Command that adds the tool when the repo has none."
+          },
+          "check": {
+            "type": "string",
+            "description": "Command that runs it."
+          },
+          "fix": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Command that applies its autofixes, if it has any."
+          },
+          "native_baseline": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The tool's own baseline file, where it has one. That file is the baseline; baselines.json only mirrors it for the dashboard."
+          },
+          "base_config": {
+            "type": "object",
+            "description": "The tool config every rule needs regardless: parser, source type, declared globals. Without it a rule like no-undef fires on `module` in a CommonJS repo and would block correct code. Phase 3 writes this once and merges each rule fragment on top."
+          }
+        }
+      }
+    },
+    "rules": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "concern",
+          "tool",
+          "config",
+          "bad",
+          "good"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "concern": {
+            "type": "string",
+            "minLength": 1,
+            "description": "What this rule is for, in plain language, for the PR body a reviewer reads."
+          },
+          "tool": {
+            "type": "string",
+            "minLength": 1
+          },
+          "config": {
+            "description": "The fragment merged into that tool's config to turn this rule on.",
+            "type": "object"
+          },
+          "bad": {
+            "type": "string",
+            "minLength": 1,
+            "description": "A snippet the rule must reject. A rule that does not fail on this is not installed."
+          },
+          "good": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The dominant pattern, which the rule must accept. A rule that fails on this would block correct code."
+          },
+          "autofixable": {
+            "type": "boolean",
+            "default": false
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "error",
+              "warn"
+            ],
+            "default": "error"
+          },
+          "critical_logic": {
+            "type": "boolean",
+            "default": false,
+            "description": "Money, permissions or concurrency. Gets a targeted formal check as well."
+          }
+        }
+      }
+    }
+  }
+}

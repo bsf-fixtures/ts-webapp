@@ -1,0 +1,3042 @@
+{
+  "frozen_at": "2026-11-20",
+  "schema_major": 1,
+  "note": "The shape of every schema at the frozen major. `bsf schema-surface --check` compares the live schemas against this and fails on a breaking change. Regenerate with `bsf schema-surface --freeze` only alongside an additive change, or alongside a major bump that ships a migration in `bsf migrate`.",
+  "surface": {
+    "_common.json": {
+      "/$defs/ulid": {
+        "type": "string",
+        "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$"
+      },
+      "/$defs/workItemId": {
+        "type": "string",
+        "pattern": "^wi_[0-9A-HJKMNP-TV-Z]{26}$"
+      },
+      "/$defs/runId": {
+        "type": "string",
+        "pattern": "^run_[0-9A-HJKMNP-TV-Z]{26}$"
+      },
+      "/$defs/reviewId": {
+        "type": "string",
+        "pattern": "^rev_[0-9]{8}$"
+      },
+      "/$defs/benchmarkTaskId": {
+        "type": "string",
+        "pattern": "^bt_[0-9A-HJKMNP-TV-Z]{26}$"
+      },
+      "/$defs/benchmarkResultId": {
+        "type": "string",
+        "pattern": "^bench_[0-9A-HJKMNP-TV-Z]{26}$"
+      },
+      "/$defs/candidateId": {
+        "type": "string",
+        "pattern": "^cand_[0-9A-HJKMNP-TV-Z]{26}$"
+      },
+      "/$defs/timestamp": {
+        "type": "string"
+      },
+      "/$defs/usd": {
+        "type": "number",
+        "minimum": 0
+      },
+      "/$defs/seconds": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "/$defs/pct": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 100
+      },
+      "/$defs/ratio": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1
+      },
+      "/$defs/sha256": {
+        "type": "string",
+        "pattern": "^sha256:[0-9a-f]{64}$"
+      },
+      "/$defs/gitSha": {
+        "type": "string",
+        "pattern": "^[0-9a-f]{7,40}$"
+      },
+      "/$defs/harness": {
+        "type": "string",
+        "enum": [
+          "\"claude-code\"",
+          "\"cursor-cli\"",
+          "\"hermes-agent\"",
+          "\"kilo-code\"",
+          "\"pi\""
+        ]
+      },
+      "/$defs/pipeline": {
+        "type": "string",
+        "enum": [
+          "\"conflict\"",
+          "\"definition\"",
+          "\"gardening\"",
+          "\"hardening\"",
+          "\"product_work\""
+        ]
+      },
+      "/$defs/role": {
+        "type": "string",
+        "enum": [
+          "\"builder\"",
+          "\"gardener\"",
+          "\"hardener\"",
+          "\"scorer\"",
+          "\"spec\"",
+          "\"triage\"",
+          "\"verifier\""
+        ]
+      },
+      "/$defs/triggerClass": {
+        "type": "string",
+        "enum": [
+          "\"dev_event\"",
+          "\"request\"",
+          "\"scheduled\"",
+          "\"self\"",
+          "\"signal\""
+        ]
+      }
+    },
+    "baselines.json": {
+      "/": {
+        "type": "object",
+        "properties": [
+          "rules",
+          "schema"
+        ],
+        "required": [
+          "rules",
+          "schema"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/schema": {
+        "const": "\"baselines/1\""
+      },
+      "/properties/rules": {
+        "type": "object"
+      },
+      "/properties/rules/propertyNames": {
+        "type": "string",
+        "minLength": 1
+      },
+      "/properties/rules/additionalProperties": {
+        "type": "object",
+        "properties": [
+          "by_file",
+          "count",
+          "native",
+          "recorded_at",
+          "retired"
+        ],
+        "required": [
+          "count"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/rules/additionalProperties/properties/count": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "/properties/rules/additionalProperties/properties/recorded_at": {
+        "ref": "_common.json#/$defs/timestamp"
+      },
+      "/properties/rules/additionalProperties/properties/retired": {
+        "type": "boolean"
+      },
+      "/properties/rules/additionalProperties/properties/native": {
+        "type": "string"
+      },
+      "/properties/rules/additionalProperties/properties/by_file": {
+        "type": "object"
+      },
+      "/properties/rules/additionalProperties/properties/by_file/additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    "benchmark-result.json": {
+      "/": {
+        "type": "object",
+        "properties": [
+          "admitted",
+          "at",
+          "id",
+          "pipeline",
+          "pr",
+          "reasons",
+          "regressed",
+          "repeats",
+          "schema",
+          "sides",
+          "task_count"
+        ],
+        "required": [
+          "admitted",
+          "at",
+          "id",
+          "reasons",
+          "repeats",
+          "schema",
+          "sides",
+          "task_count"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/schema": {
+        "const": "\"benchmark-result/1\""
+      },
+      "/properties/id": {
+        "ref": "_common.json#/$defs/benchmarkResultId"
+      },
+      "/properties/at": {
+        "ref": "_common.json#/$defs/timestamp"
+      },
+      "/properties/repeats": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "/properties/task_count": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "/properties/pipeline": {
+        "ref": "_common.json#/$defs/pipeline"
+      },
+      "/properties/pr": {
+        "type": "integer"
+      },
+      "/properties/sides": {
+        "type": "array",
+        "minItems": 1
+      },
+      "/properties/sides/items": {
+        "type": "object",
+        "properties": [
+          "cost_per_task",
+          "cost_usd",
+          "current",
+          "label",
+          "models",
+          "must_pass_rate",
+          "score_mean",
+          "score_spread"
+        ],
+        "required": [
+          "cost_per_task",
+          "cost_usd",
+          "label",
+          "must_pass_rate",
+          "score_mean",
+          "score_spread"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/sides/items/properties/label": {
+        "type": "string",
+        "minLength": 1
+      },
+      "/properties/sides/items/properties/models": {
+        "type": "object"
+      },
+      "/properties/sides/items/properties/models/additionalProperties": {
+        "type": "string"
+      },
+      "/properties/sides/items/properties/score_mean": {
+        "type": "number",
+        "minimum": 0
+      },
+      "/properties/sides/items/properties/score_spread": {
+        "type": "number",
+        "minimum": 0
+      },
+      "/properties/sides/items/properties/cost_usd": {
+        "type": "number",
+        "minimum": 0
+      },
+      "/properties/sides/items/properties/cost_per_task": {
+        "type": "number",
+        "minimum": 0
+      },
+      "/properties/sides/items/properties/must_pass_rate": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1
+      },
+      "/properties/sides/items/properties/current": {
+        "type": "boolean"
+      },
+      "/properties/admitted": {
+        "type": "boolean"
+      },
+      "/properties/reasons": {
+        "type": "array"
+      },
+      "/properties/reasons/items": {
+        "type": "string"
+      },
+      "/properties/regressed": {
+        "type": "array"
+      },
+      "/properties/regressed/items": {
+        "type": "string"
+      }
+    },
+    "benchmark-task.json": {
+      "/": {
+        "type": "object",
+        "properties": [
+          "base_commit",
+          "created_at",
+          "grading",
+          "id",
+          "origin",
+          "pipeline",
+          "reference",
+          "request",
+          "schema",
+          "source_run",
+          "tags"
+        ],
+        "required": [
+          "base_commit",
+          "grading",
+          "id",
+          "origin",
+          "pipeline",
+          "reference",
+          "request",
+          "schema",
+          "source_run"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/schema": {
+        "const": "\"benchmark-task/1\""
+      },
+      "/properties/id": {
+        "ref": "_common.json#/$defs/benchmarkTaskId"
+      },
+      "/properties/source_run": {
+        "ref": "_common.json#/$defs/runId"
+      },
+      "/properties/origin": {
+        "type": "string",
+        "enum": [
+          "\"corrected\"",
+          "\"escalated\"",
+          "\"representative\"",
+          "\"succeeded\""
+        ]
+      },
+      "/properties/pipeline": {
+        "ref": "_common.json#/$defs/pipeline"
+      },
+      "/properties/base_commit": {
+        "ref": "_common.json#/$defs/gitSha"
+      },
+      "/properties/created_at": {
+        "ref": "_common.json#/$defs/timestamp"
+      },
+      "/properties/request": {
+        "type": "object",
+        "properties": [
+          "body",
+          "title"
+        ],
+        "required": [
+          "title"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/request/properties/title": {
+        "type": "string"
+      },
+      "/properties/request/properties/body": {
+        "type": "null|string"
+      },
+      "/properties/reference": {
+        "type": "object",
+        "properties": [
+          "merged_commit",
+          "tests"
+        ],
+        "required": [
+          "merged_commit"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/reference/properties/merged_commit": {
+        "ref": "_common.json#/$defs/gitSha"
+      },
+      "/properties/reference/properties/tests": {
+        "type": "array"
+      },
+      "/properties/reference/properties/tests/items": {
+        "type": "string"
+      },
+      "/properties/grading": {
+        "type": "object",
+        "properties": [
+          "must_pass",
+          "rubric"
+        ],
+        "required": [
+          "must_pass",
+          "rubric"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/grading/properties/must_pass": {
+        "type": "array"
+      },
+      "/properties/grading/properties/must_pass/items": {
+        "type": "string"
+      },
+      "/properties/grading/properties/rubric": {
+        "type": "string"
+      },
+      "/properties/tags": {
+        "type": "array"
+      },
+      "/properties/tags/items": {
+        "type": "string"
+      }
+    },
+    "candidates.json": {
+      "/": {
+        "type": "object",
+        "properties": [
+          "candidates",
+          "schema"
+        ],
+        "required": [
+          "candidates",
+          "schema"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/schema": {
+        "const": "\"candidates/1\""
+      },
+      "/properties/candidates": {
+        "type": "array"
+      },
+      "/properties/candidates/items": {
+        "type": "object",
+        "properties": [
+          "contributed_by",
+          "critical_logic",
+          "first_seen",
+          "id",
+          "installed_as",
+          "last_seen",
+          "occurrences",
+          "problem_class",
+          "proposed_fix",
+          "sources",
+          "status"
+        ],
+        "required": [
+          "id",
+          "occurrences",
+          "problem_class",
+          "proposed_fix",
+          "sources",
+          "status"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/candidates/items/properties/id": {
+        "ref": "_common.json#/$defs/candidateId"
+      },
+      "/properties/candidates/items/properties/problem_class": {
+        "type": "string",
+        "minLength": 1
+      },
+      "/properties/candidates/items/properties/occurrences": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "/properties/candidates/items/properties/first_seen": {
+        "ref": "_common.json#/$defs/timestamp"
+      },
+      "/properties/candidates/items/properties/last_seen": {
+        "ref": "_common.json#/$defs/timestamp"
+      },
+      "/properties/candidates/items/properties/sources": {
+        "type": "array",
+        "minItems": 1
+      },
+      "/properties/candidates/items/properties/sources/items": {
+        "type": "object",
+        "properties": [
+          "at",
+          "commit",
+          "harness",
+          "issue",
+          "kind",
+          "path",
+          "pr",
+          "quote",
+          "session"
+        ],
+        "required": [
+          "kind"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/candidates/items/properties/sources/items/properties/kind": {
+        "type": "string",
+        "enum": [
+          "\"agent_chat\"",
+          "\"bug\"",
+          "\"escalation\"",
+          "\"fix_commit\"",
+          "\"prose_rule\"",
+          "\"revert\"",
+          "\"review_comment\"",
+          "\"review_failure\""
+        ]
+      },
+      "/properties/candidates/items/properties/sources/items/properties/harness": {
+        "ref": "_common.json#/$defs/harness"
+      },
+      "/properties/candidates/items/properties/sources/items/properties/session": {
+        "type": "string"
+      },
+      "/properties/candidates/items/properties/sources/items/properties/quote": {
+        "type": "string"
+      },
+      "/properties/candidates/items/properties/sources/items/properties/pr": {
+        "type": "integer"
+      },
+      "/properties/candidates/items/properties/sources/items/properties/commit": {
+        "ref": "_common.json#/$defs/gitSha"
+      },
+      "/properties/candidates/items/properties/sources/items/properties/issue": {
+        "type": "integer"
+      },
+      "/properties/candidates/items/properties/sources/items/properties/path": {
+        "type": "string"
+      },
+      "/properties/candidates/items/properties/sources/items/properties/at": {
+        "ref": "_common.json#/$defs/timestamp"
+      },
+      "/properties/candidates/items/properties/proposed_fix": {
+        "type": "string",
+        "enum": [
+          "\"api_change\"",
+          "\"context\"",
+          "\"static_rule\"",
+          "\"verification\""
+        ]
+      },
+      "/properties/candidates/items/properties/status": {
+        "type": "string",
+        "enum": [
+          "\"accepted\"",
+          "\"installed\"",
+          "\"pending\"",
+          "\"rejected\""
+        ]
+      },
+      "/properties/candidates/items/properties/installed_as": {
+        "type": "null|string"
+      },
+      "/properties/candidates/items/properties/critical_logic": {
+        "type": "boolean"
+      },
+      "/properties/candidates/items/properties/contributed_by": {
+        "type": "null|string"
+      }
+    },
+    "coverage.json": {
+      "/": {
+        "type": "object",
+        "properties": [
+          "diff_min_pct",
+          "floor_pct",
+          "high_pct",
+          "schema",
+          "skips",
+          "tolerance_pts"
+        ],
+        "required": [
+          "diff_min_pct",
+          "floor_pct",
+          "high_pct",
+          "schema",
+          "skips",
+          "tolerance_pts"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/schema": {
+        "const": "\"coverage/1\""
+      },
+      "/properties/high_pct": {
+        "ref": "_common.json#/$defs/pct"
+      },
+      "/properties/floor_pct": {
+        "ref": "_common.json#/$defs/pct"
+      },
+      "/properties/tolerance_pts": {
+        "type": "number",
+        "minimum": 0
+      },
+      "/properties/diff_min_pct": {
+        "ref": "_common.json#/$defs/pct"
+      },
+      "/properties/skips": {
+        "type": "object",
+        "properties": [
+          "cap",
+          "count"
+        ],
+        "required": [
+          "cap",
+          "count"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/skips/properties/count": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "/properties/skips/properties/cap": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    "factory.json": {
+      "/": {
+        "type": "object",
+        "properties": [
+          "budget",
+          "data",
+          "enforcement",
+          "existing_ci",
+          "harness",
+          "human_prs",
+          "limits",
+          "models",
+          "pipelines",
+          "recompiler",
+          "review",
+          "sandbox",
+          "schema",
+          "triggers"
+        ],
+        "required": [
+          "budget",
+          "data",
+          "enforcement",
+          "harness",
+          "limits",
+          "models",
+          "pipelines",
+          "schema"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/schema": {
+        "const": "\"factory/1\""
+      },
+      "/properties/harness": {
+        "ref": "_common.json#/$defs/harness"
+      },
+      "/properties/models": {
+        "type": "object",
+        "properties": [
+          "builder",
+          "gardener",
+          "hardener",
+          "scorer",
+          "spec",
+          "triage",
+          "verifier"
+        ],
+        "required": [
+          "builder",
+          "gardener",
+          "hardener",
+          "scorer",
+          "spec",
+          "triage",
+          "verifier"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/models/properties/triage": {
+        "type": "string"
+      },
+      "/properties/models/properties/spec": {
+        "type": "string"
+      },
+      "/properties/models/properties/builder": {
+        "type": "string"
+      },
+      "/properties/models/properties/verifier": {
+        "type": "string"
+      },
+      "/properties/models/properties/gardener": {
+        "type": "string"
+      },
+      "/properties/models/properties/hardener": {
+        "type": "string"
+      },
+      "/properties/models/properties/scorer": {
+        "type": "string"
+      },
+      "/properties/pipelines": {
+        "type": "object",
+        "properties": [
+          "gardening",
+          "hardening",
+          "product_work"
+        ],
+        "required": [
+          "gardening",
+          "hardening",
+          "product_work"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/pipelines/properties/product_work": {
+        "type": "object",
+        "properties": [
+          "auto_merge"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/pipelines/properties/product_work/properties/auto_merge": {
+        "type": "boolean"
+      },
+      "/properties/pipelines/properties/gardening": {
+        "type": "object",
+        "properties": [
+          "auto_merge",
+          "max_prs_per_run",
+          "schedule"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/pipelines/properties/gardening/properties/auto_merge": {
+        "type": "boolean"
+      },
+      "/properties/pipelines/properties/gardening/properties/schedule": {
+        "type": "string"
+      },
+      "/properties/pipelines/properties/gardening/properties/max_prs_per_run": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "/properties/pipelines/properties/hardening": {
+        "type": "object",
+        "properties": [
+          "auto_merge"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/pipelines/properties/hardening/properties/auto_merge": {
+        "type": "boolean"
+      },
+      "/properties/review": {
+        "type": "object",
+        "properties": [
+          "every_days",
+          "run_early_at_runs",
+          "skip_below_runs"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/review/properties/every_days": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "/properties/review/properties/run_early_at_runs": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "/properties/review/properties/skip_below_runs": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "/properties/limits": {
+        "type": "object",
+        "properties": [
+          "concurrency",
+          "retry_cap",
+          "step_time_budget_sec"
+        ],
+        "required": [
+          "concurrency",
+          "retry_cap",
+          "step_time_budget_sec"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/limits/properties/retry_cap": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "/properties/limits/properties/step_time_budget_sec": {
+        "ref": "_common.json#/$defs/seconds"
+      },
+      "/properties/limits/properties/concurrency": {
+        "type": "object",
+        "properties": [
+          "max_runs"
+        ],
+        "required": [
+          "max_runs"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/limits/properties/concurrency/properties/max_runs": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "/properties/budget": {
+        "type": "object",
+        "properties": [
+          "monthly_actions_minutes",
+          "monthly_usd",
+          "product_work_hard_stop_pct",
+          "shares"
+        ],
+        "required": [
+          "monthly_usd",
+          "shares"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/budget/properties/monthly_usd": {
+        "ref": "_common.json#/$defs/usd"
+      },
+      "/properties/budget/properties/monthly_actions_minutes": {
+        "type": "null|number",
+        "minimum": 0
+      },
+      "/properties/budget/properties/shares": {
+        "type": "object",
+        "properties": [
+          "gardening",
+          "product_work",
+          "review_and_benchmarks"
+        ],
+        "required": [
+          "gardening",
+          "product_work",
+          "review_and_benchmarks"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/budget/properties/shares/properties/product_work": {
+        "ref": "_common.json#/$defs/pct"
+      },
+      "/properties/budget/properties/shares/properties/gardening": {
+        "ref": "_common.json#/$defs/pct"
+      },
+      "/properties/budget/properties/shares/properties/review_and_benchmarks": {
+        "ref": "_common.json#/$defs/pct"
+      },
+      "/properties/budget/properties/product_work_hard_stop_pct": {
+        "type": "number",
+        "minimum": 100
+      },
+      "/properties/triggers": {
+        "type": "object",
+        "properties": [
+          "ci_failure_on_main",
+          "comments",
+          "dashboard_dispatch",
+          "issues"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/triggers/properties/issues": {
+        "type": "boolean"
+      },
+      "/properties/triggers/properties/comments": {
+        "type": "boolean"
+      },
+      "/properties/triggers/properties/ci_failure_on_main": {
+        "type": "boolean"
+      },
+      "/properties/triggers/properties/dashboard_dispatch": {
+        "type": "boolean"
+      },
+      "/properties/data": {
+        "type": "object",
+        "properties": [
+          "location",
+          "media_retention_months",
+          "repo",
+          "sessions"
+        ],
+        "required": [
+          "location",
+          "sessions"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/data/properties/location": {
+        "type": "string",
+        "enum": [
+          "\"repo\"",
+          "\"same_repo\""
+        ]
+      },
+      "/properties/data/properties/repo": {
+        "type": "null|string",
+        "pattern": "^[^/]+/[^/]+$"
+      },
+      "/properties/data/properties/sessions": {
+        "type": "string",
+        "enum": [
+          "\"auto\"",
+          "\"off\""
+        ]
+      },
+      "/properties/data/properties/media_retention_months": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "/properties/data/allOf/0/if": {
+        "properties": [
+          "location"
+        ],
+        "required": [
+          "location"
+        ]
+      },
+      "/properties/data/allOf/0/if/properties/location": {
+        "const": "\"repo\""
+      },
+      "/properties/data/allOf/0/then": {
+        "properties": [
+          "repo"
+        ],
+        "required": [
+          "repo"
+        ]
+      },
+      "/properties/data/allOf/0/then/properties/repo": {
+        "type": "string"
+      },
+      "/properties/enforcement": {
+        "type": "object",
+        "properties": [
+          "audit_revert_pr",
+          "branch_protection",
+          "merge_queue"
+        ],
+        "required": [
+          "branch_protection",
+          "merge_queue"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/enforcement/properties/merge_queue": {
+        "type": "string",
+        "enum": [
+          "\"auto\"",
+          "\"fallback\"",
+          "\"native\""
+        ]
+      },
+      "/properties/enforcement/properties/branch_protection": {
+        "type": "string",
+        "enum": [
+          "\"auto\"",
+          "\"off\"",
+          "\"on\""
+        ]
+      },
+      "/properties/enforcement/properties/audit_revert_pr": {
+        "type": "boolean"
+      },
+      "/properties/sandbox": {
+        "type": "object",
+        "properties": [
+          "agent_runtime",
+          "allow_host_ports"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/sandbox/properties/agent_runtime": {
+        "type": "string",
+        "enum": [
+          "\"docker\"",
+          "\"docker-sudo-iptables\""
+        ]
+      },
+      "/properties/sandbox/properties/allow_host_ports": {
+        "type": "array"
+      },
+      "/properties/sandbox/properties/allow_host_ports/items": {
+        "type": "integer"
+      },
+      "/properties/human_prs": {
+        "type": "object",
+        "properties": [
+          "gates",
+          "verify_label"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/human_prs/properties/gates": {
+        "type": "string",
+        "enum": [
+          "\"all\"",
+          "\"deterministic\""
+        ]
+      },
+      "/properties/human_prs/properties/verify_label": {
+        "type": "string"
+      },
+      "/properties/existing_ci": {
+        "type": "object",
+        "properties": [
+          "test_check",
+          "wait_minutes"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/existing_ci/properties/test_check": {
+        "type": "null|string"
+      },
+      "/properties/existing_ci/properties/wait_minutes": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "/properties/recompiler": {
+        "type": "object",
+        "properties": [
+          "enabled",
+          "ghaw_version"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/recompiler/properties/enabled": {
+        "type": "boolean"
+      },
+      "/properties/recompiler/properties/ghaw_version": {
+        "type": "string"
+      }
+    },
+    "index.json": {
+      "/": {
+        "type": "object",
+        "properties": [
+          "daily",
+          "factory",
+          "guardrails",
+          "health",
+          "metrics",
+          "recent_runs",
+          "schema",
+          "updated_at"
+        ],
+        "required": [
+          "factory",
+          "metrics",
+          "schema",
+          "updated_at"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/schema": {
+        "const": "\"index/1\""
+      },
+      "/properties/updated_at": {
+        "ref": "_common.json#/$defs/timestamp"
+      },
+      "/properties/factory": {
+        "type": "object",
+        "properties": [
+          "harness",
+          "runner",
+          "schema_versions",
+          "setup_completed_at"
+        ],
+        "required": [
+          "harness",
+          "runner"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/factory/properties/runner": {
+        "type": "string"
+      },
+      "/properties/factory/properties/harness": {
+        "ref": "_common.json#/$defs/harness"
+      },
+      "/properties/factory/properties/setup_completed_at": {
+        "ref": "_common.json#/$defs/timestamp"
+      },
+      "/properties/factory/properties/schema_versions": {
+        "type": "object"
+      },
+      "/properties/factory/properties/schema_versions/additionalProperties": {
+        "type": "string"
+      },
+      "/properties/metrics": {
+        "type": "object",
+        "properties": [
+          "actions_minutes",
+          "actions_minutes_limit",
+          "automation_rate",
+          "budget_usd",
+          "by_pipeline",
+          "cycle_time_p50_sec",
+          "cycle_time_p90_sec",
+          "escalated",
+          "human_interactions_per_pr",
+          "merged",
+          "revert_rate",
+          "runs",
+          "spend_usd",
+          "window_days"
+        ],
+        "required": [
+          "runs",
+          "window_days"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/metrics/properties/window_days": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "/properties/metrics/properties/automation_rate": {
+        "ref": "_common.json#/$defs/ratio"
+      },
+      "/properties/metrics/properties/cycle_time_p50_sec": {
+        "ref": "_common.json#/$defs/seconds"
+      },
+      "/properties/metrics/properties/cycle_time_p90_sec": {
+        "ref": "_common.json#/$defs/seconds"
+      },
+      "/properties/metrics/properties/spend_usd": {
+        "ref": "_common.json#/$defs/usd"
+      },
+      "/properties/metrics/properties/budget_usd": {
+        "ref": "_common.json#/$defs/usd"
+      },
+      "/properties/metrics/properties/actions_minutes": {
+        "type": "number",
+        "minimum": 0
+      },
+      "/properties/metrics/properties/actions_minutes_limit": {
+        "type": "null|number",
+        "minimum": 0
+      },
+      "/properties/metrics/properties/runs": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "/properties/metrics/properties/merged": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "/properties/metrics/properties/escalated": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "/properties/metrics/properties/revert_rate": {
+        "ref": "_common.json#/$defs/ratio"
+      },
+      "/properties/metrics/properties/by_pipeline": {
+        "type": "object"
+      },
+      "/properties/metrics/properties/by_pipeline/additionalProperties": {
+        "type": "object",
+        "properties": [
+          "actions_minutes",
+          "merged",
+          "paused",
+          "revert_rate",
+          "runs",
+          "spend_usd"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/metrics/properties/by_pipeline/additionalProperties/properties/runs": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "/properties/metrics/properties/by_pipeline/additionalProperties/properties/merged": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "/properties/metrics/properties/by_pipeline/additionalProperties/properties/spend_usd": {
+        "ref": "_common.json#/$defs/usd"
+      },
+      "/properties/metrics/properties/by_pipeline/additionalProperties/properties/actions_minutes": {
+        "type": "number",
+        "minimum": 0
+      },
+      "/properties/metrics/properties/by_pipeline/additionalProperties/properties/revert_rate": {
+        "ref": "_common.json#/$defs/ratio"
+      },
+      "/properties/metrics/properties/by_pipeline/additionalProperties/properties/paused": {
+        "type": "boolean"
+      },
+      "/properties/metrics/properties/human_interactions_per_pr": {
+        "type": "null|number"
+      },
+      "/properties/daily": {
+        "type": "array"
+      },
+      "/properties/daily/items": {
+        "type": "object",
+        "properties": [
+          "actions_minutes",
+          "date",
+          "merged",
+          "runs",
+          "spend_usd"
+        ],
+        "required": [
+          "date"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/daily/items/properties/date": {
+        "type": "string"
+      },
+      "/properties/daily/items/properties/runs": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "/properties/daily/items/properties/merged": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "/properties/daily/items/properties/spend_usd": {
+        "ref": "_common.json#/$defs/usd"
+      },
+      "/properties/daily/items/properties/actions_minutes": {
+        "type": "number",
+        "minimum": 0
+      },
+      "/properties/recent_runs": {
+        "type": "array"
+      },
+      "/properties/recent_runs/items": {
+        "ref": "_common.json#/$defs/runId"
+      },
+      "/properties/guardrails": {
+        "type": "object",
+        "properties": [
+          "baselined",
+          "candidates_pending",
+          "coverage_floor_pct",
+          "rules"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/guardrails/properties/rules": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "/properties/guardrails/properties/baselined": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "/properties/guardrails/properties/coverage_floor_pct": {
+        "ref": "_common.json#/$defs/pct"
+      },
+      "/properties/guardrails/properties/candidates_pending": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "/properties/health": {
+        "type": "object",
+        "properties": [
+          "enforcement",
+          "gardening_schedule_active",
+          "last_review",
+          "lock_files_current",
+          "sandbox_profile"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/health/properties/gardening_schedule_active": {
+        "type": "boolean"
+      },
+      "/properties/health/properties/last_review": {
+        "ref": "_common.json#/$defs/reviewId"
+      },
+      "/properties/health/properties/lock_files_current": {
+        "type": "boolean"
+      },
+      "/properties/health/properties/sandbox_profile": {
+        "type": "string",
+        "enum": [
+          "\"docker\"",
+          "\"docker-sudo-iptables\""
+        ]
+      },
+      "/properties/health/properties/enforcement": {
+        "type": "string",
+        "enum": [
+          "\"audit\"",
+          "\"branch_protection\""
+        ]
+      }
+    },
+    "ledger.json": {
+      "/": {
+        "type": "object",
+        "properties": [
+          "merge_queue",
+          "open",
+          "recent",
+          "schema",
+          "updated_at"
+        ],
+        "required": [
+          "merge_queue",
+          "open",
+          "recent",
+          "schema",
+          "updated_at"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/schema": {
+        "const": "\"ledger/1\""
+      },
+      "/properties/updated_at": {
+        "ref": "_common.json#/$defs/timestamp"
+      },
+      "/properties/open": {
+        "type": "array"
+      },
+      "/properties/open/items": {
+        "type": "object",
+        "properties": [
+          "created_at",
+          "fingerprint",
+          "fixes",
+          "pipeline",
+          "pr",
+          "priority",
+          "status",
+          "work_item"
+        ],
+        "required": [
+          "pipeline",
+          "status",
+          "work_item"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/open/items/properties/work_item": {
+        "ref": "_common.json#/$defs/workItemId"
+      },
+      "/properties/open/items/properties/pipeline": {
+        "ref": "_common.json#/$defs/pipeline"
+      },
+      "/properties/open/items/properties/status": {
+        "type": "string"
+      },
+      "/properties/open/items/properties/fingerprint": {
+        "ref": "_common.json#/$defs/sha256"
+      },
+      "/properties/open/items/properties/pr": {
+        "type": "integer|null"
+      },
+      "/properties/open/items/properties/priority": {
+        "type": "string",
+        "enum": [
+          "\"high\"",
+          "\"normal\""
+        ]
+      },
+      "/properties/open/items/properties/created_at": {
+        "ref": "_common.json#/$defs/timestamp"
+      },
+      "/properties/open/items/properties/fixes": {
+        "type": "array"
+      },
+      "/properties/open/items/properties/fixes/items": {
+        "type": "string"
+      },
+      "/properties/recent": {
+        "type": "array"
+      },
+      "/properties/recent/items": {
+        "type": "object",
+        "properties": [
+          "fingerprint",
+          "merged_at",
+          "pr",
+          "status",
+          "work_item"
+        ],
+        "required": [
+          "status",
+          "work_item"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/recent/items/properties/work_item": {
+        "ref": "_common.json#/$defs/workItemId"
+      },
+      "/properties/recent/items/properties/status": {
+        "type": "string"
+      },
+      "/properties/recent/items/properties/merged_at": {
+        "ref": "_common.json#/$defs/timestamp"
+      },
+      "/properties/recent/items/properties/fingerprint": {
+        "ref": "_common.json#/$defs/sha256"
+      },
+      "/properties/recent/items/properties/pr": {
+        "type": "integer|null"
+      },
+      "/properties/merge_queue": {
+        "type": "array"
+      },
+      "/properties/merge_queue/items": {
+        "type": "object",
+        "properties": [
+          "eligible_at",
+          "pipeline",
+          "pr",
+          "work_item"
+        ],
+        "required": [
+          "eligible_at",
+          "pr"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/merge_queue/items/properties/pr": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "/properties/merge_queue/items/properties/eligible_at": {
+        "ref": "_common.json#/$defs/timestamp"
+      },
+      "/properties/merge_queue/items/properties/pipeline": {
+        "ref": "_common.json#/$defs/pipeline"
+      },
+      "/properties/merge_queue/items/properties/work_item": {
+        "ref": "_common.json#/$defs/workItemId"
+      }
+    },
+    "live.json": {
+      "/": {
+        "type": "object",
+        "properties": [
+          "attempt",
+          "cost_usd_so_far",
+          "gate",
+          "of",
+          "pipeline",
+          "run",
+          "schema",
+          "started_at",
+          "step",
+          "work_item"
+        ],
+        "required": [
+          "pipeline",
+          "run",
+          "schema",
+          "started_at",
+          "step",
+          "work_item"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/schema": {
+        "const": "\"live/1\""
+      },
+      "/properties/run": {
+        "ref": "_common.json#/$defs/runId"
+      },
+      "/properties/work_item": {
+        "ref": "_common.json#/$defs/workItemId"
+      },
+      "/properties/pipeline": {
+        "ref": "_common.json#/$defs/pipeline"
+      },
+      "/properties/step": {
+        "type": "string",
+        "enum": [
+          "\"builder\"",
+          "\"gardener\"",
+          "\"gate\"",
+          "\"hardener\"",
+          "\"merge\"",
+          "\"scorer\"",
+          "\"spec\"",
+          "\"triage\"",
+          "\"verifier\""
+        ]
+      },
+      "/properties/gate": {
+        "type": "null|string",
+        "enum": [
+          "\"static\"",
+          "\"verification\"",
+          "null"
+        ]
+      },
+      "/properties/attempt": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "/properties/of": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "/properties/started_at": {
+        "ref": "_common.json#/$defs/timestamp"
+      },
+      "/properties/cost_usd_so_far": {
+        "ref": "_common.json#/$defs/usd"
+      }
+    },
+    "policy.json": {
+      "/": {
+        "type": "object",
+        "properties": [
+          "paths",
+          "pipelines",
+          "protected_files",
+          "runner_upgrades",
+          "schema",
+          "tests",
+          "trust",
+          "weakening"
+        ],
+        "required": [
+          "paths",
+          "pipelines",
+          "schema",
+          "tests",
+          "trust",
+          "weakening"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/schema": {
+        "const": "\"policy/1\""
+      },
+      "/properties/trust": {
+        "type": "object",
+        "properties": [
+          "accept_label",
+          "associations",
+          "harden_label",
+          "integration_bots",
+          "require_write_access"
+        ],
+        "required": [
+          "accept_label",
+          "associations"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/trust/properties/associations": {
+        "type": "array",
+        "minItems": 1
+      },
+      "/properties/trust/properties/associations/items": {
+        "type": "string",
+        "enum": [
+          "\"COLLABORATOR\"",
+          "\"MEMBER\"",
+          "\"OWNER\""
+        ]
+      },
+      "/properties/trust/properties/accept_label": {
+        "type": "string",
+        "minLength": 1
+      },
+      "/properties/trust/properties/harden_label": {
+        "type": "string"
+      },
+      "/properties/trust/properties/require_write_access": {
+        "type": "boolean"
+      },
+      "/properties/trust/properties/integration_bots": {
+        "type": "array"
+      },
+      "/properties/trust/properties/integration_bots/items": {
+        "type": "string"
+      },
+      "/properties/paths": {
+        "type": "object",
+        "properties": [
+          "baselines",
+          "coverage",
+          "definition",
+          "guardrails",
+          "protected",
+          "tests"
+        ],
+        "required": [
+          "definition",
+          "guardrails",
+          "protected",
+          "tests"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/paths/properties/definition": {
+        "type": "array",
+        "minItems": 1
+      },
+      "/properties/paths/properties/definition/items": {
+        "type": "string"
+      },
+      "/properties/paths/properties/guardrails": {
+        "type": "array",
+        "minItems": 1
+      },
+      "/properties/paths/properties/guardrails/items": {
+        "type": "string"
+      },
+      "/properties/paths/properties/tests": {
+        "type": "array",
+        "minItems": 1
+      },
+      "/properties/paths/properties/tests/items": {
+        "type": "string"
+      },
+      "/properties/paths/properties/protected": {
+        "type": "array",
+        "minItems": 1
+      },
+      "/properties/paths/properties/protected/items": {
+        "type": "string"
+      },
+      "/properties/paths/properties/baselines": {
+        "type": "array"
+      },
+      "/properties/paths/properties/baselines/items": {
+        "type": "string"
+      },
+      "/properties/paths/properties/coverage": {
+        "type": "array"
+      },
+      "/properties/paths/properties/coverage/items": {
+        "type": "string"
+      },
+      "/properties/pipelines": {
+        "type": "object",
+        "properties": [
+          "conflict",
+          "definition",
+          "gardening",
+          "hardening",
+          "product_work"
+        ],
+        "required": [
+          "definition",
+          "gardening",
+          "hardening",
+          "product_work"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/pipelines/properties/product_work": {
+        "ref": "#/$defs/pipelineRule"
+      },
+      "/properties/pipelines/properties/gardening": {
+        "ref": "#/$defs/pipelineRule"
+      },
+      "/properties/pipelines/properties/hardening": {
+        "ref": "#/$defs/pipelineRule"
+      },
+      "/properties/pipelines/properties/definition": {
+        "ref": "#/$defs/pipelineRule"
+      },
+      "/properties/pipelines/properties/conflict": {
+        "ref": "#/$defs/pipelineRule"
+      },
+      "/properties/tests": {
+        "type": "object",
+        "properties": [
+          "declared_edits"
+        ],
+        "required": [
+          "declared_edits"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/tests/properties/declared_edits": {
+        "type": "string",
+        "enum": [
+          "\"off\"",
+          "\"required\""
+        ]
+      },
+      "/properties/runner_upgrades": {
+        "type": "object",
+        "properties": [
+          "author",
+          "may_change",
+          "requires"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/runner_upgrades/properties/author": {
+        "type": "string"
+      },
+      "/properties/runner_upgrades/properties/may_change": {
+        "type": "string",
+        "enum": [
+          "\"runner_pin\""
+        ]
+      },
+      "/properties/runner_upgrades/properties/requires": {
+        "type": "string",
+        "enum": [
+          "\"trusted_human_approval\""
+        ]
+      },
+      "/properties/weakening": {
+        "type": "object",
+        "properties": [
+          "detects",
+          "requires"
+        ],
+        "required": [
+          "detects",
+          "requires"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/weakening/properties/requires": {
+        "type": "string",
+        "enum": [
+          "\"trusted_human_approval\""
+        ]
+      },
+      "/properties/weakening/properties/detects": {
+        "type": "array",
+        "minItems": 1
+      },
+      "/properties/weakening/properties/detects/items": {
+        "type": "string",
+        "enum": [
+          "\"baseline_raised\"",
+          "\"coverage_floor_lowered\"",
+          "\"native_suppressions_added\"",
+          "\"rule_loosened\"",
+          "\"rule_removed\"",
+          "\"skip_without_reason\"",
+          "\"unpruned_suppressions_allowed\""
+        ]
+      },
+      "/properties/protected_files": {
+        "type": "object",
+        "properties": [
+          "exclude",
+          "policy"
+        ],
+        "required": [
+          "exclude",
+          "policy"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/protected_files/properties/policy": {
+        "type": "string",
+        "enum": [
+          "\"allowed\"",
+          "\"blocked\"",
+          "\"fallback-to-issue\"",
+          "\"request-review\""
+        ]
+      },
+      "/properties/protected_files/properties/exclude": {
+        "type": "object",
+        "properties": [
+          "conflict",
+          "definition",
+          "gardening",
+          "hardening",
+          "product_work"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/protected_files/properties/exclude/properties/product_work": {
+        "ref": "#/$defs/protectedExcludeList"
+      },
+      "/properties/protected_files/properties/exclude/properties/gardening": {
+        "ref": "#/$defs/protectedExcludeList"
+      },
+      "/properties/protected_files/properties/exclude/properties/hardening": {
+        "ref": "#/$defs/protectedExcludeList"
+      },
+      "/properties/protected_files/properties/exclude/properties/definition": {
+        "ref": "#/$defs/protectedExcludeList"
+      },
+      "/properties/protected_files/properties/exclude/properties/conflict": {
+        "ref": "#/$defs/protectedExcludeList"
+      },
+      "/$defs/pipelineRule": {
+        "type": "object",
+        "properties": [
+          "may_change",
+          "requires"
+        ],
+        "required": [
+          "may_change"
+        ],
+        "additionalProperties": false
+      },
+      "/$defs/pipelineRule/properties/may_change": {
+        "type": "array"
+      },
+      "/$defs/pipelineRule/properties/may_change/items": {
+        "type": "string",
+        "enum": [
+          "\"code\"",
+          "\"definition\"",
+          "\"guardrails\"",
+          "\"guardrails:tighten\"",
+          "\"tests\""
+        ]
+      },
+      "/$defs/pipelineRule/properties/requires": {
+        "type": "string",
+        "enum": [
+          "\"trusted_human_approval\""
+        ]
+      },
+      "/$defs/protectedExcludeList": {
+        "type": "array"
+      },
+      "/$defs/protectedExcludeList/items": {
+        "type": "string"
+      },
+      "/$defs/protectedExcludeList/items/not": {
+        "pattern": "^\\.github/"
+      }
+    },
+    "review.json": {
+      "/": {
+        "type": "object",
+        "properties": [
+          "id",
+          "problems",
+          "schema",
+          "scores",
+          "window"
+        ],
+        "required": [
+          "id",
+          "problems",
+          "schema",
+          "scores",
+          "window"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/schema": {
+        "const": "\"review/1\""
+      },
+      "/properties/id": {
+        "ref": "_common.json#/$defs/reviewId"
+      },
+      "/properties/window": {
+        "type": "object",
+        "properties": [
+          "from",
+          "runs",
+          "to"
+        ],
+        "required": [
+          "from",
+          "runs",
+          "to"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/window/properties/from": {
+        "ref": "_common.json#/$defs/timestamp"
+      },
+      "/properties/window/properties/to": {
+        "ref": "_common.json#/$defs/timestamp"
+      },
+      "/properties/window/properties/runs": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "/properties/scores": {
+        "type": "array"
+      },
+      "/properties/scores/items": {
+        "type": "object",
+        "properties": [
+          "criterion",
+          "note",
+          "run",
+          "score",
+          "tags"
+        ],
+        "required": [
+          "criterion",
+          "run",
+          "score"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/scores/items/properties/run": {
+        "ref": "_common.json#/$defs/runId"
+      },
+      "/properties/scores/items/properties/criterion": {
+        "type": "string"
+      },
+      "/properties/scores/items/properties/score": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 5
+      },
+      "/properties/scores/items/properties/tags": {
+        "type": "array"
+      },
+      "/properties/scores/items/properties/tags/items": {
+        "type": "string"
+      },
+      "/properties/scores/items/properties/note": {
+        "type": "string"
+      },
+      "/properties/problems": {
+        "type": "array"
+      },
+      "/properties/problems/items": {
+        "type": "object",
+        "properties": [
+          "benchmark",
+          "change",
+          "pr",
+          "route",
+          "runs",
+          "title",
+          "work_item"
+        ],
+        "required": [
+          "route",
+          "title"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/problems/items/properties/title": {
+        "type": "string",
+        "minLength": 1
+      },
+      "/properties/problems/items/properties/runs": {
+        "type": "array"
+      },
+      "/properties/problems/items/properties/runs/items": {
+        "ref": "_common.json#/$defs/runId"
+      },
+      "/properties/problems/items/properties/route": {
+        "type": "string",
+        "enum": [
+          "\"definition\"",
+          "\"hardening\""
+        ]
+      },
+      "/properties/problems/items/properties/work_item/oneOf/0": {
+        "ref": "_common.json#/$defs/workItemId"
+      },
+      "/properties/problems/items/properties/work_item/oneOf/1": {
+        "type": "null"
+      },
+      "/properties/problems/items/properties/change": {
+        "type": "string"
+      },
+      "/properties/problems/items/properties/pr": {
+        "type": "integer|null"
+      },
+      "/properties/problems/items/properties/benchmark": {
+        "type": "object",
+        "properties": [
+          "after",
+          "before",
+          "cost_change_pct",
+          "failure_tasks",
+          "failure_tasks_after",
+          "failure_tasks_before",
+          "regressions",
+          "repeats",
+          "tasks"
+        ],
+        "required": [
+          "after",
+          "before",
+          "repeats",
+          "tasks"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/problems/items/properties/benchmark/properties/tasks": {
+        "type": "integer",
+        "minimum": 10
+      },
+      "/properties/problems/items/properties/benchmark/properties/repeats": {
+        "type": "integer",
+        "minimum": 3
+      },
+      "/properties/problems/items/properties/benchmark/properties/failure_tasks": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "/properties/problems/items/properties/benchmark/properties/before": {
+        "ref": "#/$defs/benchSide"
+      },
+      "/properties/problems/items/properties/benchmark/properties/after": {
+        "ref": "#/$defs/benchSide"
+      },
+      "/properties/problems/items/properties/benchmark/properties/failure_tasks_before": {
+        "ref": "_common.json#/$defs/ratio"
+      },
+      "/properties/problems/items/properties/benchmark/properties/failure_tasks_after": {
+        "ref": "_common.json#/$defs/ratio"
+      },
+      "/properties/problems/items/properties/benchmark/properties/regressions": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "/properties/problems/items/properties/benchmark/properties/cost_change_pct": {
+        "type": "number"
+      },
+      "/$defs/benchSide": {
+        "type": "object",
+        "properties": [
+          "cost_usd",
+          "mean",
+          "spread"
+        ],
+        "required": [
+          "mean",
+          "spread"
+        ],
+        "additionalProperties": false
+      },
+      "/$defs/benchSide/properties/mean": {
+        "ref": "_common.json#/$defs/ratio"
+      },
+      "/$defs/benchSide/properties/spread": {
+        "type": "number",
+        "minimum": 0
+      },
+      "/$defs/benchSide/properties/cost_usd": {
+        "ref": "_common.json#/$defs/usd"
+      }
+    },
+    "role.json": {
+      "/": {
+        "type": "object",
+        "properties": [
+          "id",
+          "outputs",
+          "prompt",
+          "purpose",
+          "reads_context",
+          "schema",
+          "sees_builder_transcript",
+          "tools"
+        ],
+        "required": [
+          "id",
+          "outputs",
+          "prompt",
+          "purpose",
+          "reads_context",
+          "schema",
+          "tools"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/schema": {
+        "const": "\"role/1\""
+      },
+      "/properties/id": {
+        "ref": "_common.json#/$defs/role"
+      },
+      "/properties/purpose": {
+        "type": "string",
+        "minLength": 1
+      },
+      "/properties/reads_context": {
+        "type": "array"
+      },
+      "/properties/reads_context/items": {
+        "type": "string",
+        "enum": [
+          "\"feature-map\"",
+          "\"fundamentals\"",
+          "\"history\"",
+          "\"runbook\""
+        ]
+      },
+      "/properties/tools": {
+        "type": "array"
+      },
+      "/properties/tools/items": {
+        "type": "string",
+        "enum": [
+          "\"browser\"",
+          "\"devtools\"",
+          "\"edit\"",
+          "\"git\"",
+          "\"read\"",
+          "\"shell\""
+        ]
+      },
+      "/properties/prompt": {
+        "type": "string",
+        "minLength": 1
+      },
+      "/properties/outputs": {
+        "type": "array"
+      },
+      "/properties/outputs/items": {
+        "type": "string"
+      },
+      "/properties/sees_builder_transcript": {
+        "const": "false"
+      }
+    },
+    "rubric.json": {
+      "/": {
+        "type": "object",
+        "properties": [
+          "criteria",
+          "failure_tags",
+          "pipeline",
+          "scale",
+          "schema",
+          "shared"
+        ],
+        "required": [
+          "criteria",
+          "failure_tags",
+          "scale",
+          "schema"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/schema": {
+        "const": "\"rubric/1\""
+      },
+      "/properties/pipeline": {
+        "ref": "_common.json#/$defs/pipeline"
+      },
+      "/properties/shared": {
+        "type": "boolean"
+      },
+      "/properties/criteria": {
+        "type": "array",
+        "minItems": 1
+      },
+      "/properties/criteria/items": {
+        "type": "object",
+        "properties": [
+          "id",
+          "question"
+        ],
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/criteria/items/properties/id": {
+        "type": "string",
+        "minLength": 1
+      },
+      "/properties/criteria/items/properties/question": {
+        "type": "string"
+      },
+      "/properties/scale": {
+        "const": "\"1-5\""
+      },
+      "/properties/failure_tags": {
+        "type": "array",
+        "minItems": 1
+      },
+      "/properties/failure_tags/items": {
+        "type": "string"
+      }
+    },
+    "rulepack.json": {
+      "/": {
+        "type": "object",
+        "properties": [
+          "extensions",
+          "language",
+          "rules",
+          "schema",
+          "tools",
+          "verification"
+        ],
+        "required": [
+          "language",
+          "rules",
+          "schema",
+          "tools"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/schema": {
+        "const": "\"rulepack/1\""
+      },
+      "/properties/language": {
+        "type": "string",
+        "enum": [
+          "\"csharp\"",
+          "\"go\"",
+          "\"java\"",
+          "\"javascript\"",
+          "\"python\"",
+          "\"ruby\"",
+          "\"rust\"",
+          "\"typescript\""
+        ]
+      },
+      "/properties/verification": {
+        "type": "string",
+        "enum": [
+          "\"documented_not_run\""
+        ]
+      },
+      "/properties/extensions": {
+        "type": "array"
+      },
+      "/properties/extensions/items": {
+        "type": "string"
+      },
+      "/properties/tools": {
+        "type": "array",
+        "minItems": 1
+      },
+      "/properties/tools/items": {
+        "type": "object",
+        "properties": [
+          "base_config",
+          "check",
+          "config_file",
+          "detect",
+          "fix",
+          "id",
+          "install",
+          "kind",
+          "native_baseline"
+        ],
+        "required": [
+          "id",
+          "kind"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/tools/items/properties/id": {
+        "type": "string",
+        "minLength": 1
+      },
+      "/properties/tools/items/properties/kind": {
+        "type": "string",
+        "enum": [
+          "\"consistency\"",
+          "\"coverage\"",
+          "\"dataflow\"",
+          "\"deps\"",
+          "\"formatter\"",
+          "\"linter\"",
+          "\"secrets\"",
+          "\"typechecker\""
+        ]
+      },
+      "/properties/tools/items/properties/detect": {
+        "type": "array"
+      },
+      "/properties/tools/items/properties/detect/items": {
+        "type": "string"
+      },
+      "/properties/tools/items/properties/config_file": {
+        "type": "string"
+      },
+      "/properties/tools/items/properties/install": {
+        "type": "string"
+      },
+      "/properties/tools/items/properties/check": {
+        "type": "string"
+      },
+      "/properties/tools/items/properties/fix": {
+        "type": "null|string"
+      },
+      "/properties/tools/items/properties/native_baseline": {
+        "type": "null|string"
+      },
+      "/properties/tools/items/properties/base_config": {
+        "type": "object"
+      },
+      "/properties/rules": {
+        "type": "array",
+        "minItems": 1
+      },
+      "/properties/rules/items": {
+        "type": "object",
+        "properties": [
+          "autofixable",
+          "bad",
+          "concern",
+          "config",
+          "critical_logic",
+          "good",
+          "id",
+          "severity",
+          "tool"
+        ],
+        "required": [
+          "bad",
+          "concern",
+          "config",
+          "good",
+          "id",
+          "tool"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/rules/items/properties/id": {
+        "type": "string",
+        "minLength": 1
+      },
+      "/properties/rules/items/properties/concern": {
+        "type": "string",
+        "minLength": 1
+      },
+      "/properties/rules/items/properties/tool": {
+        "type": "string",
+        "minLength": 1
+      },
+      "/properties/rules/items/properties/config": {
+        "type": "object"
+      },
+      "/properties/rules/items/properties/bad": {
+        "type": "string",
+        "minLength": 1
+      },
+      "/properties/rules/items/properties/good": {
+        "type": "string",
+        "minLength": 1
+      },
+      "/properties/rules/items/properties/autofixable": {
+        "type": "boolean"
+      },
+      "/properties/rules/items/properties/severity": {
+        "type": "string",
+        "enum": [
+          "\"error\"",
+          "\"warn\""
+        ]
+      },
+      "/properties/rules/items/properties/critical_logic": {
+        "type": "boolean"
+      }
+    },
+    "run.json": {
+      "/": {
+        "type": "object",
+        "properties": [
+          "actor",
+          "artifacts",
+          "cost_usd",
+          "duration_sec",
+          "ended_at",
+          "escalated",
+          "gates",
+          "human_interactions",
+          "id",
+          "outcome",
+          "pipeline",
+          "pr",
+          "schema",
+          "started_at",
+          "steps",
+          "work_item"
+        ],
+        "required": [
+          "actor",
+          "cost_usd",
+          "ended_at",
+          "gates",
+          "id",
+          "outcome",
+          "pipeline",
+          "schema",
+          "started_at",
+          "steps",
+          "work_item"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/schema": {
+        "const": "\"run/1\""
+      },
+      "/properties/id": {
+        "ref": "_common.json#/$defs/runId"
+      },
+      "/properties/work_item": {
+        "ref": "_common.json#/$defs/workItemId"
+      },
+      "/properties/pipeline": {
+        "ref": "_common.json#/$defs/pipeline"
+      },
+      "/properties/actor": {
+        "type": "object",
+        "properties": [
+          "harness",
+          "kind",
+          "login"
+        ],
+        "required": [
+          "kind"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/actor/properties/kind": {
+        "type": "string",
+        "enum": [
+          "\"agent\"",
+          "\"human\""
+        ]
+      },
+      "/properties/actor/properties/harness": {
+        "ref": "_common.json#/$defs/harness"
+      },
+      "/properties/actor/properties/login": {
+        "type": "string"
+      },
+      "/properties/started_at": {
+        "ref": "_common.json#/$defs/timestamp"
+      },
+      "/properties/ended_at": {
+        "ref": "_common.json#/$defs/timestamp"
+      },
+      "/properties/duration_sec": {
+        "ref": "_common.json#/$defs/seconds"
+      },
+      "/properties/outcome": {
+        "type": "string",
+        "enum": [
+          "\"cancelled\"",
+          "\"draft_pr\"",
+          "\"duplicate\"",
+          "\"escalated\"",
+          "\"failed\"",
+          "\"merged\"",
+          "\"no_action\"",
+          "\"rejected\""
+        ]
+      },
+      "/properties/pr": {
+        "type": "integer|null",
+        "minimum": 1
+      },
+      "/properties/steps": {
+        "type": "array"
+      },
+      "/properties/steps/items": {
+        "type": "object",
+        "properties": [
+          "attempt",
+          "cost_usd",
+          "duration_sec",
+          "exit",
+          "model",
+          "role",
+          "tokens",
+          "transcript"
+        ],
+        "required": [
+          "role"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/steps/items/properties/role": {
+        "ref": "_common.json#/$defs/role"
+      },
+      "/properties/steps/items/properties/model": {
+        "type": "string"
+      },
+      "/properties/steps/items/properties/attempt": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "/properties/steps/items/properties/duration_sec": {
+        "ref": "_common.json#/$defs/seconds"
+      },
+      "/properties/steps/items/properties/tokens": {
+        "type": "object",
+        "properties": [
+          "cached",
+          "in",
+          "out"
+        ],
+        "required": [
+          "in",
+          "out"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/steps/items/properties/tokens/properties/in": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "/properties/steps/items/properties/tokens/properties/out": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "/properties/steps/items/properties/tokens/properties/cached": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "/properties/steps/items/properties/cost_usd": {
+        "ref": "_common.json#/$defs/usd"
+      },
+      "/properties/steps/items/properties/transcript": {
+        "type": "null|string"
+      },
+      "/properties/steps/items/properties/exit": {
+        "type": "string",
+        "enum": [
+          "\"error\"",
+          "\"ok\"",
+          "\"refused\"",
+          "\"timeout\""
+        ]
+      },
+      "/properties/gates": {
+        "type": "array"
+      },
+      "/properties/gates/items": {
+        "type": "object",
+        "properties": [
+          "attempt",
+          "commit",
+          "coverage",
+          "failures",
+          "gate",
+          "result"
+        ],
+        "required": [
+          "attempt",
+          "gate",
+          "result"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/gates/items/properties/gate": {
+        "type": "string",
+        "enum": [
+          "\"static\"",
+          "\"verification\""
+        ]
+      },
+      "/properties/gates/items/properties/attempt": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "/properties/gates/items/properties/commit": {
+        "ref": "_common.json#/$defs/gitSha"
+      },
+      "/properties/gates/items/properties/result": {
+        "type": "string",
+        "enum": [
+          "\"fail\"",
+          "\"pass\"",
+          "\"skipped\""
+        ]
+      },
+      "/properties/gates/items/properties/failures": {
+        "type": "array"
+      },
+      "/properties/gates/items/properties/failures/items": {
+        "type": "object",
+        "properties": [
+          "file",
+          "line",
+          "message",
+          "rule"
+        ],
+        "required": [
+          "rule"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/gates/items/properties/failures/items/properties/rule": {
+        "type": "string"
+      },
+      "/properties/gates/items/properties/failures/items/properties/file": {
+        "type": "string"
+      },
+      "/properties/gates/items/properties/failures/items/properties/line": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "/properties/gates/items/properties/failures/items/properties/message": {
+        "type": "string"
+      },
+      "/properties/gates/items/properties/coverage": {
+        "type": "object",
+        "properties": [
+          "diff_pct",
+          "total_pct"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/gates/items/properties/coverage/properties/diff_pct": {
+        "ref": "_common.json#/$defs/pct"
+      },
+      "/properties/gates/items/properties/coverage/properties/total_pct": {
+        "ref": "_common.json#/$defs/pct"
+      },
+      "/properties/artifacts": {
+        "type": "object",
+        "properties": [
+          "expiring",
+          "stored"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/artifacts/properties/stored": {
+        "type": "array"
+      },
+      "/properties/artifacts/properties/stored/items": {
+        "type": "object",
+        "properties": [
+          "caption",
+          "expires_at",
+          "kind",
+          "path"
+        ],
+        "required": [
+          "kind",
+          "path"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/artifacts/properties/stored/items/properties/kind": {
+        "type": "string",
+        "enum": [
+          "\"clip\"",
+          "\"diagram\"",
+          "\"screenshot\""
+        ]
+      },
+      "/properties/artifacts/properties/stored/items/properties/path": {
+        "type": "string"
+      },
+      "/properties/artifacts/properties/stored/items/properties/caption": {
+        "type": "string"
+      },
+      "/properties/artifacts/properties/stored/items/properties/expires_at": {
+        "type": "string"
+      },
+      "/properties/artifacts/properties/expiring": {
+        "type": "array"
+      },
+      "/properties/artifacts/properties/expiring/items": {
+        "type": "object",
+        "properties": [
+          "artifact_id",
+          "expires_at",
+          "kind"
+        ],
+        "required": [
+          "artifact_id",
+          "kind"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/artifacts/properties/expiring/items/properties/kind": {
+        "type": "string",
+        "enum": [
+          "\"log\"",
+          "\"trace\"",
+          "\"video\""
+        ]
+      },
+      "/properties/artifacts/properties/expiring/items/properties/artifact_id": {
+        "type": "integer"
+      },
+      "/properties/artifacts/properties/expiring/items/properties/expires_at": {
+        "type": "string"
+      },
+      "/properties/cost_usd": {
+        "ref": "_common.json#/$defs/usd"
+      },
+      "/properties/escalated": {
+        "type": "boolean"
+      },
+      "/properties/human_interactions": {
+        "type": "object",
+        "properties": [
+          "change_requests",
+          "comments",
+          "human_commits",
+          "total"
+        ],
+        "required": [
+          "change_requests",
+          "comments",
+          "human_commits",
+          "total"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/human_interactions/properties/comments": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "/properties/human_interactions/properties/change_requests": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "/properties/human_interactions/properties/human_commits": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "/properties/human_interactions/properties/total": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    "step-report.json": {
+      "/": {
+        "type": "object",
+        "properties": [
+          "cost_source",
+          "cost_usd",
+          "duration_sec",
+          "exit",
+          "files_changed",
+          "harness",
+          "model",
+          "role",
+          "schema",
+          "tokens",
+          "transcript",
+          "usage_source"
+        ],
+        "required": [
+          "cost_usd",
+          "duration_sec",
+          "exit",
+          "files_changed",
+          "harness",
+          "model",
+          "role",
+          "schema",
+          "tokens",
+          "transcript"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/schema": {
+        "const": "\"step-report/1\""
+      },
+      "/properties/harness": {
+        "ref": "_common.json#/$defs/harness"
+      },
+      "/properties/role": {
+        "ref": "_common.json#/$defs/role"
+      },
+      "/properties/model": {
+        "type": "string",
+        "minLength": 1
+      },
+      "/properties/exit": {
+        "type": "string",
+        "enum": [
+          "\"error\"",
+          "\"ok\"",
+          "\"refused\"",
+          "\"timeout\""
+        ]
+      },
+      "/properties/duration_sec": {
+        "ref": "_common.json#/$defs/seconds"
+      },
+      "/properties/tokens": {
+        "type": "object",
+        "properties": [
+          "cached",
+          "in",
+          "out"
+        ],
+        "required": [
+          "in",
+          "out"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/tokens/properties/in": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "/properties/tokens/properties/out": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "/properties/tokens/properties/cached": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "/properties/cost_usd": {
+        "ref": "_common.json#/$defs/usd"
+      },
+      "/properties/cost_source": {
+        "type": "string",
+        "enum": [
+          "\"price_table\"",
+          "\"session_log\"",
+          "\"unknown\""
+        ]
+      },
+      "/properties/usage_source": {
+        "type": "string",
+        "enum": [
+          "\"agent_session\"",
+          "\"harness_log\"",
+          "\"token_usage\""
+        ]
+      },
+      "/properties/files_changed": {
+        "type": "array"
+      },
+      "/properties/files_changed/items": {
+        "type": "string"
+      },
+      "/properties/transcript": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "work-item.json": {
+      "/": {
+        "type": "object",
+        "properties": [
+          "body",
+          "created_at",
+          "fingerprint",
+          "id",
+          "parent",
+          "pipeline",
+          "pr",
+          "priority",
+          "related",
+          "runs",
+          "schema",
+          "source",
+          "spec",
+          "status",
+          "title",
+          "trigger_class"
+        ],
+        "required": [
+          "created_at",
+          "id",
+          "pipeline",
+          "schema",
+          "source",
+          "status",
+          "title",
+          "trigger_class"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/schema": {
+        "const": "\"work-item/1\""
+      },
+      "/properties/id": {
+        "ref": "_common.json#/$defs/workItemId"
+      },
+      "/properties/created_at": {
+        "ref": "_common.json#/$defs/timestamp"
+      },
+      "/properties/source": {
+        "type": "object",
+        "properties": [
+          "actor",
+          "kind",
+          "ref",
+          "via"
+        ],
+        "required": [
+          "actor",
+          "kind"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/source/properties/kind": {
+        "type": "string",
+        "enum": [
+          "\"ci_failure\"",
+          "\"conflict\"",
+          "\"correction\"",
+          "\"dashboard\"",
+          "\"gardener\"",
+          "\"issue\"",
+          "\"issue_comment\"",
+          "\"pr\"",
+          "\"review\"",
+          "\"review_comment\"",
+          "\"schedule\""
+        ]
+      },
+      "/properties/source/properties/ref": {
+        "type": "null|string"
+      },
+      "/properties/source/properties/actor": {
+        "type": "string",
+        "minLength": 1
+      },
+      "/properties/source/properties/via": {
+        "type": "null|string",
+        "enum": [
+          "\"linear\"",
+          "\"sentry\"",
+          "\"slack\"",
+          "null"
+        ]
+      },
+      "/properties/trigger_class": {
+        "ref": "_common.json#/$defs/triggerClass"
+      },
+      "/properties/pipeline": {
+        "ref": "_common.json#/$defs/pipeline"
+      },
+      "/properties/title": {
+        "type": "string",
+        "minLength": 1
+      },
+      "/properties/body": {
+        "type": "null|string"
+      },
+      "/properties/priority": {
+        "type": "string",
+        "enum": [
+          "\"high\"",
+          "\"normal\""
+        ]
+      },
+      "/properties/fingerprint": {
+        "ref": "_common.json#/$defs/sha256"
+      },
+      "/properties/status": {
+        "type": "string",
+        "enum": [
+          "\"duplicate\"",
+          "\"escalated\"",
+          "\"in_review\"",
+          "\"merged\"",
+          "\"needs_info\"",
+          "\"queued\"",
+          "\"queued_to_merge\"",
+          "\"rejected\"",
+          "\"running\"",
+          "\"waiting_trust\""
+        ]
+      },
+      "/properties/runs": {
+        "type": "array"
+      },
+      "/properties/runs/items": {
+        "ref": "_common.json#/$defs/runId"
+      },
+      "/properties/pr": {
+        "type": "integer|null",
+        "minimum": 1
+      },
+      "/properties/parent/oneOf/0": {
+        "ref": "_common.json#/$defs/workItemId"
+      },
+      "/properties/parent/oneOf/1": {
+        "type": "null"
+      },
+      "/properties/related": {
+        "type": "array"
+      },
+      "/properties/related/items": {
+        "ref": "_common.json#/$defs/workItemId"
+      },
+      "/properties/spec/oneOf/0": {
+        "type": "null"
+      },
+      "/properties/spec/oneOf/1": {
+        "type": "object",
+        "properties": [
+          "acceptance_checks",
+          "feature_folders",
+          "files",
+          "plan",
+          "tests_added",
+          "tests_changed"
+        ],
+        "required": [
+          "acceptance_checks",
+          "plan"
+        ],
+        "additionalProperties": false
+      },
+      "/properties/spec/oneOf/1/properties/plan": {
+        "type": "string",
+        "minLength": 1
+      },
+      "/properties/spec/oneOf/1/properties/files": {
+        "type": "array"
+      },
+      "/properties/spec/oneOf/1/properties/files/items": {
+        "type": "string"
+      },
+      "/properties/spec/oneOf/1/properties/feature_folders": {
+        "type": "array"
+      },
+      "/properties/spec/oneOf/1/properties/feature_folders/items": {
+        "type": "string"
+      },
+      "/properties/spec/oneOf/1/properties/acceptance_checks": {
+        "type": "array",
+        "minItems": 1
+      },
+      "/properties/spec/oneOf/1/properties/acceptance_checks/items": {
+        "type": "string"
+      },
+      "/properties/spec/oneOf/1/properties/tests_added": {
+        "type": "array"
+      },
+      "/properties/spec/oneOf/1/properties/tests_added/items": {
+        "type": "string"
+      },
+      "/properties/spec/oneOf/1/properties/tests_changed": {
+        "type": "array"
+      },
+      "/properties/spec/oneOf/1/properties/tests_changed/items": {
+        "type": "string"
+      }
+    }
+  }
+}

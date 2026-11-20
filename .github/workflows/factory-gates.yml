@@ -1,0 +1,184 @@
+# factory-gates — Gate 1 (static) and Gate 2 (verification).
+#
+# Runs in its own job with no builder in it, so an agent's own "tests pass"
+# never counts. Results are keyed by commit, so a commit is never checked
+# twice: opening a PR re-runs nothing, and an approval registers without
+# re-running the gates.
+name: factory-gates
+
+on:
+  push:
+    branches: ['factory/*']
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
+  merge_group:
+
+permissions:
+  contents: read
+  checks: write
+  pull-requests: read
+
+concurrency:
+  group: factory-gates-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      model_verifier: ${{ steps.models.outputs.model_verifier }}
+      static: ${{ steps.plan.outputs.static }}
+      tests: ${{ steps.plan.outputs.tests }}
+      coverage: ${{ steps.plan.outputs.coverage }}
+      agent_verification: ${{ steps.plan.outputs.agent_verification }}
+      commit: ${{ steps.plan.outputs.commit }}
+      work_item: ${{ steps.plan.outputs.work_item }}
+      pr_number: ${{ steps.plan.outputs.pr_number }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      # The runner that judges a change must not come from the change. A pull
+      # request, a merge-group commit or an agent's workspace can all modify
+      # .factory/bin, so it is taken from the default branch and parked outside the
+      # workspace, which is the only directory the agent sandbox can write to.
+      - name: Fetch the factory runner from the default branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          path: .factory-trusted
+          sparse-checkout: .factory/bin
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+      - name: Put the trusted runner on PATH
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/bsf"
+          cp -R .factory-trusted/.factory/bin/. "$RUNNER_TEMP/bsf/"
+          rm -rf .factory-trusted
+          echo "$RUNNER_TEMP/bsf" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/bsf/bsf" --version
+      - name: Read each role's model from factory.yaml
+        id: models
+        run: bsf models
+      # Decides which gates to run: a human PR gets the deterministic ones and
+      # spends nothing on models unless it carries factory:verify; a commit
+      # already checked runs nothing; a queue update re-runs static rules and
+      # tests, and agent verification only where main's incoming changes touch
+      # the PR's feature folders.
+      - name: Plan the gates for this commit
+        id: plan
+        run: bsf gates plan
+
+  static:
+    needs: plan
+    if: needs.plan.outputs.static == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      # The runner that judges a change must not come from the change. A pull
+      # request, a merge-group commit or an agent's workspace can all modify
+      # .factory/bin, so it is taken from the default branch and parked outside the
+      # workspace, which is the only directory the agent sandbox can write to.
+      - name: Fetch the factory runner from the default branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          path: .factory-trusted
+          sparse-checkout: .factory/bin
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+      - name: Put the trusted runner on PATH
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/bsf"
+          cp -R .factory-trusted/.factory/bin/. "$RUNNER_TEMP/bsf/"
+          rm -rf .factory-trusted
+          echo "$RUNNER_TEMP/bsf" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/bsf/bsf" --version
+      # All static rules, the per-file ratchet across each linter's native
+      # baseline and baselines.json, the weakening check and suppression control.
+      - name: Gate 1 — static rules
+        run: bsf gates static --report-check factory/gate-static
+
+  verification:
+    needs: plan
+    if: needs.plan.outputs.tests == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      # The runner that judges a change must not come from the change. A pull
+      # request, a merge-group commit or an agent's workspace can all modify
+      # .factory/bin, so it is taken from the default branch and parked outside the
+      # workspace, which is the only directory the agent sandbox can write to.
+      - name: Fetch the factory runner from the default branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          path: .factory-trusted
+          sparse-checkout: .factory/bin
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+      - name: Put the trusted runner on PATH
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/bsf"
+          cp -R .factory-trusted/.factory/bin/. "$RUNNER_TEMP/bsf/"
+          rm -rf .factory-trusted
+          echo "$RUNNER_TEMP/bsf" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/bsf/bsf" --version
+      # Where the repo already has a CI test check that runs on factory
+      # branches, this reads its result for the same commit rather than
+      # re-running the tests; after wait_minutes with no result, it runs them.
+      - name: Gate 2 — tests, or the repo's own test check
+        run: bsf gates tests --report-check factory/gate-tests
+      - name: Gate 2 — diff and total coverage
+        if: needs.plan.outputs.coverage == 'true'
+        run: bsf gates coverage --report-check factory/gate-coverage
+
+  agent-verification:
+    needs: [plan, verification]
+    if: needs.plan.outputs.agent_verification == 'true'
+    uses: ./.github/workflows/factory-role-verifier.lock.yml
+    with:
+      model: ${{ needs.plan.outputs.model_verifier }}
+      work_item: ${{ needs.plan.outputs.work_item }}
+      pipeline: product_work
+      pr_number: ${{ fromJSON(needs.plan.outputs.pr_number) }}
+      commit: ${{ needs.plan.outputs.commit }}
+    secrets: inherit
+
+  record:
+    needs: [plan, static, verification, agent-verification]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # The runner that judges a change must not come from the change. A pull
+      # request, a merge-group commit or an agent's workspace can all modify
+      # .factory/bin, so it is taken from the default branch and parked outside the
+      # workspace, which is the only directory the agent sandbox can write to.
+      - name: Fetch the factory runner from the default branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          path: .factory-trusted
+          sparse-checkout: .factory/bin
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+      - name: Put the trusted runner on PATH
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/bsf"
+          cp -R .factory-trusted/.factory/bin/. "$RUNNER_TEMP/bsf/"
+          rm -rf .factory-trusted
+          echo "$RUNNER_TEMP/bsf" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/bsf/bsf" --version
+      # Records each gate and its attempt against the commit, so nothing is
+      # ever re-run for the same commit.
+      - name: Record the gate results for this commit
+        run: bsf gates record

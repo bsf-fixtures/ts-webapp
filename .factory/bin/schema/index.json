@@ -1,0 +1,230 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://build-software-factory.dev/schema/index.json",
+  "title": "Index rollup",
+  "description": "The one file the dashboard loads first. Rebuilt after every factory workflow. Doc 09.",
+  "type": "object",
+  "required": [
+    "schema",
+    "updated_at",
+    "factory",
+    "metrics"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema": {
+      "const": "index/1"
+    },
+    "updated_at": {
+      "$ref": "_common.json#/$defs/timestamp"
+    },
+    "factory": {
+      "type": "object",
+      "required": [
+        "runner",
+        "harness"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "runner": {
+          "type": "string"
+        },
+        "harness": {
+          "$ref": "_common.json#/$defs/harness"
+        },
+        "setup_completed_at": {
+          "$ref": "_common.json#/$defs/timestamp"
+        },
+        "schema_versions": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Majors this runner reads and writes, so the dashboard can warn on an older runner."
+        }
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "required": [
+        "window_days",
+        "runs"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "window_days": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "automation_rate": {
+          "$ref": "_common.json#/$defs/ratio"
+        },
+        "cycle_time_p50_sec": {
+          "$ref": "_common.json#/$defs/seconds"
+        },
+        "cycle_time_p90_sec": {
+          "$ref": "_common.json#/$defs/seconds"
+        },
+        "spend_usd": {
+          "$ref": "_common.json#/$defs/usd"
+        },
+        "budget_usd": {
+          "$ref": "_common.json#/$defs/usd"
+        },
+        "actions_minutes": {
+          "type": "number",
+          "minimum": 0
+        },
+        "actions_minutes_limit": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "runs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "merged": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "escalated": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "revert_rate": {
+          "$ref": "_common.json#/$defs/ratio"
+        },
+        "by_pipeline": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "runs": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "merged": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "spend_usd": {
+                "$ref": "_common.json#/$defs/usd"
+              },
+              "actions_minutes": {
+                "type": "number",
+                "minimum": 0
+              },
+              "revert_rate": {
+                "$ref": "_common.json#/$defs/ratio"
+              },
+              "paused": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "human_interactions_per_pr": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Mean human interactions per merged factory PR over the window, or null when no merged PR in the window recorded the count. Null rather than zero: an unmeasured window must not read as a factory nobody had to steer."
+        }
+      }
+    },
+    "daily": {
+      "type": "array",
+      "description": "365 days for the trend charts.",
+      "items": {
+        "type": "object",
+        "required": [
+          "date"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "runs": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "merged": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "spend_usd": {
+            "$ref": "_common.json#/$defs/usd"
+          },
+          "actions_minutes": {
+            "type": "number",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "recent_runs": {
+      "type": "array",
+      "items": {
+        "$ref": "_common.json#/$defs/runId"
+      }
+    },
+    "guardrails": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "rules": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "baselined": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "coverage_floor_pct": {
+          "$ref": "_common.json#/$defs/pct"
+        },
+        "candidates_pending": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "health": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "gardening_schedule_active": {
+          "type": "boolean"
+        },
+        "last_review": {
+          "$ref": "_common.json#/$defs/reviewId"
+        },
+        "lock_files_current": {
+          "type": "boolean",
+          "description": "False when gh-aw's check-for-updates fails a role workflow's activation job. A maintenance state, not a broken run."
+        },
+        "sandbox_profile": {
+          "type": "string",
+          "enum": [
+            "docker",
+            "docker-sudo-iptables"
+          ],
+          "description": "Weaker profile where the repo's app needs an Actions services: sidecar."
+        },
+        "enforcement": {
+          "type": "string",
+          "enum": [
+            "branch_protection",
+            "audit"
+          ]
+        }
+      }
+    }
+  }
+}

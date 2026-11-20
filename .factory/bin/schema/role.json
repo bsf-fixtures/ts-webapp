@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://build-software-factory.dev/schema/role.json",
+  "title": "Role definition",
+  "description": "roles/<role>.yaml. The pipelines are fixed; a role's prompt is part of the factory definition. The model comes from factory.yaml, not here. Doc 09.",
+  "type": "object",
+  "required": ["schema", "id", "purpose", "reads_context", "tools", "prompt", "outputs"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": { "const": "role/1" },
+    "id": { "$ref": "_common.json#/$defs/role" },
+    "purpose": { "type": "string", "minLength": 1 },
+    "reads_context": {
+      "type": "array",
+      "items": { "type": "string", "enum": ["feature-map", "runbook", "fundamentals", "history"] }
+    },
+    "tools": {
+      "type": "array",
+      "items": { "type": "string", "enum": ["read", "edit", "shell", "git", "browser", "devtools"] }
+    },
+    "prompt": { "type": "string", "minLength": 1 },
+    "outputs": { "type": "array", "items": { "type": "string" } },
+    "sees_builder_transcript": {
+      "const": false,
+      "description": "Never true for any role. With roles as separate workflow_call jobs this is structural, not enforced: separate runners, separate filesystems."
+    }
+  }
+}
