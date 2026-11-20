@@ -1,0 +1,109 @@
+# Recompile the role workflows in this repo, and open a PR with the result.
+#
+# A role's engine, network and sandbox posture are compile-time literals in
+# gh-aw. The skill ships the roles precompiled for the defaults; this applies
+# what the frozen sandbox chose for this repo — today, the documentation hosts
+# of its stack, for the spec role's research — and recompiles. Also run it by
+# hand after editing a role's source.
+#
+# Needs the recompiler App, which may write workflow files. Without it this
+# does nothing and says so: the roles keep their defaults.
+name: factory-recompile
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - ".factory/sandbox/research-domains.txt"
+      - ".github/workflows/factory-role-*.md"
+      - ".github/workflows/factory-setup-agent.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: factory-recompile
+  cancel-in-progress: true
+
+jobs:
+  recompile:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Is the recompiler App installed?
+        id: app
+        env:
+          CLIENT_ID: ${{ vars.RECOMPILER_APP_CLIENT_ID }}
+        run: |
+          if [ -z "$CLIENT_ID" ]; then
+            echo "The recompiler App is not set up, so the roles keep their precompiled defaults." >> "$GITHUB_STEP_SUMMARY"
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.app.outputs.present == 'true'
+        with:
+          persist-credentials: false
+      - name: Fetch the factory runner from the default branch
+        if: steps.app.outputs.present == 'true'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          path: .factory-trusted
+          sparse-checkout: |
+            .factory/bin
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+      - name: Put the trusted runner on PATH
+        if: steps.app.outputs.present == 'true'
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/bsf"
+          cp -R .factory-trusted/.factory/bin/. "$RUNNER_TEMP/bsf/"
+          rm -rf .factory-trusted
+          echo "$RUNNER_TEMP/bsf" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/bsf/bsf" --version
+      - name: Apply the sandbox's choices to the role sources
+        if: steps.app.outputs.present == 'true'
+        run: bsf recompile-prepare
+      - name: Install gh-aw
+        if: steps.app.outputs.present == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh extension install github/gh-aw
+      # Strict, and without --approve: a recompile that adds a secret the last
+      # compile did not have is shown in the PR, where a person approves it.
+      - name: Compile
+        if: steps.app.outputs.present == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh aw compile --strict
+      - name: Mint the recompiler's token
+        if: steps.app.outputs.present == 'true'
+        id: token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.RECOMPILER_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RECOMPILER_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+      - name: Open a pull request if anything changed
+        if: steps.app.outputs.present == 'true'
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+          BASE: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+          git add .github/workflows
+          if git diff --cached --quiet; then echo "nothing to recompile"; exit 0; fi
+          branch="factory/recompile-${GITHUB_RUN_ID}"
+          git config user.name "factory-recompiler[bot]"
+          git config user.email "factory-recompiler[bot]@users.noreply.github.com"
+          git checkout -b "$branch"
+          git commit -q -m "Recompile the factory's role workflows"
+          git push -q "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "$branch"
+          gh api "repos/${GITHUB_REPOSITORY}/pulls" -f title="Recompile the factory's role workflows" \
+            -f head="$branch" -f base="$BASE" \
+            -f body="Applies this repo's frozen sandbox choices to the role sources and recompiles them with gh-aw. The diff shows any change to what a role may reach or which secrets it reads." \
+            --jq .html_url
