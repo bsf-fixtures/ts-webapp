@@ -6,6 +6,16 @@
 # while waiting, and because this runs as its own job the verifier's runner has
 # no filesystem path to this role's transcript.
 on:
+  # One block at the top covers every nested github-app token minting, so safe
+  # outputs are applied with the factory App's token and their pushes start
+  # factory-gates (spike §2).
+  # Who may start this: decided upstream, not here. This workflow's only
+  # trigger is workflow_call, so only this repo's own workflows can start it, and
+  # the run that calls it starts only from someone with write access or from the
+  # factory's App after intake has checked the request's author is trusted.
+  # gh-aw's default role check would test the App itself — whose name differs in
+  # every repo and cannot be a compile-time literal — and skip every run.
+  roles: all
   workflow_call:
     inputs:
       model:
@@ -56,9 +66,6 @@ on:
       FACTORY_SANDBOX_ENV:
         required: false
 
-# One block at the top covers every nested github-app token minting, so safe
-# outputs are applied with the factory App's token and their pushes start
-# factory-gates (spike §2).
 github-app:
   client-id: ${{ vars.FACTORY_APP_CLIENT_ID }}
   private-key: ${{ secrets.FACTORY_APP_PRIVATE_KEY }}
