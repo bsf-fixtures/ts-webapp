@@ -1,9 +1,0 @@
-{
-  "schema": "live/1",
-  "run": "run_01M7XNQE08N9JHVKT96MQTRR68",
-  "work_item": "wi_01M7XHGA7F5CNWC3BD3BSP0WYW",
-  "pipeline": "product_work",
-  "step": "builder",
-  "attempt": 2,
-  "started_at": "2026-11-20T23:47:34.536Z"
-}
