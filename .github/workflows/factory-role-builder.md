@@ -299,6 +299,26 @@ job with no access to anything you did here, and the gates re-run everything.
 That is why you are free to look as much as you like: looking is not
 certifying.
 
+## If this work item is a practice
+
+A work item titled `Practice: …` in the `definition` pipeline is a standing
+instruction from one of this repo's maintainers. Every agent will follow it
+from now on, so record it exactly and enforce it where a rule can:
+
+1. Add one row to `.factory/definition/context/practices.md`: the practice in
+   their words, who stated it (the work item's `source.actor`), today's date,
+   and how it is enforced.
+2. If a static rule can check it — a naming pattern, a forbidden import, a
+   required header — add it to `.factory/guardrails/candidates.json` as a
+   candidate whose source is `{ "kind": "user_declared" }`, with the practice
+   as its quote, and write "rule candidate" in the row's last column. The
+   factory's rule promotion turns it into a checked rule.
+3. If it takes judgement, write "read by every role" in that column instead.
+4. Do not change any code to comply with it in this PR. Bringing existing code
+   into line is separate work, which gardening will pick up.
+
+Nothing else in the definition changes in a practice PR.
+
 ## If this is a retry
 
 If `/tmp/gh-aw/agent/bsf/gate-failures.json` exists, the gates rejected the last
