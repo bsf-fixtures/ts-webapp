@@ -1,0 +1,74 @@
+{
+  "role": "builder",
+  "attempt": 1,
+  "report": {
+    "schema": "pr-report/1",
+    "summary": [
+      "When the invoices list is empty, the page now says \"No invoices match this filter\" instead of drawing a table with headings and nothing under them.",
+      "Why: a header row over an empty body reads like the page is broken; it does not tell a person that their filter simply matched nothing.",
+      "What someone would notice: nothing, on today's data — the five seeded invoices render pixel-for-pixel as before. The message only appears once the list is empty."
+    ],
+    "blocks": [
+      {
+        "type": "file",
+        "file": "files/empty-state.png",
+        "caption": "The empty state, reached by temporarily emptying the seed in lib/invoices.ts: the message sits exactly where the table was, with the same 1.5rem gap under the export button, and no <table> element is rendered at all. (That scratch edit was reverted and is not in this PR.)"
+      },
+      {
+        "type": "file",
+        "file": "files/seeded-table.png",
+        "caption": "The page on the repo's real data, after the change: the same five invoices, the same four columns, \"Export 3 invoices as CSV\" and \"Total sent: $1,497.50\". The table markup moved verbatim, so this screen is unchanged."
+      },
+      {
+        "type": "diagram",
+        "title": "Where the empty check now happens",
+        "mermaid": "flowchart TD\n  A[\"InvoicesPage (server component)\"] -->|\"listInvoices()\"| B[\"invoices: readonly Invoice[]\"]\n  B --> C[\"&lt;InvoiceTable invoices={invoices} /&gt;\"]\n  C --> D{\"invoices.length === 0?\"}\n  D -->|yes| E[\"&lt;p&gt;No invoices match this filter&lt;/p&gt;\"]\n  D -->|no| F[\"&lt;table&gt; — one &lt;tr&gt; per invoice\"]\n  A --> G[\"&lt;ExportButton count={exportable.length} /&gt;\"]\n  A --> H[\"&lt;p&gt;Total sent: …&lt;/p&gt;\"]"
+      },
+      {
+        "type": "diagram",
+        "title": "Why a component rather than a conditional in the page",
+        "mermaid": "flowchart LR\n  subgraph before[\"Before\"]\n    P1[\"page.tsx\"] --> T1[\"table markup inline\"]\n    PT1[\"page.test.tsx\"] -.->|\"can only ever render the\\nhard-coded five invoices\"| P1\n  end\n  subgraph after[\"After\"]\n    P2[\"page.tsx\"] --> IT[\"InvoiceTable.tsx\\n(takes the list as a prop)\"]\n    PT2[\"page.test.tsx\\n(unchanged)\"] -.-> P2\n    ITT[\"InvoiceTable.test.tsx\\n(empty list AND two invoices)\"] -.-> IT\n  end"
+      }
+    ],
+    "focus": [
+      {
+        "title": "The table markup moved verbatim, so the rendered DOM is byte-identical on non-empty data",
+        "detail": "Every inline style, every column and the `key={i.id}` came across unchanged from page.tsx lines 13-32. That is what lets app/invoices/page.test.tsx stay untouched and still pass, and it is what the second screenshot is there to show. If you read one thing in the diff, read that the <table> block is a move and not a rewrite.",
+        "files": [
+          "app/invoices/InvoiceTable.tsx",
+          "app/invoices/page.tsx"
+        ]
+      },
+      {
+        "title": "The new component takes the list as a prop, which is the only reason the empty branch is testable",
+        "detail": "page.tsx calls listInvoices() directly, and that returns a hard-coded five-invoice array — so a conditional inside the page could never be exercised without vi.mock of @/lib/invoices, a pattern this repo does not use. InvoiceTable takes `invoices: readonly Invoice[]`, so both branches are reachable with the plain render/DOM pattern already in components/ExportButton.test.tsx. Both files report 100% of lines.",
+        "files": [
+          "app/invoices/InvoiceTable.tsx",
+          "app/invoices/InvoiceTable.test.tsx"
+        ]
+      },
+      {
+        "title": "There is no status filter in this app yet — this is the empty state only",
+        "detail": "The request named a status filter as an example of when the table would be empty, not as the thing to build. Nothing here adds filtering; listInvoices() still returns every invoice. Adding the filter is issue #27. Consequently the empty state is not reachable through the UI today, which is why the proof for it comes from a temporary edit to the seed plus the unit test, rather than from clicking something.",
+        "files": [
+          "app/invoices/page.tsx"
+        ]
+      },
+      {
+        "title": "The sibling import is extensionless on purpose",
+        "detail": "page.tsx imports \"./InvoiceTable\", not \"./InvoiceTable.js\". The repo's convention is a .js extension for relative imports, and that is still correct in the test file — but Next's webpack resolver does not rewrite .js to .tsx for app source, so the .js form type-checks and passes vitest while failing `next build` with \"Module not found\". Please don't normalise it.",
+        "files": [
+          "app/invoices/page.tsx",
+          "app/invoices/InvoiceTable.test.tsx"
+        ]
+      }
+    ],
+    "technical": "technical.md",
+    "conceptual": "conceptual.md"
+  },
+  "media_commit": "662471070725b76497c99985918abb3006a5606f",
+  "media_prefix": "reports/wi_01M7ZGEBERHW6JBHKTMV3MNV3W/builder-1",
+  "inline": {},
+  "problems": [],
+  "stored_at": "2026-11-21T17:52:00.938Z"
+}
