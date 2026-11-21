@@ -362,7 +362,8 @@ jobs:
           app-id: ${{ vars.FACTORY_APP_CLIENT_ID }}
           private-key: ${{ secrets.FACTORY_APP_PRIVATE_KEY }}
           permission-contents: write
-          permission-checks: read
+          # write: factory/pr-report.
+          permission-checks: write
           permission-actions: write
           permission-issues: write
           permission-pull-requests: write
@@ -383,6 +384,16 @@ jobs:
         with:
           pattern: step-report-*
           path: ${{ runner.temp }}/step-reports
+      # The PR body is rendered from the roles' reports, never taken from an
+      # agent: once now with the builder's, again when the verifier's is in.
+      - name: Show the builder's report on the PR
+        if: needs.build.outputs.created_pr_number != '' || needs.build-host.outputs.created_pr_number != '' || inputs.pr_number != '0'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+          WORK_ITEM: ${{ inputs.work_item }}
+          PR: ${{ needs.build.outputs.created_pr_number || needs.build-host.outputs.created_pr_number || inputs.pr_number }}
+        run: bsf report publish --work-item "$WORK_ITEM" --pr "$PR"
       - name: Wait for the gates and decide what happens next
         env:
           GH_TOKEN: ${{ steps.token.outputs.token }}
@@ -394,6 +405,14 @@ jobs:
         run: >-
           bsf run after-gates "$WORK_ITEM" --run-id "$RUN_ID" --attempt "$ATTEMPT" --pr "$PR"
           --build-result "$BUILD_RESULT" --steps-dir "$RUNNER_TEMP/step-reports"
+      - name: Show the verifier's evidence on the PR
+        if: always() && (needs.build.outputs.created_pr_number != '' || needs.build-host.outputs.created_pr_number != '' || inputs.pr_number != '0')
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+          WORK_ITEM: ${{ inputs.work_item }}
+          PR: ${{ needs.build.outputs.created_pr_number || needs.build-host.outputs.created_pr_number || inputs.pr_number }}
+        run: bsf report publish --work-item "$WORK_ITEM" --pr "$PR"
 
   rollup:
     needs: [plan, after-gates]

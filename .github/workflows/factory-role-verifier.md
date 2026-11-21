@@ -202,6 +202,13 @@ post-steps:
       ATTEMPT: ${{ inputs.attempt }}
       MODEL: ${{ inputs.model }}
     run: bsf step-report --role "$ROLE" --attempt "$ATTEMPT" --model "$MODEL" --out /tmp/gh-aw/agent/bsf/step-report.json
+  - name: Store the verifier's report for the PR
+    shell: bash
+    env:
+      GH_TOKEN: ${{ steps.write-token.outputs.token }}
+      WORK_ITEM: ${{ inputs.work_item }}
+      ATTEMPT: ${{ inputs.attempt }}
+    run: bsf report store --role verifier --dir /tmp/gh-aw/agent/bsf/media --work-item "$WORK_ITEM" --attempt "$ATTEMPT"
   - name: Store the reviewed media and upload the raw artifacts
     shell: bash
     env:
@@ -270,7 +277,36 @@ with the services and stubs the app needs:
 4. Try the obvious ways the change could be wrong but still look right: the
    empty case, the error case, the second click, a reload, a different route
    into the same screen.
-5. Write your verdict.
+5. Write your verdict, and the report a person sees on the PR.
+
+## What the PR shows
+
+The person reviewing this PR sees your evidence **on the PR itself**, before
+any text. Write `/tmp/gh-aw/agent/bsf/media/report.json`
+(`schema/pr-report.json` in `.factory/bin/runner.tgz` has the exact shape):
+
+```json
+{
+  "schema": "pr-report/1",
+  "summary": ["One line: what you checked and what you found."],
+  "blocks": [
+    { "type": "file", "file": "check1-filtered.png", "caption": "Acceptance check 1: choosing Sent shows only sent invoices" },
+    { "type": "diagram", "title": "What each check exercised", "mermaid": "flowchart LR\n  A[Status chips] --> B[?status=sent] --> C[Table]" },
+    { "type": "file", "file": "check2-api.json", "caption": "GET /api/invoices?status=sent returned three rows" }
+  ]
+}
+```
+
+- `blocks` are your proof files and any diagrams, in the order that tells the
+  story best, mixed freely: one per acceptance check at least, more where a
+  check needs them. A file is a path inside `/tmp/gh-aw/agent/bsf/media/`.
+- Screenshots and GIFs show inline. A video (`.mp4`, `.webm`) also needs a
+  `poster`: a GIF or still of it, which the PR shows and links to the video.
+  Logs and API responses (`.json`, `.txt`, `.log`) are shown inline as text.
+- A diagram is Mermaid, which GitHub draws: use one where a flow, a state or
+  the parts involved say more than a screenshot does.
+- Every caption says what the file proves, in a reader's words.
+- A failed check gets its evidence here too, captioned with what went wrong.
 
 ## The verdict
 

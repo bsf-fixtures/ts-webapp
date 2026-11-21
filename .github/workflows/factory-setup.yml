@@ -190,6 +190,9 @@ jobs:
           private-key: ${{ secrets.FACTORY_APP_PRIVATE_KEY }}
           permission-contents: write
           permission-pull-requests: write
+          # write: factory/pr-report on the PR; issues: the continued proof.
+          permission-checks: write
+          permission-issues: write
           owner: ${{ github.repository_owner }}
           repositories: ${{ github.event.repository.name }}
       - name: Open the setup pull request
@@ -246,10 +249,22 @@ jobs:
           if [ -z "$AMEND" ]; then title="Set up the software factory"; else title="Amend the factory's sandbox"; fi
           git commit -q -m "$title (sandbox tier: $TIER)"
           git push -q "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "$branch"
-          body=$(printf '%s\n\n%s\n\n%s\n\n%s\n' \
-            "The sandbox reached **$TIER** when the runner brought it up and measured it; see \`.factory/sandbox/manifest.json\` for what it contains, what it can exercise, and every round that was tried." \
-            "No credential of yours is in it. Every value is local, fake, a throwaway service, or a named test-mode secret." \
-            "${guard:+Guardrails: $guard; existing violations are baselined per file, not fixed here, and gardening clears them in small PRs.}" \
-            "Rounds and the screenshot: $RUN_URL")
-          gh api "repos/${GITHUB_REPOSITORY}/pulls" -f title="$title" -f head="$branch" \
-            -f base="${{ github.event.repository.default_branch }}" -f body="$body" --jq .html_url
+          # The PR is rendered from the setup agent's report, with the trial's
+          # screenshot of the app in the frozen sandbox first: proof and
+          # diagrams before prose, the full detail one link away.
+          jq -n --arg tier "$TIER" --arg guard "$guard" --arg run "$RUN_URL" '{
+            focus: ([
+              { title: "What the sandbox can exercise", detail: ("It reached tier " + $tier + " when the runner brought it up and measured it. .factory/sandbox/manifest.json says what it runs, what it can and cannot exercise, and every round that was tried.") },
+              { title: "No credential of yours is in it", detail: "Every value is local, fake, a throwaway service, or a named test-mode secret." }
+            ] + (if $guard == "" then [] else [{ title: "Guardrails", detail: ($guard + "; existing violations are baselined per file, not fixed here, and gardening clears them in small PRs.") }] end)),
+            links: [{ label: "Every round, and its logs", url: $run }]
+          }' > "$RUNNER_TEMP/report-extra.json"
+          bsf report setup --dir "$design/report" --trial-dir "$ROUNDS_DIR/trial-round-$CHOSEN" --tier "$TIER" \
+            --extra "$RUNNER_TEMP/report-extra.json" --out "$RUNNER_TEMP/pr-body.md"
+          pr=$(gh api "repos/${GITHUB_REPOSITORY}/pulls" -f title="$title" -f head="$branch" \
+            -f base="${{ github.event.repository.default_branch }}" -F "body=@$RUNNER_TEMP/pr-body.md" --jq .number)
+          echo "opened #$pr"
+          if [ -f "$RUNNER_TEMP/pr-body.md.continued.md" ]; then
+            gh api "repos/${GITHUB_REPOSITORY}/issues/$pr/comments" -F "body=@$RUNNER_TEMP/pr-body.md.continued.md" > /dev/null
+          fi
+          bsf report check --pr "$pr" --problems "$RUNNER_TEMP/pr-body.md.problems.json"

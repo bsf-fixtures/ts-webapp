@@ -238,6 +238,13 @@ post-steps:
       # the installation covers.
       owner: ${{ github.repository_owner }}
       repositories: ${{ github.event.repository.name }}
+  - name: Store the builder's report for the PR
+    shell: bash
+    env:
+      GH_TOKEN: ${{ steps.write-token.outputs.token }}
+      WORK_ITEM: ${{ inputs.work_item }}
+      ATTEMPT: ${{ inputs.attempt }}
+    run: bsf report store --role builder --dir /tmp/gh-aw/agent/bsf/report --work-item "$WORK_ITEM" --attempt "$ATTEMPT"
   # memex reads the harness's own session log for tokens and cost. The log is
   # the source of truth; agents' own cost reporting is uneven (doc 07).
   - name: Write the StepReport with memex
@@ -337,6 +344,52 @@ Your own looking is for you. The verifier checks the result separately, in a
 job with no access to anything you did here, and the gates re-run everything.
 That is why you are free to look as much as you like: looking is not
 certifying.
+
+## Show your work on the PR
+
+The person reviewing your PR reads it top to bottom and stops when they have
+seen enough. So the PR leads with proof and diagrams, not prose, and the
+factory renders it from a report you write, never from the PR body you give.
+Before you finish, write into `/tmp/gh-aw/agent/bsf/report/`:
+
+- `report.json` (`schema/pr-report.json` in `.factory/bin/runner.tgz` has the
+  exact shape):
+
+  ```json
+  {
+    "schema": "pr-report/1",
+    "summary": [
+      "What changed, in one line a user would understand.",
+      "Why: the problem it solves.",
+      "What someone would notice: where, and what they see."
+    ],
+    "blocks": [
+      { "type": "file", "file": "files/after.png", "caption": "The invoices table with the status chips" },
+      { "type": "diagram", "title": "How a status choice reaches the table", "mermaid": "sequenceDiagram\n  User->>Page: chooses Sent\n  Page->>API: ?status=sent\n  API-->>Page: sent invoices" },
+      { "type": "file", "file": "files/before.png", "caption": "Before: every invoice, no way to narrow them" }
+    ],
+    "focus": [
+      { "title": "The filter is read from the URL", "detail": "So a link keeps its filter, and the server does the filtering.", "files": ["app/invoices/page.tsx"] }
+    ],
+    "technical": "technical.md",
+    "conceptual": "conceptual.md"
+  }
+  ```
+
+- `blocks`: screenshots, GIFs or short recordings of what you built, taken
+  while you looked at it, and Mermaid diagrams of the flow, the states or the
+  parts the change touches — as many as the change needs, in the order that
+  explains it. Files go under `report/files/`. A video needs a `poster` (a GIF
+  or still of it), because GitHub only plays its own uploads.
+- `focus`: the biggest changes a reviewer should be aware of — a new
+  dependency on the URL, a changed contract, a migration — not a file list.
+- `technical.md`: how the change works, file by file, for someone about to
+  read the diff.
+- `conceptual.md`: what the change means for the product and why it is shaped
+  this way, for someone who will not read the diff.
+
+The verifier adds its own evidence after yours. A report that is missing a
+part fails the `factory/pr-report` check.
 
 ## If this work item is a practice
 

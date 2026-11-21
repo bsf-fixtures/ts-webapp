@@ -90,6 +90,11 @@ sandbox:
       - ${{ github.workspace }}:/workspace:rw
 
 timeout-minutes: 60
+# gh-aw stops a run at 1,000 AI credits ($10) unless told otherwise. Setup
+# reads the whole repo, designs the sandbox, its checks and its report, and
+# on a real app (trinsports) ran past that and was stopped mid-design. Setup
+# runs once, and rarely after; $20 is the ceiling for one round.
+max-ai-credits: 2000
 
 tools:
   bash: [":*"]
@@ -256,6 +261,29 @@ They can only measure what this repo's own toolchain reports, so tell them how:
 The trial runs each one after the tests. One that writes no report, or no
 SARIF, is dropped from the frozen sandbox and recorded under `dropped` with
 what happened, so the gates never fail every PR on a check that cannot run.
+
+## What the setup PR shows
+
+The person reviewing setup sees proof and diagrams first, then the key things
+to focus on, then links to the long version. Write
+`/tmp/gh-aw/agent/bsf/setup/report/report.json` (`schema/pr-report.json` in
+`.factory/bin/runner.tgz` has the shape) and the files it names, under
+`report/`:
+
+- `summary`: three lines — what the factory will be able to do on this repo,
+  what it cannot yet, and the one thing the reviewer should decide.
+- `blocks`: Mermaid diagrams of the sandbox (the app, its services, the stubs
+  standing in for third parties, what reaches the network) and of how a change
+  will be checked here, mixed with any screenshots or logs you captured
+  (`report/files/`). The trial's screenshot of the app running is added first
+  by the factory; do not add your own copy of it.
+- `focus`: what a reviewer must look at — a stub that fakes something real, a
+  capability that is not exercised, a checker that was left out.
+- `technical`: `report/technical.md`, the sandbox and checks in detail.
+- `conceptual`: `report/conceptual.md`, what this setup means for how the
+  factory will work on this repo.
+
+An amendment writes the same report, about what it changed and why.
 
 ## Guardrails
 
