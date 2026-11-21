@@ -1,0 +1,65 @@
+{
+  "role": "builder",
+  "attempt": 1,
+  "report": {
+    "schema": "pr-report/1",
+    "summary": [
+      "The /invoices heading now reads \"Invoices (5)\" — the number of rows the table below it is showing.",
+      "Why: nothing on the page said how many invoices were listed, so a reader had to count the rows.",
+      "What someone would notice: the <h1> on /invoices carries a count in brackets. The export button is unchanged and still reads \"Export 3 invoices as CSV\"."
+    ],
+    "blocks": [
+      {
+        "type": "file",
+        "file": "files/after.png",
+        "caption": "After: the heading reads \"Invoices (5)\", matching the five rows in the table. The export button still says 3 — it counts what gets exported, not what is listed."
+      },
+      {
+        "type": "file",
+        "file": "files/before.png",
+        "caption": "Before: a bare \"Invoices\" heading, with no indication of how many rows follow."
+      },
+      {
+        "type": "diagram",
+        "title": "Both numbers on the page, and where each comes from",
+        "mermaid": "flowchart LR\n  L[\"listInvoices()\"] --> A[\"invoices (5)\"]\n  A --> H[\"h1: Invoices (5)\"]\n  A --> T[\"tbody: one tr per invoice\"]\n  A --> E[\"exportableInvoices() — sent + paid\"]\n  E --> B[\"ExportButton count=3\"]\n  E --> S[\"Total sent: $1,497.50\"]\n  H -. \"same array, so they cannot disagree\" .-> T"
+      },
+      {
+        "type": "diagram",
+        "title": "Why the count is taken from the rendered array, not from listInvoices()",
+        "mermaid": "flowchart TD\n  subgraph today[\"Today — no status filter exists\"]\n    A1[\"invoices = listInvoices()\"] --> B1[\"heading + rows\"]\n  end\n  subgraph later[\"If issue #27 adds a status filter\"]\n    A2[\"invoices = filtered rows\"] --> B2[\"heading + rows\"]\n  end\n  today --> later\n  later --> N[\"Heading follows the filter with no further change\"]"
+      }
+    ],
+    "focus": [
+      {
+        "title": "The count is derived from the array the table maps over, not recomputed",
+        "detail": "The heading uses `invoices.length` — the same array `<tbody>` maps over — so the heading and the rows are structurally unable to disagree. This is also what honours the request's \"after any status filter\": there is no status filter in the app today (filtering is open issue #27), but when one lands and narrows that array, the heading follows it with no further change here. No new `lib/` function was added: counting an array is not a domain rule, and fundamentals.md asks for one domain module rather than a second near-duplicate.",
+        "files": [
+          "app/invoices/page.tsx"
+        ]
+      },
+      {
+        "title": "The count is one template literal, deliberately — adjacent JSX children would emit comment markers",
+        "detail": "`{`Invoices (${invoices.length})`}` renders as `<h1>Invoices (5)</h1>`. Written as adjacent children (`Invoices ({n})`) React 19's server renderer emits `<h1>Invoices (<!-- -->5<!-- -->)</h1>`, which is visible to anyone reading or scraping the HTML. The `Total sent:` line two elements below already carries a comment saying this; the heading follows the same pattern. Verified with `curl -s http://localhost:3000/invoices`: the literal string `Invoices (5)` is present with no markers.",
+        "files": [
+          "app/invoices/page.tsx"
+        ]
+      },
+      {
+        "title": "The export button's 3 is untouched and is meant to differ from the heading's 5",
+        "detail": "Two numbers now sit next to each other on the page and they are deliberately different: the heading counts the rows listed, the button counts the rows the CSV will contain (sent and paid only — a draft and a void were never sent to a customer). That is the one product rule this app exists to hold, so one of the new tests asserts the heading does not read `Invoices (3)` while the button still reads `Export 3 invoices as CSV`, to catch anyone later \"fixing\" the apparent inconsistency by wiring the heading to `exportableInvoices`.",
+        "files": [
+          "app/invoices/page.tsx",
+          "app/invoices/page.test.tsx"
+        ]
+      }
+    ],
+    "technical": "technical.md",
+    "conceptual": "conceptual.md"
+  },
+  "media_commit": "a0e10485983e88d8a390684282e8909f99576872",
+  "media_prefix": "reports/wi_01M7ZGET772SABC0FV186GQM27/builder-1",
+  "inline": {},
+  "problems": [],
+  "stored_at": "2026-11-21T17:15:05.347Z"
+}
