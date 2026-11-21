@@ -1,0 +1,72 @@
+{
+  "schema": "pr-report/1",
+  "summary": [
+    "Ran all four acceptance checks against the built production server at http://localhost:3000/invoices. All four pass.",
+    "The heading reads exactly Invoices (5), matching the 5 rows in the table, and is served as plain HTML with no React comment markers.",
+    "The export button is untouched: it still reads Export 3 invoices as CSV and still downloads a 3-row CSV."
+  ],
+  "blocks": [
+    {
+      "type": "file",
+      "file": "check1-heading-invoices-5.png",
+      "caption": "Acceptance checks 1, 2 and 4 in one screenshot of the running app: the first heading reads Invoices (5), the table below it has 5 body rows (INV-1001 to INV-1005), and the button still reads Export 3 invoices as CSV."
+    },
+    {
+      "type": "file",
+      "file": "check1-heading-closeup.png",
+      "caption": "Acceptance check 1, close up on the <h1>: the heading text is exactly Invoices (5), not Invoices."
+    },
+    {
+      "type": "file",
+      "file": "check2-five-rows.png",
+      "caption": "Acceptance check 2: the five body rows counted on the page — INV-1001, INV-1002, INV-1003, INV-1004, INV-1005 — which is the 5 the heading shows."
+    },
+    {
+      "type": "file",
+      "file": "check3-served-html.txt",
+      "caption": "Acceptance check 3: the HTML served by curl contains the literal <h1>Invoices (5)</h1>, and the whole document has zero <!-- --> markers. The hydrated DOM after a reload gives the same h1.innerHTML, so the single-template-literal rule holds server-side and after hydration."
+    },
+    {
+      "type": "file",
+      "file": "check4-export-button.png",
+      "caption": "Acceptance check 4: the export button after the heading change still reads Export 3 invoices as CSV — the heading's 5 counts rows listed, the button's 3 counts rows exported."
+    },
+    {
+      "type": "file",
+      "file": "check4-downloaded-invoices.csv.txt",
+      "caption": "Acceptance check 4: the file Chromium actually downloaded when the button was clicked (invoices-2026-11-21.csv) — a header row plus three data rows, with the draft INV-1004 and the void INV-1005 absent. Clicking a second time downloaded it again."
+    },
+    {
+      "type": "diagram",
+      "title": "Where the two numbers on the page come from",
+      "mermaid": "flowchart LR\n  L[\"listInvoices() — 5 invoices\"] --> A[\"invoices array\"]\n  A --> H[\"h1: Invoices (5)\"]\n  A --> T[\"tbody — 5 rows\"]\n  A --> E[\"exportableInvoices() — sent/paid only\"]\n  E --> B[\"button: Export 3 invoices as CSV\"]\n  E --> C[\"GET /invoices/export — 3 CSV rows\"]\n  H -.->|\"same array, cannot disagree\"| T"
+    },
+    {
+      "type": "file",
+      "file": "before-after-source.txt",
+      "caption": "Before and after of the changed lines: the count is interpolated from invoices.length — the same array <tbody> maps over — in one template literal, not a hardcoded 5 and not exportable.length."
+    },
+    {
+      "type": "file",
+      "file": "check5-client-nav.png",
+      "caption": "A second route into the same screen: navigating from / via the Go to invoices link (client-side, no full page load) renders the same Invoices (5) heading, 5 rows and 3-invoice button, with no comment markers in the h1 and no console errors."
+    }
+  ],
+  "focus": [
+    {
+      "title": "The heading number is derived, not written down",
+      "detail": "The heading reads Invoices (5) because it interpolates invoices.length, the array the table body maps over. Nothing here hardcodes 5, and nothing adds a status filter — so if a filter is added to that array later the heading follows it.",
+      "files": ["app/invoices/page.tsx"]
+    },
+    {
+      "title": "No React comment markers in the served HTML",
+      "detail": "The count is in a single template literal, so the server renders <h1>Invoices (5)</h1>. curl of the page finds zero <!-- --> markers anywhere in the document, and the hydrated DOM's h1.innerHTML is the same plain string. The page hydrates with no console errors.",
+      "files": ["app/invoices/page.tsx"]
+    },
+    {
+      "title": "The export path is unchanged",
+      "detail": "The button still reads Export 3 invoices as CSV, and clicking it still fetches /invoices/export (200, text/csv; charset=utf-8, Content-Disposition attachment, Cache-Control no-store) and downloads a CSV of 3 invoices. A second click downloads it again. The two numbers on the page, 5 and 3, are deliberately different.",
+      "files": ["components/ExportButton.tsx", "app/invoices/export/route.ts"]
+    }
+  ]
+}
