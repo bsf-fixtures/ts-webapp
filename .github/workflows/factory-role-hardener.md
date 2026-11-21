@@ -98,6 +98,9 @@ safe-outputs:
       policy: ${{ inputs.protected_files_policy }}
     staged: ${{ inputs.staged }}
   add-comment:
+    # A role is dispatched, not triggered by an issue, so there is no
+    # triggering item to default to: the agent names the issue or PR.
+    target: "*"
     staged: ${{ inputs.staged }}
   upload-artifact:
   threat-detection:

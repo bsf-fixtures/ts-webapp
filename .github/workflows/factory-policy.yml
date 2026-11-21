@@ -80,5 +80,8 @@ jobs:
       - name: Run the policy check
         env:
           GH_TOKEN: ${{ steps.token.outputs.token }}
+          # The App's own login, from the token step, so its approvals and
+          # change requests are recognised without a variable to keep in sync.
+          FACTORY_APP_LOGINS: ${{ steps.token.outputs.app-slug }}[bot]
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: bsf policy --pr "$PR_NUMBER" --report-check factory/policy

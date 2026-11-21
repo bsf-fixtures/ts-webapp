@@ -100,6 +100,9 @@ tools:
 
 safe-outputs:
   add-comment:
+    # A role is dispatched, not triggered by an issue, so there is no
+    # triggering item to default to: the agent names the issue or PR.
+    target: "*"
     staged: ${{ inputs.staged }}
   # The verifier never pushes code. Its output is a verdict and evidence.
   upload-artifact:
