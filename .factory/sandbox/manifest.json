@@ -7,7 +7,8 @@
     "build": "npm run build",
     "run": "npm run start -- --port 3000",
     "test": "npm test",
-    "seed": null
+    "seed": null,
+    "coverage": "npm test -- --coverage"
   },
   "app_url": "http://localhost:3000/invoices",
   "env": [
@@ -50,6 +51,16 @@
       "from": ".github/workflows/ci.yml",
       "what": "The workflow's `on: push` / `on: pull_request` triggers",
       "why": "Describes when GitHub runs CI, not what the app needs. The README is explicit that this fixture's acceptance criterion is that a factory run starts none of these runs, so the sandbox must not reproduce or depend on them."
+    },
+    {
+      "from": "eslint.config.mjs",
+      "what": "eslint as a static_checks entry",
+      "why": "The factory's static gate already runs eslint itself from node_modules/eslint when it is installed, which it is here. Adding it again as a SARIF check would count every finding twice and make the per-file ratchet compare a file against a doubled baseline. Only the checkers the gate does not know about belong in static_checks, which here is tsc alone."
+    },
+    {
+      "from": "vitest.config.ts",
+      "what": "The `text` and `html` (lcov-report/) coverage reporters, as something the gate reads",
+      "why": "The repo's vitest coverage config already emits text, json-summary and lcov. coverage_report points at coverage/lcov.info because lcov is the format the gate parses and the one the config writes natively; the text table is for humans and coverage/lcov-report/ is an HTML artefact. Nothing in the repo was changed to get it — the reporters were already there, only --coverage was not being passed."
     }
   ],
   "capabilities": {
@@ -61,7 +72,9 @@
       "The production server starts and /invoices answers 200, rendering the five seeded invoices and the button labelled 'Export 3 invoices as CSV'",
       "GET /invoices/export answers 200 over HTTP with Content-Type text/csv; charset=utf-8, Content-Disposition attachment, Cache-Control no-store, a header row and three data rows, with INV-1004 (draft) and INV-1005 (void) absent",
       "A browser can be pointed at http://localhost:3000/invoices: the page is server-rendered, so a screenshot shows the real table and the real button label",
-      "Clicking the export button in a browser, which fetches /invoices/export and triggers a blob download named invoices-YYYY-MM-DD.csv — a driver that captures downloads (Playwright) can assert the file's contents"
+      "Clicking the export button in a browser, which fetches /invoices/export and triggers a blob download named invoices-YYYY-MM-DD.csv — a driver that captures downloads (Playwright) can assert the file's contents",
+      "`npm test -- --coverage` runs the same 21 tests and writes coverage/lcov.info (v8 provider, repo-relative SF: paths), covering app/**, lib/** and components/** — 6 files, 44.3% of lines today, with lib/invoices.ts and app/invoices/export/route.ts at 100% and the three page/layout components at 0%. The coverage gate can therefore measure diff coverage on a change.",
+      "The `typescript` static check runs tsc over the repo's own tsconfig.json and writes SARIF: zero findings on the tree as it stands, and it was verified to report the right rule and file by compiling a scratch file with a TS2322 and a TS7006 in it."
     ],
     "not_exercised": [
       {
@@ -93,6 +106,20 @@
           "lib/invoices.ts"
         ],
         "why": "None of these exist in the repo — the invoice list is a hard-coded readonly array in lib/invoices.ts and no code reads a database, a secret or a third party. Listed so it is clear nothing was stubbed away: there is nothing to stub. A change that introduces any of them needs an amendment to this manifest."
+      },
+      {
+        "what": "Branch, function and statement coverage, and line-level diff coverage within a changed file",
+        "paths": [
+          "vitest.config.ts"
+        ],
+        "why": "The gate's lcov reader keeps only LF/LH — covered and total lines per file — and computes diff coverage by whole changed file, not by changed line. A change that adds uncovered lines to a large well-covered file moves the number only slightly, and a branch left untested does not move it at all."
+      },
+      {
+        "what": "Lint and type findings in files tsc does not reach",
+        "paths": [
+          "tsconfig.json"
+        ],
+        "why": "The typescript check compiles exactly what tsconfig.json includes (**/*.ts, **/*.tsx, next-env.d.ts, .next/types/**). next-env.d.ts and .next/types are build outputs and are absent when the static gate runs, because `bsf sandbox start` runs only the install, not the build. tsc exits clean without them here (verified with both removed), but a Next-generated route type error would only surface in the build, not in this check."
       }
     ]
   },
@@ -132,7 +159,46 @@
       "tried": "trial of round 1: install, build, test, run",
       "observed": "reached renders, as claimed",
       "changed": null
+    },
+    {
+      "attempt": 7,
+      "tried": "Amendment for the owner's `coverage-and-checkers` report. Read schema/sandbox.json out of .factory/bin/runner.tgz for the shapes of commands.coverage, coverage_report and static_checks, then read the runner's readCoverage/fromLcov, countSarif/runSarifCheck, the native checker list and freezeManifest to see what the gates actually consume.",
+      "observed": "The runner runs eslint, ruff and rubocop natively and nothing else, so on this repo the only checker it is blind to is the TypeScript compiler. readCoverage with a declared lcov report reads LF/LH per file and diff coverage is per whole changed file. runSarifCheck executes the command with `bash -c` from the repo root and only cares that SARIF exists and parses — a non-zero exit is fine. freezeManifest drops a coverage or static check the trial could not run and records it under `dropped`, so a check that writes nothing costs a line in the manifest rather than failing every PR.",
+      "changed": "Settled on two additions and no repo change: commands.coverage using the coverage reporters vitest.config.ts already declares, and one static check for tsc."
+    },
+    {
+      "attempt": 8,
+      "tried": "npm ci, then `npm test -- --coverage`, then read coverage/lcov.info.",
+      "observed": "Exit 0, the same 3 files and 21 tests as `npm test`, and coverage/lcov.info written with 6 SF: records whose paths are repo-relative (app/layout.tsx, app/page.tsx, app/invoices/page.tsx, app/invoices/export/route.ts, components/ExportButton.tsx, lib/invoices.ts) — which is what the gate's rel() wants. 44.34% of lines overall. coverage/coverage-summary.json is written too, so istanbul-summary would also have worked; lcov was chosen because the gate's default lookup also prefers it and it carries per-file totals directly.",
+      "changed": "Set commands.coverage to `npm test -- --coverage` (the same test command with the flag, so the tests gate cannot run a different set of tests) and coverage_report to coverage/lcov.info, format lcov."
+    },
+    {
+      "attempt": 9,
+      "tried": "Wrote the typescript static check as a self-contained bash command — the repo's own node_modules/typescript over tsconfig.json, output converted to SARIF by a small node script written with a heredoc — and ran it twice: once on the tree as it stands, once with a scratch lib/__bsf_probe.ts holding a type error and an implicit-any parameter.",
+      "observed": "Clean tree: exit 0, valid SARIF, zero results. With the probe: two results, TS2322 at lib/__bsf_probe.ts:1:14 and TS7006 at lib/__bsf_probe.ts:2:19, each with a repo-relative uri and the rule id as the TS code — so the gate's per-rule per-file counting has something real to ratchet. The probe file was deleted; no file in the repo was changed. tsc also runs clean with next-env.d.ts and .next absent, which is the state the static gate will find it in, since `bsf sandbox start` runs the install only.",
+      "changed": "Added the static_checks entry, writing its SARIF under node_modules/.cache/bsf/ so the check never leaves an untracked file behind. Recorded under `dropped` that eslint is deliberately not a static_checks entry, because the gate runs it natively and a second copy would double every count."
+    },
+    {
+      "attempt": 10,
+      "tried": "trial of round 1: install, build, test, control, run",
+      "observed": "reached renders, as claimed",
+      "changed": null
     }
   ],
-  "frozen_at": "2026-11-20T22:30:02.548Z"
+  "frozen_at": "2026-11-21T09:57:12.668Z",
+  "coverage_report": {
+    "path": "coverage/lcov.info",
+    "format": "lcov"
+  },
+  "static_checks": [
+    {
+      "name": "typescript",
+      "command": "set -u\nout=\"node_modules/.cache/bsf/typescript.sarif\"\nlog=\"$(mktemp)\"\nconv=\"$(mktemp -t bsf-tsc-sarif-XXXXXX.cjs)\"\nmkdir -p \"$(dirname \"$out\")\"\nrm -f \"$out\"\n# tsc exits non-zero when it finds anything; the SARIF is what is counted.\nnode ./node_modules/typescript/bin/tsc -p tsconfig.json --noEmit --pretty false --incremental false > \"$log\" 2>&1 || true\ncat > \"$conv\" <<'BSF_TSC_SARIF'\nconst fs = require(\"fs\");\nconst path = require(\"path\");\nconst [, , logPath, outPath] = process.argv;\nconst lines = fs.readFileSync(logPath, \"utf8\").split(\"\\n\");\nconst located = /^(.+?)\\((\\d+),(\\d+)\\): (error|warning) (TS\\d+): (.*)$/;\nconst global = /^(error|warning) (TS\\d+): (.*)$/;\nconst ids = new Set();\nconst results = [];\nconst add = (rule, level, message, file, line, col) => {\n  ids.add(rule);\n  results.push({\n    ruleId: rule,\n    level: level === \"warning\" ? \"warning\" : \"error\",\n    message: { text: message },\n    locations: [{ physicalLocation: {\n      artifactLocation: { uri: file.split(\"\\\\\").join(\"/\") },\n      region: { startLine: line, startColumn: col },\n    } }],\n  });\n};\nfor (const raw of lines) {\n  const line = raw.trimEnd();\n  const m = located.exec(line);\n  if (m) { add(m[5], m[4], m[6], m[1], Number(m[2]), Number(m[3])); continue; }\n  const g = global.exec(line);\n  if (g) { add(g[2], g[1], g[3], \"tsconfig.json\", 1, 1); }\n}\nconst sarif = {\n  $schema: \"https://json.schemastore.org/sarif-2.1.0.json\",\n  version: \"2.1.0\",\n  runs: [{\n    tool: { driver: {\n      name: \"typescript\",\n      informationUri: \"https://www.typescriptlang.org/\",\n      rules: [...ids].map((id) => ({ id })),\n    } },\n    results,\n  }],\n};\nfs.mkdirSync(path.dirname(outPath), { recursive: true });\nfs.writeFileSync(outPath, JSON.stringify(sarif, null, 2));\nBSF_TSC_SARIF\nnode \"$conv\" \"$log\" \"$out\"",
+      "sarif": "node_modules/.cache/bsf/typescript.sarif",
+      "why": "tsc --noEmit is the repo's own `npm run typecheck`, a step in .github/workflows/ci.yml, and with strict and noUncheckedIndexedAccess on it is the checker that catches most of what eslint cannot here. The factory's static gate runs eslint natively but has no TypeScript checker, so without this entry a change that breaks the types is invisible to the gates until the build fails. The command runs the compiler the repo already has (node_modules/typescript) over the repo's own tsconfig.json and converts its one-line-per-diagnostic output to SARIF, one result per diagnostic, ruleId the TS error code (TS2322, TS7006...), so the gate's per-rule per-file ratchet works on it. Diagnostics with no file (a broken tsconfig, say) are attached to tsconfig.json line 1 rather than dropped, so a configuration failure still counts as a finding instead of reading as zero. The SARIF goes under node_modules/, which .gitignore already covers, so running the check never dirties the tree."
+    }
+  ],
+  "amended_by": [
+    "coverage-and-checkers"
+  ]
 }
