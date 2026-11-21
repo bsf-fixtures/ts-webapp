@@ -1,0 +1,88 @@
+{
+  "role": "builder",
+  "attempt": 1,
+  "report": {
+    "schema": "pr-report/1",
+    "summary": [
+      "Every invoice id in the table is now a link to /invoices/<id>, a page showing that invoice's customer, amount, issue date and status.",
+      "Why: the table was a dead end — an id was plain text, and there was no route under /invoices/<id> to open.",
+      "You would notice it on /invoices: the ids are links, INV-1002 opens at $1,180.00, and an id nobody has answers 404 with a way back."
+    ],
+    "blocks": [
+      {
+        "type": "file",
+        "file": "files/list-with-links.png",
+        "caption": "After: every invoice id in the table is a link, drafts and voids included"
+      },
+      {
+        "type": "file",
+        "file": "files/invoice-detail.png",
+        "caption": "/invoices/INV-1002 — customer, amount with the dollar sign, issue date, status, and the way back"
+      },
+      {
+        "type": "file",
+        "file": "files/invoice-draft.png",
+        "caption": "/invoices/INV-1004 — a draft opens too: the sent/paid rule stays confined to the export"
+      },
+      {
+        "type": "file",
+        "file": "files/invoice-not-found.png",
+        "caption": "/invoices/INV-9999 — answers HTTP 404 and renders 'Invoice not found' with the same back link"
+      },
+      {
+        "type": "diagram",
+        "title": "How a click on an id reaches an invoice page",
+        "mermaid": "sequenceDiagram\n  participant User\n  participant List as /invoices\n  participant Detail as /invoices/[id]\n  participant Lib as lib/invoices\n  User->>List: clicks the INV-1002 cell\n  List->>Detail: navigates to /invoices/INV-1002\n  Detail->>Lib: findInvoice(\"INV-1002\")\n  Lib-->>Detail: the invoice\n  Detail-->>User: 200 — Northwind Books, $1,180.00, 2026-10-11, sent\n  User->>Detail: opens /invoices/INV-9999\n  Detail->>Lib: findInvoice(\"INV-9999\")\n  Lib-->>Detail: undefined\n  Detail-->>User: notFound() — 404, 'Invoice not found'"
+      },
+      {
+        "type": "diagram",
+        "title": "Which list each reader looks at",
+        "mermaid": "flowchart LR\n  SEED[\"INVOICES — all five, seeded in lib/invoices.ts\"]\n  SEED --> LIST[\"listInvoices()\\nthe table: 5 rows\"]\n  SEED --> FIND[\"findInvoice(id)\\nNEW — any row opens\"]\n  LIST --> EXP[\"exportableInvoices()\\nsent + paid only: 3\"]\n  EXP --> CSV[\"the CSV export\\nunchanged\"]\n  EXP --> TOT[\"Total sent: $1,497.50\\nunchanged\"]"
+      },
+      {
+        "type": "file",
+        "file": "files/list-before.png",
+        "caption": "Before: the same table, with the ids as plain text and nowhere to go"
+      }
+    ],
+    "focus": [
+      {
+        "title": "findInvoice searches every invoice, not the exportable ones",
+        "detail": "The table lists drafts and voids because a person needs to see them, so every row has to open. findInvoice therefore searches the whole seeded list. exportableInvoices is untouched and still the only thing the CSV and the 'Total sent' figure are built from — the sent/paid rule stays where it was.",
+        "files": [
+          "lib/invoices.ts"
+        ]
+      },
+      {
+        "title": "A new dynamic route: /invoices/[id] is server-rendered on demand",
+        "detail": "The build's route table now lists it as 'ƒ /invoices/[id]' alongside the existing 'ƒ /invoices/export'. The prerendering of / and /invoices is unaffected — both are still static. On Next 15 a page's params is a Promise, so the component is async and awaits it.",
+        "files": [
+          "app/invoices/[id]/page.tsx"
+        ]
+      },
+      {
+        "title": "The 404 is a real 404, and it carries a way back",
+        "detail": "An unknown id calls notFound() from next/navigation, which answers HTTP 404 rather than rendering a page of blanks. A small not-found.tsx replaces Next's built-in screen so the reader keeps the 'Back to invoices' link instead of being stranded.",
+        "files": [
+          "app/invoices/[id]/not-found.tsx",
+          "app/invoices/[id]/page.tsx"
+        ]
+      },
+      {
+        "title": "The amount reuses formatCurrency; no second money formatter was added",
+        "detail": "formatCurrency already yields the dollar sign and thousands separator from a locale-pinned Intl.NumberFormat, which is why the detail page reads $1,180.00. The table's Amount column still uses formatAmount and is unchanged.",
+        "files": [
+          "lib/invoices.ts",
+          "app/invoices/[id]/page.tsx"
+        ]
+      }
+    ],
+    "technical": "technical.md",
+    "conceptual": "conceptual.md"
+  },
+  "media_commit": "74ca6871f1db291445714595dc88983e9668ca14",
+  "media_prefix": "reports/wi_01M7YHRQB8J58D19JCQJF0WD92/builder-1",
+  "inline": {},
+  "problems": [],
+  "stored_at": "2026-11-21T17:41:32.435Z"
+}
