@@ -20,6 +20,15 @@ export function listInvoices(): readonly Invoice[] {
   return INVOICES;
 }
 
+/**
+ * The invoice with this id, or undefined. It searches the whole list, not the
+ * exportable one: a draft and a void are shown in the table, so their rows
+ * have to open too. The sent/paid rule belongs to the export alone.
+ */
+export function findInvoice(id: string): Invoice | undefined {
+  return INVOICES.find((i) => i.id === id);
+}
+
 /** Only invoices that were actually sent to a customer belong in an export. */
 export function exportableInvoices(invoices: readonly Invoice[]): readonly Invoice[] {
   return invoices.filter((i) => i.status === "sent" || i.status === "paid");

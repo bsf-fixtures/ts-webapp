@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
-  listInvoices, exportableInvoices, toCsv, formatAmount, totalCents, formatCurrency, CSV_HEADER,
-  type Invoice,
+  listInvoices, findInvoice, exportableInvoices, toCsv, formatAmount, totalCents, formatCurrency,
+  CSV_HEADER, type Invoice,
 } from "./invoices.js";
 
 const invoice = (over: Partial<Invoice> = {}): Invoice => ({
@@ -104,5 +104,23 @@ describe("listInvoices", () => {
   it("gives every invoice a unique id", () => {
     const ids = listInvoices().map((i) => i.id);
     expect(new Set(ids).size).toBe(ids.length);
+  });
+});
+
+describe("findInvoice", () => {
+  it("returns the invoice whose id was asked for, so its page can show the right figures", () => {
+    expect(findInvoice("INV-1002")).toEqual({
+      id: "INV-1002", customer: "Northwind Books", amountCents: 118000,
+      issuedOn: "2026-10-11", status: "sent",
+    });
+  });
+
+  it("finds a draft and a void as well, because every row in the table has to open", () => {
+    expect(findInvoice("INV-1004")?.status).toBe("draft");
+    expect(findInvoice("INV-1005")?.status).toBe("void");
+  });
+
+  it("returns undefined for an id nobody has, so the caller can answer 404 rather than guess", () => {
+    expect(findInvoice("INV-9999")).toBeUndefined();
   });
 });
