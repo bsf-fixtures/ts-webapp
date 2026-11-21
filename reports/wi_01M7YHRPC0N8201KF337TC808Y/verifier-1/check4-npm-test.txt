@@ -1,0 +1,18 @@
+
+> ts-webapp@0.1.0 test
+> vitest run
+
+The CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.
+
+ RUN  v2.1.9 /home/runner/work/ts-webapp/ts-webapp
+
+ ✓ lib/invoices.test.ts (20 tests) 12ms
+ ✓ app/invoices/export/route.test.ts (5 tests) 12ms
+ ✓ components/ExportButton.test.tsx (4 tests) 96ms
+ ✓ app/invoices/page.test.tsx (3 tests) 50ms
+
+ Test Files  4 passed (4)
+      Tests  32 passed (32)
+   Start at  17:37:53
+   Duration  1.88s (transform 131ms, setup 0ms, collect 433ms, tests 170ms, environment 1.86s, prepare 305ms)
+

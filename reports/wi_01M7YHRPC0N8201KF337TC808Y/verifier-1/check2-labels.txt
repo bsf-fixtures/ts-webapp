@@ -1,0 +1,7 @@
+button label found : Export 3 invoices as CSV
+expected           : Export 3 invoices as CSV
+button matches     : [33mtrue[39m
+
+total line found   : Total sent: $1,497.50
+expected           : Total sent: $1,497.50
+total matches      : [33mtrue[39m

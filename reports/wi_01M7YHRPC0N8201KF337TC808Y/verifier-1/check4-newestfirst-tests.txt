@@ -1,0 +1,4 @@
+ ✓ lib/invoices.test.ts > newestFirst > puts the most recently issued invoice first, so the newest work is what a reader sees at the top
+ ✓ lib/invoices.test.ts > newestFirst > keeps two invoices issued on the same day in the order they were given, so equal dates do not shuffle
+ ✓ lib/invoices.test.ts > newestFirst > leaves the list it was given in its original order, because the seeded list is shared with the export
+ ✓ app/invoices/page.test.tsx > InvoicesPage > lists the invoices newest first, so INV-1005 is the top row and INV-1001 the last

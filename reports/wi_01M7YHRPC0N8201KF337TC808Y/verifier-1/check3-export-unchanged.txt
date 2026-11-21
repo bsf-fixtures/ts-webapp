@@ -1,0 +1,29 @@
+A. Over HTTP — curl -i http://localhost:3000/invoices/export
+
+   HTTP/1.1 200 OK
+   vary: rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch
+   cache-control: no-store
+   content-disposition: attachment; filename="invoices.csv"
+   content-type: text/csv; charset=utf-8
+   Date: Sat, 21 Nov 2026 17:37:35 GMT
+   Connection: keep-alive
+   Keep-Alive: timeout=5
+   Transfer-Encoding: chunked
+   
+   id,customer,amount,issued_on,status
+   INV-1001,Acme Bakery,245.00,2026-10-02,paid
+   INV-1002,Northwind Books,1180.00,2026-10-11,sent
+   INV-1003,Globex Coffee,72.50,2026-10-19,paid
+
+B. Through the browser — clicked the 'Export 3 invoices as CSV' button on /invoices.
+   Chromium downloaded: invoices-2026-11-21.csv
+   Contents of the downloaded file:
+
+   id,customer,amount,issued_on,status
+   INV-1001,Acme Bakery,245.00,2026-10-02,paid
+   INV-1002,Northwind Books,1180.00,2026-10-11,sent
+   INV-1003,Globex Coffee,72.50,2026-10-19,paid
+
+Both paths: header row, then INV-1001, INV-1002, INV-1003 in seeded order.
+INV-1004 (draft) and INV-1005 (void) are absent, as before.
+The table's new newest-first order did NOT reach the CSV.

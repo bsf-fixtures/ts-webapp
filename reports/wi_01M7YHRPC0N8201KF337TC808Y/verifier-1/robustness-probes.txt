@@ -1,0 +1,30 @@
+Ways this change could look right but be wrong — each one tried against the running app.
+
+1. Reload the page (server-rendered, so order must not depend on client state)
+   tbody order after reload : INV-1005, INV-1004, INV-1003, INV-1002, INV-1001
+
+2. A different route into the same screen: click 'Go to invoices' on / (client-side nav)
+   landed on http://localhost:3000/invoices
+   tbody order after nav    : INV-1005, INV-1004, INV-1003, INV-1002, INV-1001
+
+3. Does sorting the table leak into the CSV? newestFirst() copies a list the export also reads.
+   Loaded /invoices then fetched /invoices/export, three times alternating:
+   round 1: after loading /invoices, export rows = INV-1001,INV-1002,INV-1003
+   round 2: after loading /invoices, export rows = INV-1001,INV-1002,INV-1003
+   round 3: after loading /invoices, export rows = INV-1001,INV-1002,INV-1003
+   
+   table order (last render):
+   INV-1005,INV-1004,INV-1003,INV-1002,INV-1001
+
+4. Clicking export a second time, after the table had been re-rendered: same three rows.
+
+5. Browser console on /invoices: 1 error, a 404 for /favicon.ico.
+   Unrelated to this change: the repo ships no app/favicon.ico and no public/favicon.ico,
+   and no favicon or layout file appears in this diff, so the 404 predates it.
+   No other console error, and no failed request besides that one.
+
+6. Ordering is genuinely by issue date, not by id. Seeded issuedOn, from lib/invoices.ts:
+     INV-1001 2026-10-02   INV-1002 2026-10-11   INV-1003 2026-10-19
+     INV-1004 2026-11-01   INV-1005 2026-11-08
+   Descending issue date is INV-1005, 1004, 1003, 1002, 1001 — what the table shows.
+   (The table has no date column, so the order is the only visible sign of it.)
