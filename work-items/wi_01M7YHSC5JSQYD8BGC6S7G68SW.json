@@ -22,5 +22,84 @@
   "pr": null,
   "parent": null,
   "related": [],
-  "spec": null
+  "spec": {
+    "plan": "Today /invoices always renders all five seeded invoices and there is no way to narrow the table. After this change, a row of five links sits above the table — All, Draft, Sent, Paid, Void — each navigating to /invoices with a ?status= query parameter (All links to /invoices with no parameter), and the table renders only invoices with the selected status. The currently selected link is marked aria-current=\"page\" and rendered with fontWeight 700 while the others are 400, so it looks selected. A missing or unrecognised ?status= value shows everything, which is the All state. The filter is read in the page only: lib/invoices.ts gains INVOICE_STATUSES, an InvoiceStatus type alias (which Invoice.status now uses, so the four statuses have one source of truth), parseStatus() to turn a raw query value into a status or undefined, and invoicesWithStatus() to filter — matching this repo's pattern of pure functions over readonly data in lib/. The export is deliberately untouched: app/invoices/export/route.ts and components/ExportButton.tsx are not in the files list, and the page keeps passing count={exportableInvoices(listInvoices()).length} computed from the full list, not the filtered one, so the button still says \"Export 3 invoices as CSV\" and still downloads the same three sent/paid rows under every filter. The filter links stay inline in app/invoices/page.tsx rather than becoming components/StatusFilter.tsx: feature-map.md says a component moves to components/ only on a second use or when it needs browser APIs, and this is one page with no browser APIs. Not in scope, and worth its own work item if wanted: making the export respect the filter, and persisting or combining filters.",
+    "files": [
+      "lib/invoices.ts",
+      "app/invoices/page.tsx",
+      "lib/invoices.test.ts",
+      "app/invoices/page.test.tsx"
+    ],
+    "feature_folders": [
+      "lib/",
+      "app/invoices/"
+    ],
+    "acceptance_checks": [
+      "Load http://localhost:3000/invoices with no query parameter: the table body shows all five seeded invoices (INV-1001, INV-1002, INV-1003, INV-1004, INV-1005), and five links labelled exactly All, Draft, Sent, Paid, Void appear above the table.",
+      "Click the Draft link (or load http://localhost:3000/invoices?status=draft): the table body shows exactly one row, INV-1004, and INV-1001, INV-1002, INV-1003 and INV-1005 are absent from the page.",
+      "Load http://localhost:3000/invoices?status=paid: the table body shows exactly two rows, INV-1001 and INV-1003.",
+      "Load http://localhost:3000/invoices?status=sent: the table body shows exactly one row, INV-1002. Load http://localhost:3000/invoices?status=void: the table body shows exactly one row, INV-1005.",
+      "On http://localhost:3000/invoices?status=paid, the served HTML renders the Paid anchor with aria-current=\"page\" and font-weight 700, and the other four anchors (All, Draft, Sent, Void) carry no aria-current and font-weight 400; a screenshot shows Paid visibly bolder than the rest.",
+      "Load http://localhost:3000/invoices?status=bogus: all five invoices are shown and the All anchor is the one carrying aria-current=\"page\", so an unrecognised status falls back to All rather than emptying the table or erroring.",
+      "On http://localhost:3000/invoices?status=draft, the export button's label still reads \"Export 3 invoices as CSV\" (not 1), and clicking it downloads a CSV whose body is the header row plus INV-1001, INV-1002 and INV-1003, with INV-1004 and INV-1005 absent — identical to the file downloaded with no filter applied.",
+      "`npm run build` exits 0 and its route table lists /invoices as `ƒ (Dynamic)` rather than `○ (Static)`, which is the expected consequence of the page reading searchParams; `npm test`, `npm run typecheck` and `npm run lint` all exit 0."
+    ],
+    "tests_added": [
+      "app/invoices/page.test.tsx (new file): renders the page component directly — `render(await InvoicesPage({ searchParams: Promise.resolve({ status: \"draft\" }) }))` — and asserts, with plain DOM properties rather than jest-dom, that no status shows six rows (header plus five), that status=draft shows two rows including INV-1004, that status=paid shows three rows, that an unknown status shows all five, that the selected anchor is the only one with aria-current=\"page\", that the Sent anchor's href is \"/invoices?status=sent\" and that the export button still reads \"Export 3 invoices as CSV\" while the table is filtered to drafts. Test names say what a user loses, e.g. \"keeps the export button's count on every sent and paid invoice, whatever the table is filtered to\".",
+      "lib/invoices.test.ts (existing file, extended): a `describe(\"parseStatus\")` asserting every value in INVOICE_STATUSES is recognised, that an unknown string, an empty string, undefined and a string[] value all come back as undefined; and a `describe(\"invoicesWithStatus\")` asserting that undefined returns the list unchanged, that a status returns only invoices with it, and that a status nothing matches returns an empty list. Both use the existing `invoice(over)` factory."
+    ],
+    "tests_changed": [
+      "lib/invoices.test.ts"
+    ],
+    "research": [
+      {
+        "source": "node_modules/next/dist/server/lib/router-utils/typegen.js:590 and node_modules/next/dist/server/request/search-params.d.ts (next 15.5.29, the version package-lock.json resolves ^15.1.0 to)",
+        "claim": "In Next.js 15 the searchParams prop of a page is a Promise and must be awaited: the generated page type is `searchParams: Promise<Record<string, string | string[] | undefined>>`, so a single value is `string | string[] | undefined` and parseStatus must accept that union, not just `string | undefined`. The page therefore becomes `async`."
+      },
+      {
+        "source": "ran: npm ci && npm run typecheck && npm run lint (on a prototype of this change, since reverted; both exited 0)",
+        "claim": "The whole prototype — lib additions, the async page with searchParams, and the next/link nav — passes `tsc --noEmit` and `eslint .` with the repo's strict settings (strict + noUncheckedIndexedAccess) and no new dependency. Confirmed before writing this spec, so the builder is not being asked to make something that does not typecheck."
+      },
+      {
+        "source": "ran: npm run build (prototype) — route table printed `ƒ /invoices` where main prints `○ /invoices`, compared against the `○ /invoices` recorded in .factory/sandbox/manifest.json capabilities",
+        "claim": "Reading searchParams flips /invoices from prerendered static to server-rendered on demand in the build output (`ƒ /invoices` instead of `○ /invoices`). The build still succeeds. This is expected and must not be worked around with `export const dynamic` or by reading the query on the client; hence the build-output acceptance check."
+      },
+      {
+        "source": "ran: npx vitest run app/invoices/page.test.tsx (prototype, 6 tests, all passed)",
+        "claim": "An async server-component page can be tested under the repo's existing vitest + jsdom + @testing-library/react setup by awaiting the component and rendering the element it returns; next/link renders a plain <a> with no app-router context and does not throw. This is what makes app/invoices/page.test.tsx possible without Playwright or a new dependency, and the repo has no page test today to copy from."
+      },
+      {
+        "source": "ran: npx vitest run --coverage (prototype) — app/invoices/page.tsx 100% stmts/lines, lib/invoices.ts 100%; floor read from .factory/guardrails/coverage.json",
+        "claim": "The prototype's tests bring app/invoices/page.tsx and lib/invoices.ts to 100% line coverage, so the coverage gate's diff_min_pct of 80 on changed files is satisfiable. Without a page test the page's new lines would be entirely uncovered — app/invoices/page.tsx has no test today — and the gate would fail."
+      },
+      {
+        "source": "ran: npm run start -- --port 3000 then curl -s 'http://localhost:3000/invoices?status=draft' (prototype); sandbox tier and app_url from .factory/sandbox/manifest.json",
+        "claim": "Served over HTTP by the production server the sandbox uses, the filter behaves as the acceptance checks describe: /invoices lists all five invoices, ?status=draft lists only INV-1004, ?status=paid lists INV-1001 and INV-1003, ?status=bogus lists all five, and the nav renders `<a aria-current=\"page\" style=\"font-weight:700\" href=\"/invoices?status=void\">Void</a>` with the other four at font-weight:400. Every acceptance check above is therefore exercisable at this sandbox's `renders` tier."
+      },
+      {
+        "source": "app/invoices/page.tsx:11 and app/invoices/export/route.ts:5, plus ran: curl -s http://localhost:3000/invoices/export (prototype)",
+        "claim": "The export must not follow the filter. The page keeps computing the button's count from exportableInvoices(listInvoices()) over the full list, and the route handler is untouched; the prototype confirmed the label stays \"Export 3 invoices as CSV\" under ?status=draft and GET /invoices/export still returns the header row plus INV-1001, INV-1002 and INV-1003."
+      },
+      {
+        "source": ".factory/definition/context/fundamentals.md — \"Domain logic\" row of Dominant patterns, and the Taste line \"Prefer widening an existing pure function in lib/ to adding a second one\"",
+        "claim": "Domain logic belongs in lib/ as pure functions over readonly data, and widening the one domain module is preferred to adding a second one — so parseStatus and invoicesWithStatus go in lib/invoices.ts. Deriving InvoiceStatus from a single INVOICE_STATUSES tuple keeps the four statuses from being written twice once parseStatus needs the list at runtime."
+      },
+      {
+        "source": ".factory/definition/context/feature-map.md — Shared table, components/ row and \"Where things go\"; .factory/definition/context/fundamentals.md — \"Styling\" row",
+        "claim": "The filter links stay inside app/invoices/page.tsx rather than moving to components/: a component lands in components/ only when a second caller needs it or it needs browser APIs a server component cannot have. Styling is inline style={{}} objects, so the selected state is a fontWeight in a style object, not a class name or a styling library."
+      },
+      {
+        "source": "app/page.tsx:8 (`<Link href=\"/invoices\">`)",
+        "claim": "Internal navigation in this repo uses next/link with a plain string href, which is the pattern the filter links follow. There is exactly one existing example."
+      },
+      {
+        "source": ".factory/definition/context/fundamentals.md Tests and Test data rows; lib/invoices.test.ts:7 (the factory); components/ExportButton.test.tsx:25 (the jest-dom comment); .factory/definition/policy.yaml:64 (tests.declared_edits: required)",
+        "claim": "Tests are colocated beside the source as <name>.test.ts(x), use describe/it with sentence-length names saying what a user loses, assert with plain DOM properties rather than jest-dom, and build fixtures from the single `invoice(over)` factory. The policy requires every edit to an existing test file to be declared, which is why lib/invoices.test.ts is in tests_changed; app/invoices/page.test.tsx is new and needs no declaration."
+      },
+      {
+        "source": ".factory/definition/policy.yaml:33-44 and pipelines.product_work (may_change: [code, tests]); .factory/definition/context/practices.md (empty table)",
+        "claim": "This change touches no protected path and needs nothing the product_work pipeline may not change: it edits only code and tests, while protected covers .github/workflows/**, .factory/bin/**, .factory/definition/policy.yaml and .factory/sandbox/**. practices.md currently states no practices, so none can be contradicted."
+      }
+    ]
+  }
 }
