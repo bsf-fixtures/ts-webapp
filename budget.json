@@ -1,8 +1,8 @@
 {
-  "updated_at": "2026-11-21T17:32:22.116Z",
+  "updated_at": "2026-11-21T17:43:00.615Z",
   "paused": [],
   "budget": {
-    "limitUsd": 200,
+    "limitUsd": 35,
     "limitMinutes": 2000,
     "shares": {
       "product_work": 60,
