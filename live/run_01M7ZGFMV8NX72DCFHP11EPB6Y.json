@@ -1,0 +1,10 @@
+{
+  "schema": "live/1",
+  "run": "run_01M7ZGFMV8NX72DCFHP11EPB6Y",
+  "work_item": "wi_01M7ZGET772SABC0FV186GQM27",
+  "pipeline": "product_work",
+  "step": "triage",
+  "attempt": 1,
+  "started_at": "2026-11-21T16:54:25.384Z",
+  "actions_run": 44927093682
+}
