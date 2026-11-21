@@ -35,7 +35,11 @@ jobs:
       commit: ${{ steps.plan.outputs.commit }}
       work_item: ${{ steps.plan.outputs.work_item }}
       pr_number: ${{ steps.plan.outputs.pr_number }}
-      judge: ${{ steps.plan.outputs.judge }}
+      # 'false' only when told not to judge: on the PR that installs the
+      # factory, or for a label that changes nothing. An older runner on the
+      # default branch that predates this output leaves it empty, and the
+      # change is judged — a factory upgrade must not skip its own gates.
+      judge: ${{ steps.trusted.outputs.installed == 'false' && 'false' || steps.plan.outputs.judge }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -56,8 +60,21 @@ jobs:
           sparse-checkout-cone-mode: false
           persist-credentials: false
       - name: Put the trusted runner on PATH
+        id: trusted
         shell: bash
         run: |
+          # The PR that installs the factory is the one PR with no judge on
+          # the default branch yet. There is nothing trusted to judge it with,
+          # so it is not judged: every gate skips and a person reviews it, as
+          # they must anyway, since it changes protected paths.
+          if [ ! -f .factory-trusted/.factory/bin/bsf ]; then
+            echo "installed=false" >> "$GITHUB_OUTPUT"
+            msg="Not judged: the default branch has no factory yet. This PR installs it, so there is no trusted runner to judge it with; review it yourself."
+            echo "::notice title=factory-gates::$msg"
+            echo "$msg" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          echo "installed=true" >> "$GITHUB_OUTPUT"
           mkdir -p "$RUNNER_TEMP/bsf"
           cp -R .factory-trusted/.factory/bin/. "$RUNNER_TEMP/bsf/"
           # The definition and the sandbox decide how a change is judged, so
@@ -72,6 +89,7 @@ jobs:
           "$RUNNER_TEMP/bsf/bsf" --version
       - name: Read each role's model from factory.yaml
         id: models
+        if: steps.trusted.outputs.installed == 'true'
         run: bsf models
       # Decides which gates to run: a human PR gets the deterministic ones and
       # spends nothing on models unless it carries factory:verify; a commit
@@ -80,13 +98,14 @@ jobs:
       # the PR's feature folders.
       - name: Plan the gates for this commit
         id: plan
+        if: steps.trusted.outputs.installed == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: bsf gates plan
 
   static:
     needs: plan
-    if: needs.plan.outputs.judge == 'true' && needs.plan.outputs.static == 'true'
+    if: needs.plan.outputs.judge != 'false' && needs.plan.outputs.static == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -131,7 +150,7 @@ jobs:
 
   verification:
     needs: plan
-    if: needs.plan.outputs.judge == 'true' && needs.plan.outputs.tests == 'true'
+    if: needs.plan.outputs.judge != 'false' && needs.plan.outputs.tests == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -172,7 +191,7 @@ jobs:
       - name: Start the sandbox
         env:
           FACTORY_SANDBOX_ENV: ${{ secrets.FACTORY_SANDBOX_ENV }}
-        run: bsf sandbox start
+        run: bsf sandbox start --if-present
       # Where the repo already has a CI test check that runs on factory
       # branches, this reads its result for the same commit rather than
       # re-running the tests; after wait_minutes with no result, it runs them.
@@ -188,7 +207,7 @@ jobs:
 
   agent-verification:
     needs: [plan, verification]
-    if: needs.plan.outputs.judge == 'true' && needs.plan.outputs.agent_verification == 'true'
+    if: needs.plan.outputs.judge != 'false' && needs.plan.outputs.agent_verification == 'true'
     # What the compiled role's own jobs request. A caller must grant at
     # least this, or GitHub refuses to start the run; derived from the lock
     # file and checked by a test, so a gh-aw upgrade cannot silently break it.
@@ -212,8 +231,13 @@ jobs:
     needs: [plan, static, verification, agent-verification]
     # A label that is not the verify label changes nothing about the change,
     # so it neither re-judges it nor records a second verdict on the commit.
-    if: always() && needs.plan.outputs.judge == 'true'
+    if: always() && needs.plan.outputs.judge != 'false'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: read
+      actions: write
     steps:
       - uses: actions/checkout@v4
       # The runner that judges a change must not come from the change. A pull
@@ -264,3 +288,13 @@ jobs:
           bsf gates record --commit "$COMMIT"
           --plan-static "$PLAN_STATIC" --plan-verification "$PLAN_VERIFICATION" --plan-agent "$PLAN_AGENT"
           --static "$STATIC" --verification "$VERIFICATION" --agent "$AGENT"
+      # A verdict reported with the workflow token starts no workflow — GitHub
+      # does not raise check_suite for it — so merge would wait for some other
+      # event. Starting it here is what moves a passed PR on. Dispatch is the
+      # one event the workflow token may start.
+      - name: Hand a passed change to merge
+        if: success() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: gh workflow run factory-merge.yml --repo "$GITHUB_REPOSITORY" --ref "$DEFAULT_BRANCH"
