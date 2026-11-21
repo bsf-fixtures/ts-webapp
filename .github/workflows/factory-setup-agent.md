@@ -21,6 +21,11 @@ on:
         description: The model, from factory.yaml (the builder's), read by the caller with `bsf models`
         required: true
         type: string
+      budget_key:
+        description: Where this step's budget hold is kept; the caller settles it with the same key
+        required: false
+        default: ''
+        type: string
       round:
         description: Which design round this is, 1..3
         required: true
@@ -45,6 +50,11 @@ engine:
   model: ${{ inputs.model }}
   env:
     ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+    # Bounds on any one request, which is what the budget's margin is built
+    # on: the 200k window instead of 1M, and Claude Code's default output cap
+    # made explicit. Change one and the budget's ceilings are wrong.
+    CLAUDE_CODE_DISABLE_1M_CONTEXT: "1"
+    CLAUDE_CODE_MAX_OUTPUT_TOKENS: "32000"
 
 permissions:
   contents: read
@@ -86,6 +96,9 @@ safe-outputs:
       id: claude
       model: claude-haiku-5-5
       max-turns: 3
+      env:
+        CLAUDE_CODE_DISABLE_1M_CONTEXT: "1"
+        CLAUDE_CODE_MAX_OUTPUT_TOKENS: "32000"
     max-ai-credits: 50
 
 sandbox:
@@ -108,6 +121,50 @@ tools:
   web-search:
 
 pre-agent-steps:
+  # The runner that judges a change must not come from the change, so it is
+  # taken from the default branch and parked outside the workspace.
+  - name: Fetch the factory runner from the default branch
+    uses: actions/checkout@v4
+    with:
+      ref: ${{ github.event.repository.default_branch }}
+      path: .factory-trusted
+      sparse-checkout: |
+        .factory/bin
+        .factory/definition
+      sparse-checkout-cone-mode: false
+      persist-credentials: false
+  - name: Put the trusted runner on PATH
+    shell: bash
+    run: |
+      mkdir -p "$RUNNER_TEMP/bsf"
+      cp -R .factory-trusted/.factory/bin/. "$RUNNER_TEMP/bsf/"
+      mkdir -p "$RUNNER_TEMP/bsf-trusted/.factory"
+      if [ -d .factory-trusted/.factory/definition ]; then cp -R .factory-trusted/.factory/definition "$RUNNER_TEMP/bsf-trusted/.factory/"; fi
+      echo "BSF_TRUSTED_ROOT=$RUNNER_TEMP/bsf-trusted" >> "$GITHUB_ENV"
+      rm -rf .factory-trusted
+      echo "$RUNNER_TEMP/bsf" >> "$GITHUB_PATH"
+      "$RUNNER_TEMP/bsf/bsf" --version
+  # The budget: this step starts only if what is spent this month, what
+  # running steps hold, and the most this step can cost (its credit cap plus
+  # one request past it, for the agent and for threat detection) all fit.
+  # A refusal fails here, before the agent spends anything.
+  - name: Mint a token for the budget record
+    id: budget-token
+    uses: actions/create-github-app-token@v1
+    with:
+      app-id: ${{ vars.FACTORY_APP_CLIENT_ID }}
+      private-key: ${{ secrets.FACTORY_APP_PRIVATE_KEY }}
+      permission-contents: write
+      owner: ${{ github.repository_owner }}
+      repositories: ${{ github.event.repository.name }}
+  - name: Hold this step's budget
+    shell: bash
+    env:
+      GH_TOKEN: ${{ steps.budget-token.outputs.token }}
+      BUDGET_KEY: ${{ inputs.budget_key || format('{0}-{1}-setup-{2}', github.run_id, github.run_attempt, inputs.round) }}
+      PIPELINE: setup
+      MODEL: ${{ inputs.model }}
+    run: bsf budget reserve --key "$BUDGET_KEY" --pipeline "$PIPELINE" --role setup --model "$MODEL" --cap 1000 --detection-model claude-haiku-5-5 --detection-cap 50
   - name: Make the output directory
     shell: bash
     run: mkdir -p /tmp/gh-aw/agent/bsf/setup/previous
@@ -127,6 +184,27 @@ pre-agent-steps:
       if [ -n "$AMEND" ]; then printf '%s\n' "$AMEND" > /tmp/gh-aw/agent/bsf/setup/amend.json; fi
 
 post-steps:
+  # What this step spent, for the caller's settle job: the agent's cost as
+  # the session recorded it (or priced from its tokens at list price, if
+  # higher), and the name of the threat-detection artifact, whose usage the
+  # settle job prices. Runs even when the agent failed: a failed step spent
+  # too, and a missing measure is charged at the ceiling.
+  - name: Measure this step's cost for the budget
+    if: always()
+    shell: bash
+    env:
+      BUDGET_KEY: ${{ inputs.budget_key || format('{0}-{1}-setup-{2}', github.run_id, github.run_attempt, inputs.round) }}
+      MODEL: ${{ inputs.model }}
+      DETECTION_ARTIFACT: ${{ needs.activation.outputs.artifact_prefix }}detection
+      PIPELINE: setup
+    run: bsf budget measure --key "$BUDGET_KEY" --pipeline "$PIPELINE" --model "$MODEL" --detection-artifact "$DETECTION_ARTIFACT" --out /tmp/gh-aw/bsf-budget/measure.json
+  - name: Upload the budget measure
+    if: always()
+    uses: actions/upload-artifact@v4
+    with:
+      name: budget-${{ inputs.budget_key || format('{0}-{1}-x', github.run_id, github.run_attempt) }}
+      path: /tmp/gh-aw/bsf-budget/measure.json
+      if-no-files-found: ignore
   - name: Keep this round's design for the trial
     uses: actions/upload-artifact@v4
     with:

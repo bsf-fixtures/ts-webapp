@@ -128,8 +128,11 @@ jobs:
           repositories: ${{ github.event.repository.name }}
       # Moves the item off queued, so intake and rollup stop dispatching it,
       # and records the run as live, which is what the concurrency cap counts.
+      # Not when the budget cannot cover this run's largest step: the item
+      # stays queued, unclaimed, and dispatch leaves it until it fits.
       - name: Claim the work item for this run
         id: start
+        if: steps.plan.outputs.budget_wait != 'true'
         env:
           GH_TOKEN: ${{ steps.write-token.outputs.token }}
           WORK_ITEM: ${{ inputs.work_item }}
@@ -155,6 +158,7 @@ jobs:
       pull-requests: write
     uses: ./.github/workflows/factory-role-triage.lock.yml
     with:
+      budget_key: ${{ github.run_id }}-${{ github.run_attempt }}-triage
       model: ${{ needs.plan.outputs.model_triage }}
       work_item: ${{ inputs.work_item }}
       pipeline: ${{ needs.plan.outputs.pipeline }}
@@ -163,8 +167,22 @@ jobs:
 
   # Triage writes its outcome onto the work item. Only "proceed" leaves it
   # running; needs-info, out-of-scope and duplicate stop the run here.
+
+  # Charge triage's budget hold with what gh-aw measured, before the next
+  # agent step can start.
+  triage-budget:
+    needs: triage
+    if: always() && needs.triage.result != 'skipped'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/factory-budget-settle.yml
+    with:
+      key: ${{ github.run_id }}-${{ github.run_attempt }}-triage
+    secrets:
+      FACTORY_APP_PRIVATE_KEY: ${{ secrets.FACTORY_APP_PRIVATE_KEY }}
+
   triaged:
-    needs: [plan, triage]
+    needs: [plan, triage, triage-budget]
     if: always() && needs.triage.result == 'success'
     runs-on: ubuntu-latest
     outputs:
@@ -220,6 +238,7 @@ jobs:
       pull-requests: write
     uses: ./.github/workflows/factory-role-hardener.lock.yml
     with:
+      budget_key: ${{ github.run_id }}-${{ github.run_attempt }}-hardener
       model: ${{ needs.plan.outputs.model_hardener }}
       work_item: ${{ inputs.work_item }}
       pipeline: ${{ needs.plan.outputs.pipeline }}
@@ -227,8 +246,21 @@ jobs:
       protected_files_policy: ${{ needs.plan.outputs.protected_files_policy }}
     secrets: inherit
 
+  # Charge hardener's budget hold with what gh-aw measured, before the next
+  # agent step can start.
+  hardener-budget:
+    needs: hardener
+    if: always() && needs.hardener.result != 'skipped'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/factory-budget-settle.yml
+    with:
+      key: ${{ github.run_id }}-${{ github.run_attempt }}-hardener
+    secrets:
+      FACTORY_APP_PRIVATE_KEY: ${{ secrets.FACTORY_APP_PRIVATE_KEY }}
+
   spec:
-    needs: [plan, triage, triaged, hardener]
+    needs: [plan, triage, triaged, hardener, triage-budget, hardener-budget]
     if: >-
       always() && needs.plan.outputs.proceed == 'true' && needs.plan.outputs.needs_spec == 'true' &&
       (needs.triage.result == 'skipped' || needs.triaged.outputs.proceed == 'true') &&
@@ -245,6 +277,7 @@ jobs:
       pull-requests: write
     uses: ./.github/workflows/factory-role-spec.lock.yml
     with:
+      budget_key: ${{ github.run_id }}-${{ github.run_attempt }}-spec
       model: ${{ needs.plan.outputs.model_spec }}
       work_item: ${{ inputs.work_item }}
       pipeline: ${{ needs.plan.outputs.pipeline }}
@@ -253,8 +286,22 @@ jobs:
 
   # Runs when spec ran, and also when the pipeline has no spec step at all
   # (conflict, gardening). A failed spec still stops it.
+
+  # Charge spec's budget hold with what gh-aw measured, before the next
+  # agent step can start.
+  spec-budget:
+    needs: spec
+    if: always() && needs.spec.result != 'skipped'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/factory-budget-settle.yml
+    with:
+      key: ${{ github.run_id }}-${{ github.run_attempt }}-spec
+    secrets:
+      FACTORY_APP_PRIVATE_KEY: ${{ secrets.FACTORY_APP_PRIVATE_KEY }}
+
   build:
-    needs: [plan, triage, triaged, spec]
+    needs: [plan, triage, triaged, spec, triage-budget, spec-budget]
     if: >-
       always() && needs.plan.outputs.proceed == 'true' &&
       (needs.triage.result == 'skipped' || needs.triaged.outputs.proceed == 'true') &&
@@ -272,6 +319,7 @@ jobs:
       pull-requests: write
     uses: ./.github/workflows/factory-role-builder.lock.yml
     with:
+      budget_key: ${{ github.run_id }}-${{ github.run_attempt }}-build
       model: ${{ needs.plan.outputs.model_builder }}
       work_item: ${{ inputs.work_item }}
       pipeline: ${{ needs.plan.outputs.pipeline }}
@@ -285,8 +333,22 @@ jobs:
   # manifest needs the runner (services, or stubs at a third party's own
   # address), so the app runs there and the agent can look at it. Weaker
   # isolation, which is why it is a separate workflow and never the default.
+
+  # Charge build's budget hold with what gh-aw measured, before the next
+  # agent step can start.
+  build-budget:
+    needs: build
+    if: always() && needs.build.result != 'skipped'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/factory-budget-settle.yml
+    with:
+      key: ${{ github.run_id }}-${{ github.run_attempt }}-build
+    secrets:
+      FACTORY_APP_PRIVATE_KEY: ${{ secrets.FACTORY_APP_PRIVATE_KEY }}
+
   build-host:
-    needs: [plan, triage, triaged, spec]
+    needs: [plan, triage, triaged, spec, triage-budget, spec-budget]
     if: >-
       always() && needs.plan.outputs.proceed == 'true' &&
       (needs.triage.result == 'skipped' || needs.triaged.outputs.proceed == 'true') &&
@@ -304,6 +366,7 @@ jobs:
       pull-requests: write
     uses: ./.github/workflows/factory-role-builder-host.lock.yml
     with:
+      budget_key: ${{ github.run_id }}-${{ github.run_attempt }}-build-host
       model: ${{ needs.plan.outputs.model_builder }}
       work_item: ${{ inputs.work_item }}
       pipeline: ${{ needs.plan.outputs.pipeline }}
@@ -316,8 +379,22 @@ jobs:
   # The builder's safe output pushes with the factory App's token, which starts
   # factory-gates on the branch as a separate workflow. This job waits only for
   # the gate *results*, which are keyed by commit, and decides what happens next.
+
+  # Charge build-host's budget hold with what gh-aw measured, before the next
+  # agent step can start.
+  build-host-budget:
+    needs: build-host
+    if: always() && needs.build-host.result != 'skipped'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/factory-budget-settle.yml
+    with:
+      key: ${{ github.run_id }}-${{ github.run_attempt }}-build-host
+    secrets:
+      FACTORY_APP_PRIVATE_KEY: ${{ secrets.FACTORY_APP_PRIVATE_KEY }}
+
   after-gates:
-    needs: [plan, build, build-host]
+    needs: [plan, build, build-host, build-budget, build-host-budget]
     # Runs whatever the build did, so the item always leaves "running".
     if: always() && needs.plan.outputs.proceed == 'true'
     runs-on: ubuntu-latest

@@ -103,13 +103,27 @@ jobs:
       pull-requests: read
     uses: ./.github/workflows/factory-role-scorer.lock.yml
     with:
+      budget_key: ${{ github.run_id }}-${{ github.run_attempt }}-score
       model: ${{ needs.due.outputs.model_scorer }}
       work_item: review
       pipeline: definition
     secrets: inherit
 
+  # Charge score's budget hold with what gh-aw measured, before the next
+  # agent step can start.
+  score-budget:
+    needs: score
+    if: always() && needs.score.result != 'skipped'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/factory-budget-settle.yml
+    with:
+      key: ${{ github.run_id }}-${{ github.run_attempt }}-score
+    secrets:
+      FACTORY_APP_PRIVATE_KEY: ${{ secrets.FACTORY_APP_PRIVATE_KEY }}
+
   route:
-    needs: [due, score]
+    needs: [due, score, score-budget]
     if: needs.due.outputs.due == 'true'
     runs-on: ubuntu-latest
     steps:

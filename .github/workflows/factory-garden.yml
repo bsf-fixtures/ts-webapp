@@ -99,8 +99,23 @@ jobs:
       pull-requests: read
     uses: ./.github/workflows/factory-role-gardener.lock.yml
     with:
+      budget_key: ${{ github.run_id }}-${{ github.run_attempt }}-gardener
       model: ${{ needs.garden.outputs.model_gardener }}
       max_prs: ${{ fromJSON(needs.garden.outputs.garden_max_prs) }}
       work_item: nightly-scan
       pipeline: gardening
     secrets: inherit
+
+  # Charge gardener's budget hold with what gh-aw measured, before the next
+  # agent step can start.
+  gardener-budget:
+    needs: gardener
+    if: always() && needs.gardener.result != 'skipped'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/factory-budget-settle.yml
+    with:
+      key: ${{ github.run_id }}-${{ github.run_attempt }}-gardener
+    secrets:
+      FACTORY_APP_PRIVATE_KEY: ${{ secrets.FACTORY_APP_PRIVATE_KEY }}
+

@@ -76,13 +76,27 @@ jobs:
       pull-requests: write
     uses: ./.github/workflows/factory-setup-agent.lock.yml
     with:
+      budget_key: ${{ github.run_id }}-${{ github.run_attempt }}-design-1
       model: ${{ needs.plan.outputs.model_builder }}
       round: 1
       amend: ${{ inputs.amend }}
     secrets: inherit
 
-  trial-1:
+  # Charge design-1's budget hold with what gh-aw measured, before the next
+  # agent step can start.
+  design-1-budget:
     needs: design-1
+    if: always() && needs.design-1.result != 'skipped'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/factory-budget-settle.yml
+    with:
+      key: ${{ github.run_id }}-${{ github.run_attempt }}-design-1
+    secrets:
+      FACTORY_APP_PRIVATE_KEY: ${{ secrets.FACTORY_APP_PRIVATE_KEY }}
+
+  trial-1:
+    needs: [design-1, design-1-budget]
     uses: ./.github/workflows/factory-setup-trial.yml
     with:
       round: 1
@@ -101,13 +115,27 @@ jobs:
       pull-requests: write
     uses: ./.github/workflows/factory-setup-agent.lock.yml
     with:
+      budget_key: ${{ github.run_id }}-${{ github.run_attempt }}-design-2
       model: ${{ needs.plan.outputs.model_builder }}
       round: 2
       amend: ${{ inputs.amend }}
     secrets: inherit
 
-  trial-2:
+  # Charge design-2's budget hold with what gh-aw measured, before the next
+  # agent step can start.
+  design-2-budget:
     needs: design-2
+    if: always() && needs.design-2.result != 'skipped'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/factory-budget-settle.yml
+    with:
+      key: ${{ github.run_id }}-${{ github.run_attempt }}-design-2
+    secrets:
+      FACTORY_APP_PRIVATE_KEY: ${{ secrets.FACTORY_APP_PRIVATE_KEY }}
+
+  trial-2:
+    needs: [design-2, design-2-budget]
     uses: ./.github/workflows/factory-setup-trial.yml
     with:
       round: 2
@@ -126,13 +154,27 @@ jobs:
       pull-requests: write
     uses: ./.github/workflows/factory-setup-agent.lock.yml
     with:
+      budget_key: ${{ github.run_id }}-${{ github.run_attempt }}-design-3
       model: ${{ needs.plan.outputs.model_builder }}
       round: 3
       amend: ${{ inputs.amend }}
     secrets: inherit
 
-  trial-3:
+  # Charge design-3's budget hold with what gh-aw measured, before the next
+  # agent step can start.
+  design-3-budget:
     needs: design-3
+    if: always() && needs.design-3.result != 'skipped'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/factory-budget-settle.yml
+    with:
+      key: ${{ github.run_id }}-${{ github.run_attempt }}-design-3
+    secrets:
+      FACTORY_APP_PRIVATE_KEY: ${{ secrets.FACTORY_APP_PRIVATE_KEY }}
+
+  trial-3:
+    needs: [design-3, design-3-budget]
     uses: ./.github/workflows/factory-setup-trial.yml
     with:
       round: 3

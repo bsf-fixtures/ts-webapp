@@ -260,6 +260,7 @@ jobs:
       pull-requests: write
     uses: ./.github/workflows/factory-role-verifier.lock.yml
     with:
+      budget_key: ${{ github.run_id }}-${{ github.run_attempt }}-agent-verification
       model: ${{ needs.plan.outputs.model_verifier }}
       work_item: ${{ needs.plan.outputs.work_item }}
       pipeline: product_work
@@ -269,6 +270,20 @@ jobs:
 
   # The verifier compiled with host access, for a sandbox that needs the
   # runner; see build-host in factory-run.
+
+  # Charge agent-verification's budget hold with what gh-aw measured, before the next
+  # agent step can start.
+  agent-verification-budget:
+    needs: agent-verification
+    if: always() && needs.agent-verification.result != 'skipped'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/factory-budget-settle.yml
+    with:
+      key: ${{ github.run_id }}-${{ github.run_attempt }}-agent-verification
+    secrets:
+      FACTORY_APP_PRIVATE_KEY: ${{ secrets.FACTORY_APP_PRIVATE_KEY }}
+
   agent-verification-host:
     needs: [plan, verification]
     if: needs.plan.outputs.judge != 'false' && needs.plan.outputs.agent_verification == 'true' && needs.plan.outputs.host_access == 'true'
@@ -284,6 +299,7 @@ jobs:
       pull-requests: write
     uses: ./.github/workflows/factory-role-verifier-host.lock.yml
     with:
+      budget_key: ${{ github.run_id }}-${{ github.run_attempt }}-agent-verification-host
       model: ${{ needs.plan.outputs.model_verifier }}
       work_item: ${{ needs.plan.outputs.work_item }}
       pipeline: product_work
@@ -291,8 +307,21 @@ jobs:
       commit: ${{ needs.plan.outputs.commit }}
     secrets: inherit
 
+  # Charge agent-verification-host's budget hold with what gh-aw measured, before the next
+  # agent step can start.
+  agent-verification-host-budget:
+    needs: agent-verification-host
+    if: always() && needs.agent-verification-host.result != 'skipped'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/factory-budget-settle.yml
+    with:
+      key: ${{ github.run_id }}-${{ github.run_attempt }}-agent-verification-host
+    secrets:
+      FACTORY_APP_PRIVATE_KEY: ${{ secrets.FACTORY_APP_PRIVATE_KEY }}
+
   record:
-    needs: [plan, static, verification, agent-verification, agent-verification-host]
+    needs: [plan, static, verification, agent-verification, agent-verification-host, agent-verification-budget, agent-verification-host-budget]
     # A label that is not the verify label changes nothing about the change,
     # so it neither re-judges it nor records a second verdict on the commit.
     if: always() && needs.plan.outputs.judge != 'false'
