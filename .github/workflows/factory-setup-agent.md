@@ -82,6 +82,11 @@ safe-outputs:
   noop:
   threat-detection:
     enabled: true
+    engine:
+      id: claude
+      model: claude-haiku-5-5
+      max-turns: 3
+    max-ai-credits: 50
 
 sandbox:
   agent:
@@ -90,11 +95,10 @@ sandbox:
       - ${{ github.workspace }}:/workspace:rw
 
 timeout-minutes: 60
-# gh-aw stops a run at 1,000 AI credits ($10) unless told otherwise. Setup
-# reads the whole repo, designs the sandbox, its checks and its report, and
-# on a real app (trinsports) ran past that and was stopped mid-design. Setup
-# runs once, and rarely after; $20 is the ceiling for one round.
-max-ai-credits: 2000
+# A ceiling per round, in gh-aw AI credits (1 credit = $0.01). Setup runs on
+# the builder's model. On Opus a round on a real app (trinsports) ran past
+# $10; on Sonnet it should not come near.
+max-ai-credits: 1000
 
 tools:
   bash: [":*"]

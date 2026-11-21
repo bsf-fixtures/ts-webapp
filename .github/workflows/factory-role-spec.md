@@ -49,6 +49,8 @@ engine:
   model: ${{ inputs.model }}
   env:
     ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+    # The spec is where reasoning pays; past this it mostly costs.
+    MAX_THINKING_TOKENS: "8000"
 
 permissions:
   contents: read
@@ -88,6 +90,9 @@ sandbox:
       - ${{ github.workspace }}:/workspace:rw
 
 timeout-minutes: 45
+# A ceiling per run, in gh-aw AI credits (1 credit = $0.01). A normal run is
+# well under it; it stops a runaway before it costs a week's budget.
+max-ai-credits: 300
 
 tools:
   bash: [":*"]
@@ -105,6 +110,13 @@ safe-outputs:
   upload-artifact:
   threat-detection:
     enabled: true
+    # The scan for injected or malicious output reads one diff and one
+    # transcript: a small model does it, not the role's own.
+    engine:
+      id: claude
+      model: claude-haiku-5-5
+      max-turns: 3
+    max-ai-credits: 50
 
 pre-agent-steps:
   # The runner that judges a change must not come from the change. A pull

@@ -104,6 +104,9 @@ sandbox:
 # Long enough for a real write, run, look, fix loop on a slow build; a
 # builder that times out mid-loop ships a worse diff than one that never looped.
 timeout-minutes: 75
+# A ceiling per run, in gh-aw AI credits (1 credit = $0.01). A normal run is
+# well under it; it stops a runaway before it costs a week's budget.
+max-ai-credits: 400
 
 tools:
   bash: [":*"]
@@ -138,6 +141,13 @@ safe-outputs:
   # Threat detection runs on every safe output before a separate job applies it.
   threat-detection:
     enabled: true
+    # The scan for injected or malicious output reads one diff and one
+    # transcript: a small model does it, not the role's own.
+    engine:
+      id: claude
+      model: claude-haiku-5-5
+      max-turns: 3
+    max-ai-credits: 50
   # No upload-artifact safe output here: with create-pull-request beside it,
   # gh-aw 1.2 and 1.3 put the PR checkout ahead of the App token it reads, and
   # the PR never opened. Media goes through bsf store-media instead.

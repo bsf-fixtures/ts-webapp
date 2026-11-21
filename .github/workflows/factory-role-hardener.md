@@ -79,6 +79,9 @@ sandbox:
       - ${{ github.workspace }}:/workspace:rw
 
 timeout-minutes: 45
+# A ceiling per run, in gh-aw AI credits (1 credit = $0.01). A normal run is
+# well under it; it stops a runaway before it costs a week's budget.
+max-ai-credits: 300
 
 tools:
   bash: [":*"]
@@ -107,6 +110,13 @@ safe-outputs:
   # the PR never opened. Media goes through bsf store-media instead.
   threat-detection:
     enabled: true
+    # The scan for injected or malicious output reads one diff and one
+    # transcript: a small model does it, not the role's own.
+    engine:
+      id: claude
+      model: claude-haiku-5-5
+      max-turns: 3
+    max-ai-credits: 50
 
 pre-agent-steps:
   # The runner that judges a change must not come from the change. A pull
