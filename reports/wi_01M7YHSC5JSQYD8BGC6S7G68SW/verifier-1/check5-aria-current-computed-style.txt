@@ -1,0 +1,36 @@
+Acceptance check 5 — computed nav state on http://localhost:3000/invoices?status=paid
+(read from the live DOM in Chromium with getComputedStyle, not from the source)
+
+### Result
+[
+  {
+    "text": "All",
+    "href": "/invoices",
+    "ariaCurrent": null,
+    "computedFontWeight": "400"
+  },
+  {
+    "text": "Draft",
+    "href": "/invoices?status=draft",
+    "ariaCurrent": null,
+    "computedFontWeight": "400"
+  },
+  {
+    "text": "Sent",
+    "href": "/invoices?status=sent",
+    "ariaCurrent": null,
+    "computedFontWeight": "400"
+  },
+  {
+    "text": "Paid",
+    "href": "/invoices?status=paid",
+    "ariaCurrent": "page",
+    "computedFontWeight": "700"
+  },
+  {
+    "text": "Void",
+    "href": "/invoices?status=void",
+    "ariaCurrent": null,
+    "computedFontWeight": "400"
+  }
+]

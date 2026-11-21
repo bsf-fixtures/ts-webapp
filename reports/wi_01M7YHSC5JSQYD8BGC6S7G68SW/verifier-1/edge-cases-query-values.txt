@@ -1,0 +1,34 @@
+Unrecognised and awkward ?status= values, served over HTTP (each line: what was asked for => what the table showed)
+
+http://localhost:3000/invoices?status=
+  HTTP 200 | 5 row(s): INV-1001, INV-1002, INV-1003, INV-1004, INV-1005
+  aria-current="page" on: All | button: Export 3 invoices as CSV
+
+http://localhost:3000/invoices?status=paid&status=sent
+  HTTP 200 | 5 row(s): INV-1001, INV-1002, INV-1003, INV-1004, INV-1005
+  aria-current="page" on: All | button: Export 3 invoices as CSV
+
+http://localhost:3000/invoices?status=Paid
+  HTTP 200 | 5 row(s): INV-1001, INV-1002, INV-1003, INV-1004, INV-1005
+  aria-current="page" on: All | button: Export 3 invoices as CSV
+
+http://localhost:3000/invoices?status=PAID
+  HTTP 200 | 5 row(s): INV-1001, INV-1002, INV-1003, INV-1004, INV-1005
+  aria-current="page" on: All | button: Export 3 invoices as CSV
+
+http://localhost:3000/invoices?status=%20paid
+  HTTP 200 | 5 row(s): INV-1001, INV-1002, INV-1003, INV-1004, INV-1005
+  aria-current="page" on: All | button: Export 3 invoices as CSV
+
+http://localhost:3000/invoices?other=paid
+  HTTP 200 | 5 row(s): INV-1001, INV-1002, INV-1003, INV-1004, INV-1005
+  aria-current="page" on: All | button: Export 3 invoices as CSV
+
+http://localhost:3000/invoices?status=bogus
+  HTTP 200 | 5 row(s): INV-1001, INV-1002, INV-1003, INV-1004, INV-1005
+  aria-current="page" on: All | button: Export 3 invoices as CSV
+
+http://localhost:3000/invoices?status=draft#x
+  HTTP 200 | 1 row(s): INV-1004
+  aria-current="page" on: Draft | button: Export 3 invoices as CSV
+

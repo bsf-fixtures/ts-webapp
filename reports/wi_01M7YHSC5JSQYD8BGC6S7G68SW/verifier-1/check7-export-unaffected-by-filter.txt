@@ -1,0 +1,20 @@
+Acceptance check 7 — the export ignores the table filter.
+
+Clicked 'Export 3 invoices as CSV' in Chromium on http://localhost:3000/invoices?status=draft
+(table showing only INV-1004). Browser downloaded: invoices-2026-11-21.csv
+
+--- file downloaded while filtered to Draft ---
+id,customer,amount,issued_on,status
+INV-1001,Acme Bakery,245.00,2026-10-02,paid
+INV-1002,Northwind Books,1180.00,2026-10-11,sent
+INV-1003,Globex Coffee,72.50,2026-10-19,paid
+--- file downloaded with no filter ---
+id,customer,amount,issued_on,status
+INV-1001,Acme Bakery,245.00,2026-10-02,paid
+INV-1002,Northwind Books,1180.00,2026-10-11,sent
+INV-1003,Globex Coffee,72.50,2026-10-19,paid
+--- diff of the two files ---
+(no differences: byte-for-byte identical)
+
+Button label observed on every filter: Export 3 invoices as CSV
+INV-1004 (draft) and INV-1005 (void) are absent from both files.

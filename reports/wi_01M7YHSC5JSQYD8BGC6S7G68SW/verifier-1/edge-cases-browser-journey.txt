@@ -1,0 +1,108 @@
+
+--- 1. fresh load, no query ---
+{
+  "url": "http://localhost:3000/invoices",
+  "rows": [
+    "INV-1001",
+    "INV-1002",
+    "INV-1003",
+    "INV-1004",
+    "INV-1005"
+  ],
+  "ariaCurrent": [
+    "All"
+  ],
+  "button": "Export 3 invoices as CSV"
+}
+
+--- 2. clicked Paid ---
+{
+  "url": "http://localhost:3000/invoices?status=paid",
+  "rows": [
+    "INV-1001",
+    "INV-1003"
+  ],
+  "ariaCurrent": [
+    "Paid"
+  ],
+  "button": "Export 3 invoices as CSV"
+}
+
+--- 3. clicked Paid a second time ---
+{
+  "url": "http://localhost:3000/invoices?status=paid",
+  "rows": [
+    "INV-1001",
+    "INV-1003"
+  ],
+  "ariaCurrent": [
+    "Paid"
+  ],
+  "button": "Export 3 invoices as CSV"
+}
+
+--- 4. reloaded the filtered page ---
+{
+  "url": "http://localhost:3000/invoices?status=paid",
+  "rows": [
+    "INV-1001",
+    "INV-1003"
+  ],
+  "ariaCurrent": [
+    "Paid"
+  ],
+  "button": "Export 3 invoices as CSV"
+}
+
+--- 5. clicked Void from the Paid page ---
+{
+  "url": "http://localhost:3000/invoices?status=void",
+  "rows": [
+    "INV-1005"
+  ],
+  "ariaCurrent": [
+    "Void"
+  ],
+  "button": "Export 3 invoices as CSV"
+}
+
+--- 6. browser back ---
+{
+  "url": "http://localhost:3000/invoices?status=paid",
+  "rows": [
+    "INV-1001",
+    "INV-1003"
+  ],
+  "ariaCurrent": [
+    "Paid"
+  ],
+  "button": "Export 3 invoices as CSV"
+}
+
+--- 7. browser forward ---
+{
+  "url": "http://localhost:3000/invoices?status=void",
+  "rows": [
+    "INV-1005"
+  ],
+  "ariaCurrent": [
+    "Void"
+  ],
+  "button": "Export 3 invoices as CSV"
+}
+
+--- 8. clicked All ---
+{
+  "url": "http://localhost:3000/invoices",
+  "rows": [
+    "INV-1001",
+    "INV-1002",
+    "INV-1003",
+    "INV-1004",
+    "INV-1005"
+  ],
+  "ariaCurrent": [
+    "All"
+  ],
+  "button": "Export 3 invoices as CSV"
+}

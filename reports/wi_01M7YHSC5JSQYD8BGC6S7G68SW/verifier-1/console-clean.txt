@@ -1,0 +1,8 @@
+Browser console after loading /invoices and clicking Sent then All (Chromium):
+
+### Result
+Total messages: 1 (Errors: 1, Warnings: 0)
+
+[ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/favicon.ico:1
+
+The only message is a favicon 404 that the app has on every page and predates this change (there is no app/favicon.ico in the repo). No React hydration or routing errors from the filter links.
