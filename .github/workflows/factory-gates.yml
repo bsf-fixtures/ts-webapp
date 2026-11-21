@@ -75,6 +75,27 @@ jobs:
             echo "$msg" >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
+          # An upgrade: the PR replaces the runner and changes nothing but the
+          # factory's own files. The runner that would judge it is the one it
+          # replaces, which may not understand the PR's workflows, and there is
+          # no app change to judge. factory/policy holds it for a trusted
+          # human's approval, which is the check that matters here.
+          if [ "${{ github.event_name }}" = pull_request ] && [ -f .factory/bin/VERSION ] &&
+             ! cmp -s .factory/bin/VERSION .factory-trusted/.factory/bin/VERSION; then
+            others=$(git diff --name-only "${{ github.event.pull_request.base.sha }}...HEAD" |
+              grep -vE '^(\.factory/|\.github/workflows/factory-)' || true)
+            if [ -z "$others" ]; then
+              echo "installed=false" >> "$GITHUB_OUTPUT"
+              echo "upgrade=true" >> "$GITHUB_OUTPUT"
+              # VERSION comes from the PR: keep it to one short, plain line.
+              v() { head -c 64 "$1" | tr -cd 'A-Za-z0-9. _-'; }
+              msg="Not judged by the gates: this PR upgrades the factory from $(v .factory-trusted/.factory/bin/VERSION) to $(v .factory/bin/VERSION) and changes only the factory's own files. The runner that would judge it is the one it replaces. factory/policy holds it for a trusted human's approval."
+              echo "::notice title=factory-gates::$msg"
+              echo "$msg" >> "$GITHUB_STEP_SUMMARY"
+              echo "msg=$msg" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          fi
           echo "installed=true" >> "$GITHUB_OUTPUT"
           mkdir -p "$RUNNER_TEMP/bsf"
           cp -R .factory-trusted/.factory/bin/. "$RUNNER_TEMP/bsf/"
@@ -88,6 +109,16 @@ jobs:
           rm -rf .factory-trusted
           echo "$RUNNER_TEMP/bsf" >> "$GITHUB_PATH"
           "$RUNNER_TEMP/bsf/bsf" --version
+      - name: Report factory/gates for an upgrade
+        if: steps.trusted.outputs.upgrade == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+          MSG: ${{ steps.trusted.outputs.msg }}
+        run: >-
+          gh api "repos/${GITHUB_REPOSITORY}/check-runs" -f name=factory/gates -f head_sha="$SHA"
+          -f status=completed -f conclusion=neutral -f "output[title]=Upgrade: judged by factory/policy"
+          -f "output[summary]=$MSG"
       - name: Read each role's model from factory.yaml
         id: models
         if: steps.trusted.outputs.installed == 'true'
