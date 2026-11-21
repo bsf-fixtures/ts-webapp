@@ -20,6 +20,12 @@ export function listInvoices(): readonly Invoice[] {
   return INVOICES;
 }
 
+/** Newest issue date first; invoices issued on the same day keep their input order. */
+export function newestFirst(invoices: readonly Invoice[]): readonly Invoice[] {
+  // The copy exists because the seeded list is readonly and sort mutates in place.
+  return [...invoices].sort((a, b) => (a.issuedOn < b.issuedOn ? 1 : a.issuedOn > b.issuedOn ? -1 : 0));
+}
+
 /** Only invoices that were actually sent to a customer belong in an export. */
 export function exportableInvoices(invoices: readonly Invoice[]): readonly Invoice[] {
   return invoices.filter((i) => i.status === "sent" || i.status === "paid");
