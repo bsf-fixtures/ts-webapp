@@ -196,7 +196,7 @@ pre-agent-steps:
     shell: bash
     env:
       FACTORY_SANDBOX_ENV: ${{ secrets.FACTORY_SANDBOX_ENV }}
-    run: bsf sandbox start
+    run: bsf sandbox start --serve
   - name: Fetch the work item and its spec from factory-data
     shell: bash
     env:
@@ -285,6 +285,13 @@ source .factory/sandbox/.runtime.env
 
 The manifest's `commands` say how to build, run and test, and `app_url` says
 where the running app answers.
+
+**If `/tmp/gh-aw/agent/bsf/app.json` exists, the app is already running** — on
+the runner, with the services and stubs it needs, which your shell here cannot
+reach. Open its `url` with the browser tool instead of starting the app
+yourself. It serves from this workspace, so a dev server reloads with your
+edits; if the manifest's `run` is a production build, the PR's gates rebuild
+it. Its log is at the `log` path the file gives, on the runner, not here.
 
 ## How to work
 

@@ -40,6 +40,7 @@ jobs:
       # default branch that predates this output leaves it empty, and the
       # change is judged — a factory upgrade must not skip its own gates.
       judge: ${{ steps.trusted.outputs.installed == 'false' && 'false' || steps.plan.outputs.judge }}
+      host_access: ${{ steps.plan.outputs.host_access }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -207,7 +208,7 @@ jobs:
 
   agent-verification:
     needs: [plan, verification]
-    if: needs.plan.outputs.judge != 'false' && needs.plan.outputs.agent_verification == 'true'
+    if: needs.plan.outputs.judge != 'false' && needs.plan.outputs.agent_verification == 'true' && needs.plan.outputs.host_access != 'true'
     # What the compiled role's own jobs request. A caller must grant at
     # least this, or GitHub refuses to start the run; derived from the lock
     # file and checked by a test, so a gh-aw upgrade cannot silently break it.
@@ -227,8 +228,32 @@ jobs:
       commit: ${{ needs.plan.outputs.commit }}
     secrets: inherit
 
+  # The verifier compiled with host access, for a sandbox that needs the
+  # runner; see build-host in factory-run.
+  agent-verification-host:
+    needs: [plan, verification]
+    if: needs.plan.outputs.judge != 'false' && needs.plan.outputs.agent_verification == 'true' && needs.plan.outputs.host_access == 'true'
+    # What the compiled role's own jobs request. A caller must grant at
+    # least this, or GitHub refuses to start the run; derived from the lock
+    # file and checked by a test, so a gh-aw upgrade cannot silently break it.
+    permissions:
+      actions: read
+      checks: read
+      contents: read
+      id-token: write
+      issues: write
+      pull-requests: write
+    uses: ./.github/workflows/factory-role-verifier-host.lock.yml
+    with:
+      model: ${{ needs.plan.outputs.model_verifier }}
+      work_item: ${{ needs.plan.outputs.work_item }}
+      pipeline: product_work
+      pr_number: ${{ fromJSON(needs.plan.outputs.pr_number) }}
+      commit: ${{ needs.plan.outputs.commit }}
+    secrets: inherit
+
   record:
-    needs: [plan, static, verification, agent-verification]
+    needs: [plan, static, verification, agent-verification, agent-verification-host]
     # A label that is not the verify label changes nothing about the change,
     # so it neither re-judges it nor records a second verdict on the commit.
     if: always() && needs.plan.outputs.judge != 'false'
@@ -283,7 +308,7 @@ jobs:
           PLAN_AGENT: ${{ needs.plan.outputs.agent_verification }}
           STATIC: ${{ needs.static.result }}
           VERIFICATION: ${{ needs.verification.result }}
-          AGENT: ${{ needs.agent-verification.result }}
+          AGENT: ${{ needs.agent-verification.result != 'skipped' && needs.agent-verification.result || needs.agent-verification-host.result }}
         run: >-
           bsf gates record --commit "$COMMIT"
           --plan-static "$PLAN_STATIC" --plan-verification "$PLAN_VERIFICATION" --plan-agent "$PLAN_AGENT"
