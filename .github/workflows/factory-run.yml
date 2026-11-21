@@ -23,7 +23,7 @@ on:
         default: '1'
         type: string
       pr_number:
-        description: Set from attempt 2 onward
+        description: Set from attempt 2 onward; for a conflict rebuild, the conflicting PR
         required: false
         default: '0'
         type: string
@@ -137,7 +137,8 @@ jobs:
           ESCALATE: ${{ steps.plan.outputs.escalate }}
           FIRST_STEP: ${{ steps.plan.outputs.first_step }}
           REASON: ${{ inputs.reason }}
-        run: bsf run start "$WORK_ITEM" --attempt "$ATTEMPT" --escalate "$ESCALATE" --first-step "$FIRST_STEP" --reason "$REASON"
+          PR: ${{ inputs.pr_number }}
+        run: bsf run start "$WORK_ITEM" --attempt "$ATTEMPT" --escalate "$ESCALATE" --first-step "$FIRST_STEP" --reason "$REASON" --pr "$PR"
 
   triage:
     needs: plan
@@ -275,7 +276,8 @@ jobs:
       work_item: ${{ inputs.work_item }}
       pipeline: ${{ needs.plan.outputs.pipeline }}
       attempt: ${{ fromJSON(inputs.attempt) }}
-      pr_number: ${{ fromJSON(inputs.pr_number) }}
+      # A rebuild opens a new PR; the conflicting one only names what to rebuild.
+      pr_number: ${{ fromJSON(inputs.reason == 'conflict' && '0' || inputs.pr_number) }}
       protected_files_policy: ${{ needs.plan.outputs.protected_files_policy }}
     secrets: inherit
 
@@ -306,7 +308,8 @@ jobs:
       work_item: ${{ inputs.work_item }}
       pipeline: ${{ needs.plan.outputs.pipeline }}
       attempt: ${{ fromJSON(inputs.attempt) }}
-      pr_number: ${{ fromJSON(inputs.pr_number) }}
+      # A rebuild opens a new PR; the conflicting one only names what to rebuild.
+      pr_number: ${{ fromJSON(inputs.reason == 'conflict' && '0' || inputs.pr_number) }}
       protected_files_policy: ${{ needs.plan.outputs.protected_files_policy }}
     secrets: inherit
 
