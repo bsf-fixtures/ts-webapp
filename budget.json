@@ -1,16 +1,18 @@
 {
-  "updated_at": "2026-11-21T18:48:03.192Z",
-  "paused": [],
-  "budget": {
-    "limitUsd": 35,
-    "limitMinutes": 2000,
-    "shares": {
-      "product_work": 60,
-      "gardening": 25,
-      "review_and_benchmarks": 15
-    },
-    "spentUsd": {},
-    "spentMinutes": {},
-    "productHardStopPct": 110
-  }
+  "schema": "budget/2",
+  "month": "2026-11",
+  "spent_usd": {},
+  "inflight": [
+    {
+      "key": "44961477010-1-score",
+      "pipeline": "definition",
+      "role": "scorer",
+      "model": "claude-haiku-5-5",
+      "agent_ceiling_usd": 1.83,
+      "detection_ceiling_usd": 0.83,
+      "started_at": "2026-11-21T23:23:28.585Z"
+    }
+  ],
+  "settled": [],
+  "updated_at": "2026-11-21T23:23:28.585Z"
 }
