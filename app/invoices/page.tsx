@@ -8,7 +8,10 @@ export default function InvoicesPage() {
 
   return (
     <main>
-      <h1>Invoices</h1>
+      {/* Counted from the array the table maps over, so the heading and the
+          rows cannot disagree, and the heading follows any filter added to
+          that array later. One template literal, for the reason below. */}
+      <h1>{`Invoices (${invoices.length})`}</h1>
       <ExportButton count={exportable.length} />
       <table style={{ marginTop: "1.5rem", borderCollapse: "collapse" }}>
         <thead>
