@@ -25,6 +25,22 @@ export function exportableInvoices(invoices: readonly Invoice[]): readonly Invoi
   return invoices.filter((i) => i.status === "sent" || i.status === "paid");
 }
 
+const OVERDUE_AFTER_DAYS = 30;
+const MS_PER_DAY = 86_400_000;
+
+/**
+ * An invoice is overdue when the customer has been sitting on it for more than
+ * 30 days. Only a `sent` invoice can be: a paid one is settled, and a draft or
+ * a void was never put in front of anyone. Both dates are ISO YYYY-MM-DD, which
+ * `Date.parse` reads as UTC midnight, so the answer does not move with the
+ * server's timezone.
+ */
+export function isOverdue(invoice: Invoice, today: string): boolean {
+  if (invoice.status !== "sent") return false;
+  const days = (Date.parse(today) - Date.parse(invoice.issuedOn)) / MS_PER_DAY;
+  return days > OVERDUE_AFTER_DAYS;
+}
+
 export function formatAmount(amountCents: number): string {
   return (amountCents / 100).toFixed(2);
 }

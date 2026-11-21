@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-  listInvoices, exportableInvoices, toCsv, formatAmount, CSV_HEADER,
+  listInvoices, exportableInvoices, toCsv, formatAmount, isOverdue, CSV_HEADER,
   type Invoice,
 } from "./invoices.js";
 
@@ -22,6 +22,34 @@ describe("exportableInvoices", () => {
 
   it("returns an empty list for an empty input rather than throwing", () => {
     expect(exportableInvoices([])).toEqual([]);
+  });
+});
+
+describe("isOverdue", () => {
+  const today = "2026-11-21";
+
+  it("flags a sent invoice the customer has held for 31 days", () => {
+    expect(isOverdue(invoice({ status: "sent", issuedOn: "2026-10-21" }), today)).toBe(true);
+  });
+
+  it("gives a sent invoice its full 30 days before calling it overdue", () => {
+    expect(isOverdue(invoice({ status: "sent", issuedOn: "2026-10-22" }), today)).toBe(false);
+  });
+
+  it("leaves a sent invoice issued 29 days ago alone", () => {
+    expect(isOverdue(invoice({ status: "sent", issuedOn: "2026-10-23" }), today)).toBe(false);
+  });
+
+  it("never chases a paid invoice, however old, because it is settled", () => {
+    expect(isOverdue(invoice({ status: "paid", issuedOn: "2026-08-13" }), today)).toBe(false);
+  });
+
+  it("never chases a draft, because it was never put in front of the customer", () => {
+    expect(isOverdue(invoice({ status: "draft", issuedOn: "2026-08-13" }), today)).toBe(false);
+  });
+
+  it("never chases a void invoice, because nobody is waiting on it", () => {
+    expect(isOverdue(invoice({ status: "void", issuedOn: "2026-08-13" }), today)).toBe(false);
   });
 });
 
