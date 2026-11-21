@@ -183,6 +183,8 @@ pre-agent-steps:
       app-id: ${{ vars.FACTORY_APP_CLIENT_ID }}
       private-key: ${{ secrets.FACTORY_APP_PRIVATE_KEY }}
       permission-contents: read
+      # read: a conflict rebuild reads the PR it replaces.
+      permission-pull-requests: read
       permission-actions: read
       # Scoped to this repository: an App token otherwise reaches every repo
       # the installation covers.
@@ -210,6 +212,13 @@ pre-agent-steps:
       GH_TOKEN: ${{ steps.read-token.outputs.token }}
       WORK_ITEM: ${{ inputs.work_item }}
     run: bsf fetch-gate-failures "$WORK_ITEM" --out /tmp/gh-aw/agent/bsf/gate-failures.json
+  - name: Fetch the conflicting PR's change and what main has done since
+    if: inputs.pipeline == 'conflict'
+    shell: bash
+    env:
+      GH_TOKEN: ${{ steps.read-token.outputs.token }}
+      WORK_ITEM: ${{ inputs.work_item }}
+    run: bsf conflicts context "$WORK_ITEM" --out /tmp/gh-aw/agent/bsf/rebuild
 
 post-steps:
   # Write access, only after the agent has exited, for the steps that store
@@ -238,7 +247,8 @@ post-steps:
       GH_TOKEN: ${{ steps.write-token.outputs.token }}
       ROLE: builder
       ATTEMPT: ${{ inputs.attempt }}
-    run: bsf step-report --role "$ROLE" --attempt "$ATTEMPT" --out /tmp/gh-aw/agent/bsf/step-report.json
+      MODEL: ${{ inputs.model }}
+    run: bsf step-report --role "$ROLE" --attempt "$ATTEMPT" --model "$MODEL" --out /tmp/gh-aw/agent/bsf/step-report.json
   - name: Upload the StepReport
     uses: actions/upload-artifact@v4
     with:
@@ -347,6 +357,25 @@ from now on, so record it exactly and enforce it where a rule can:
    into line is separate work, which gardening will pick up.
 
 Nothing else in the definition changes in a practice PR.
+
+## If this run rebuilds a conflicting PR
+
+When the pipeline is `conflict`, this item already has a PR, and it conflicts
+with main: another change landed on the same code. You make **the same change
+again on the current main**; it opens as a new PR that replaces the old one.
+`/tmp/gh-aw/agent/bsf/rebuild/` holds:
+
+- `change.diff` — the old PR's change, which a person may already have approved;
+- `main-since.diff` — what main has done to the same files since;
+- `files.txt` — the files the old PR changed.
+
+Apply the old change to today's code. Where main changed the same lines, keep
+both: main's change stays, and the old change is re-expressed on top of it.
+Do not remove anything main added, and add nothing the old change did not
+have, beyond what fitting it onto main takes. An approval on the old PR
+carries to yours only if your change adds the same lines and removes nothing
+new, so any extra line costs the person another review. Then check it as you
+would any change: tests, and the screen if it is visible.
 
 ## If this is a retry
 

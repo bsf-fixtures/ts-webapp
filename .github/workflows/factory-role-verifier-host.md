@@ -205,7 +205,8 @@ post-steps:
       GH_TOKEN: ${{ steps.write-token.outputs.token }}
       ROLE: verifier
       ATTEMPT: ${{ inputs.attempt }}
-    run: bsf step-report --role "$ROLE" --attempt "$ATTEMPT" --out /tmp/gh-aw/agent/bsf/step-report.json
+      MODEL: ${{ inputs.model }}
+    run: bsf step-report --role "$ROLE" --attempt "$ATTEMPT" --model "$MODEL" --out /tmp/gh-aw/agent/bsf/step-report.json
   - name: Store the reviewed media and upload the raw artifacts
     shell: bash
     env:

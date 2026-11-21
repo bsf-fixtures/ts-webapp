@@ -159,7 +159,8 @@ post-steps:
       GH_TOKEN: ${{ steps.write-token.outputs.token }}
       ROLE: scorer
       ATTEMPT: ${{ inputs.attempt }}
-    run: bsf step-report --role "$ROLE" --attempt "$ATTEMPT" --out /tmp/gh-aw/agent/bsf/step-report.json
+      MODEL: ${{ inputs.model }}
+    run: bsf step-report --role "$ROLE" --attempt "$ATTEMPT" --model "$MODEL" --out /tmp/gh-aw/agent/bsf/step-report.json
   # The run record is made from these: model, tokens and cost for each role.
   - name: Upload the StepReport
     if: always()

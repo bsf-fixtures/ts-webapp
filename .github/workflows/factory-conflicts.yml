@@ -1,17 +1,27 @@
-# factory-conflicts — resolves a factory PR that main has moved under.
+# factory-conflicts — rebuilds a factory PR that main has moved under.
 #
-# A rebase is a code change, so it goes back through the gates like any other.
-# The resolution never merges itself.
+# The builder makes the same change again on the current main, as a new PR
+# that replaces the conflicting one. It goes back through the gates like any
+# other change. A person's approval carries over when the rebuilt change adds
+# the same lines and removes nothing new; otherwise it asks again.
+#
+# Each conflicting PR gets a grey factory/conflicts check with a "Rebuild on
+# main" button, for when a rebuild does not finish. The check is created with
+# this workflow's own token: GitHub sends a button click to the app that made
+# the check, and only a click sent to GitHub Actions starts a workflow.
 name: factory-conflicts
 
 on:
   push:
     branches: [main, master]
   workflow_dispatch:
+  check_run:
+    types: [requested_action]
 
 permissions:
   contents: read
   pull-requests: read
+  checks: write
 
 concurrency:
   group: factory-conflicts
@@ -74,9 +84,19 @@ jobs:
       # merely behind main is not a conflict: the merge queue updates those.
       - name: Find factory PRs that now conflict
         id: scan
+        if: github.event_name != 'check_run'
         env:
           GH_TOKEN: ${{ steps.token.outputs.token }}
-        # Files a conflict work item per PR and dispatches factory-run for it.
-        # A job here also called factory-run as a reusable workflow, which it
-        # is not, so that path could never start.
+          CHECKS_TOKEN: ${{ github.token }}
+        # Starts a rebuild (factory-run, reason conflict) per conflicting PR and
+        # puts the factory/conflicts check, with its button, on it.
         run: bsf conflicts scan
+      - name: Rebuild on main, from the check's button
+        if: >-
+          github.event_name == 'check_run' &&
+          github.event.check_run.name == 'factory/conflicts' &&
+          github.event.requested_action.identifier == 'rebuild'
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+          PR: ${{ github.event.check_run.pull_requests[0].number }}
+        run: bsf conflicts button --pr "$PR"

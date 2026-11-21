@@ -27,6 +27,11 @@ on:
         required: false
         default: '0'
         type: string
+      reason:
+        description: "'conflict' rebuilds the item's PR on the current main, as a new PR that replaces it"
+        required: false
+        default: ''
+        type: string
 
 permissions:
   contents: read
@@ -110,7 +115,8 @@ jobs:
           GH_TOKEN: ${{ steps.token.outputs.token }}
           WORK_ITEM: ${{ inputs.work_item }}
           ATTEMPT: ${{ inputs.attempt }}
-        run: bsf run plan "$WORK_ITEM" --attempt "$ATTEMPT"
+          REASON: ${{ inputs.reason }}
+        run: bsf run plan "$WORK_ITEM" --attempt "$ATTEMPT" --reason "$REASON"
       - name: Mint a token for claiming the work item
         id: write-token
         uses: actions/create-github-app-token@v1
@@ -130,7 +136,8 @@ jobs:
           ATTEMPT: ${{ inputs.attempt }}
           ESCALATE: ${{ steps.plan.outputs.escalate }}
           FIRST_STEP: ${{ steps.plan.outputs.first_step }}
-        run: bsf run start "$WORK_ITEM" --attempt "$ATTEMPT" --escalate "$ESCALATE" --first-step "$FIRST_STEP"
+          REASON: ${{ inputs.reason }}
+        run: bsf run start "$WORK_ITEM" --attempt "$ATTEMPT" --escalate "$ESCALATE" --first-step "$FIRST_STEP" --reason "$REASON"
 
   triage:
     needs: plan
