@@ -1,0 +1,122 @@
+{
+  "role": "verifier",
+  "attempt": 1,
+  "report": {
+    "schema": "pr-report/1",
+    "summary": [
+      "Ran all eight acceptance checks against the built app on http://localhost:3000 — every one passed.",
+      "Filtering works from the links and from the URL, an unknown status falls back to All, and the export still downloads the same three sent/paid rows under every filter.",
+      "Also tried the awkward cases the spec does not list — empty, repeated, uppercase and misspelled ?status=, a second click, a reload and browser back/forward — all behave as All or hold their filter."
+    ],
+    "blocks": [
+      {
+        "type": "file",
+        "file": "check1-all-five-invoices.png",
+        "caption": "Check 1: /invoices with no query shows all five seeded invoices, with five links — All, Draft, Sent, Paid, Void — above the table and All in bold."
+      },
+      {
+        "type": "file",
+        "file": "check2-draft-click.png",
+        "caption": "Check 2: after clicking Draft in the browser, the table holds exactly one row, INV-1004. The other four invoices are gone from the page and Draft is the bold link."
+      },
+      {
+        "type": "file",
+        "file": "check3-5-paid-bold.png",
+        "caption": "Checks 3 and 5: /invoices?status=paid shows exactly INV-1001 and INV-1003, and Paid is visibly bolder than All, Draft, Sent and Void."
+      },
+      {
+        "type": "file",
+        "file": "check5-aria-current-computed-style.txt",
+        "caption": "Check 5 measured rather than eyeballed: read from the live DOM, only the Paid anchor carries aria-current=\"page\" and font-weight 700; the other four are 400 with no aria-current."
+      },
+      {
+        "type": "file",
+        "file": "check4-sent.png",
+        "caption": "Check 4: /invoices?status=sent shows exactly one row, INV-1002."
+      },
+      {
+        "type": "file",
+        "file": "check4-void.png",
+        "caption": "Check 4: /invoices?status=void shows exactly one row, INV-1005."
+      },
+      {
+        "type": "file",
+        "file": "check6-bogus.png",
+        "caption": "Check 6: /invoices?status=bogus does not empty the table or error — all five invoices come back and All is the selected link."
+      },
+      {
+        "type": "diagram",
+        "title": "What each check exercised",
+        "mermaid": "flowchart LR\n  U[Reader on /invoices] -->|clicks a status link| Q[\"/invoices?status=...\"]\n  Q --> P[\"parseStatus(raw)\"]\n  P -->|one of draft/sent/paid/void| F[\"invoicesWithStatus(all, status)\"]\n  P -->|anything else: typo, empty, repeated| A[undefined = the All view]\n  F --> T[Table shows only that status]\n  A --> T2[Table shows all five]\n  P -.->|selected link| N[\"aria-current=page, font-weight 700\"]\n  E[\"Export button\"] -->|\"always exportableInvoices(listInvoices())\"| C[\"3 rows: INV-1001, INV-1002, INV-1003\"]\n  style E fill:#fff3cd\n  style C fill:#fff3cd"
+      },
+      {
+        "type": "file",
+        "file": "check7-export-unaffected-by-filter.txt",
+        "caption": "Check 7: clicking Export while the table showed only the draft downloaded a CSV byte-for-byte identical to the one downloaded with no filter — header plus INV-1001, INV-1002, INV-1003, with INV-1004 and INV-1005 absent. The label stayed \"Export 3 invoices as CSV\" on every filter."
+      },
+      {
+        "type": "file",
+        "file": "edge-cases-browser-journey.txt",
+        "caption": "Beyond the checks: clicking Paid twice, reloading, moving to Void, and going back and forward in browser history each leave exactly one link marked current and the right rows in the table."
+      },
+      {
+        "type": "file",
+        "file": "edge-cases-query-values.txt",
+        "caption": "Beyond the checks: ?status= empty, repeated (paid&sent), \"Paid\", \"PAID\", \" paid\" and a wrong parameter name all answer 200 and fall back to All rather than erroring or emptying the table."
+      },
+      {
+        "type": "file",
+        "file": "check8-build-route-table.txt",
+        "caption": "Check 8: npm run build exits 0 and the route table now lists /invoices as ƒ (Dynamic), the expected consequence of the page reading searchParams."
+      },
+      {
+        "type": "file",
+        "file": "check8-test-typecheck-lint.txt",
+        "caption": "Check 8: npm test (43 tests in 5 files), npm run typecheck and npm run lint each exit 0."
+      },
+      {
+        "type": "file",
+        "file": "console-clean.txt",
+        "caption": "The browser console across a load and two filter clicks: the only message is the app's pre-existing favicon 404, with no hydration or routing errors from the new links."
+      }
+    ],
+    "focus": [
+      {
+        "title": "The export is genuinely untouched by the filter",
+        "detail": "This is the product rule the app exists to hold, so it was checked by downloading the file twice in a real browser rather than by reading the code: once with the table filtered to Draft and once with no filter. The two files are byte-for-byte identical — header plus INV-1001, INV-1002 and INV-1003 — and the button reads \"Export 3 invoices as CSV\" under every one of the six filter states.",
+        "files": [
+          "app/invoices/page.tsx",
+          "app/invoices/export/route.ts"
+        ]
+      },
+      {
+        "title": "The new tests landed in a file the spec did not name",
+        "detail": "The spec listed app/invoices/page.test.tsx as a new file, but that file already exists on main. The builder left it alone and added the nine filter tests as app/invoices/page.filter.test.tsx, which is not in the spec's files list. Nothing is broken by this — both files run and pass, and the two pre-existing tests still render <InvoicesPage /> with no searchParams — but it is a deviation from the declared file list that a reviewer should sign off on rather than discover.",
+        "files": [
+          "app/invoices/page.filter.test.tsx",
+          "app/invoices/page.test.tsx"
+        ]
+      },
+      {
+        "title": "/invoices is no longer prerendered",
+        "detail": "The build output moved /invoices from ○ (Static) to ƒ (Dynamic). The spec predicted this and asked that it not be worked around, and it is not: there is no `export const dynamic` and the query is read on the server, not in the client. Worth knowing if anything downstream assumed that page was static.",
+        "files": [
+          "app/invoices/page.tsx"
+        ]
+      }
+    ]
+  },
+  "media_commit": "0afbe68f47cafa05c19bbb66855831d0435585eb",
+  "media_prefix": "reports/wi_01M7YHSC5JSQYD8BGC6S7G68SW/verifier-1",
+  "inline": {
+    "check5-aria-current-computed-style.txt": "Acceptance check 5 — computed nav state on http://localhost:3000/invoices?status=paid\n(read from the live DOM in Chromium with getComputedStyle, not from the source)\n\n### Result\n[\n  {\n    \"text\": \"All\",\n    \"href\": \"/invoices\",\n    \"ariaCurrent\": null,\n    \"computedFontWeight\": \"400\"\n  },\n  {\n    \"text\": \"Draft\",\n    \"href\": \"/invoices?status=draft\",\n    \"ariaCurrent\": null,\n    \"computedFontWeight\": \"400\"\n  },\n  {\n    \"text\": \"Sent\",\n    \"href\": \"/invoices?status=sent\",\n    \"ariaCurrent\": null,\n    \"computedFontWeight\": \"400\"\n  },\n  {\n    \"text\": \"Paid\",\n    \"href\": \"/invoices?status=paid\",\n    \"ariaCurrent\": \"page\",\n    \"computedFontWeight\": \"700\"\n  },\n  {\n    \"text\": \"Void\",\n    \"href\": \"/invoices?status=void\",\n    \"ariaCurrent\": null,\n    \"computedFontWeight\": \"400\"\n  }\n]\n",
+    "check7-export-unaffected-by-filter.txt": "Acceptance check 7 — the export ignores the table filter.\n\nClicked 'Export 3 invoices as CSV' in Chromium on http://localhost:3000/invoices?status=draft\n(table showing only INV-1004). Browser downloaded: invoices-2026-11-21.csv\n\n--- file downloaded while filtered to Draft ---\nid,customer,amount,issued_on,status\nINV-1001,Acme Bakery,245.00,2026-10-02,paid\nINV-1002,Northwind Books,1180.00,2026-10-11,sent\nINV-1003,Globex Coffee,72.50,2026-10-19,paid\n--- file downloaded with no filter ---\nid,customer,amount,issued_on,status\nINV-1001,Acme Bakery,245.00,2026-10-02,paid\nINV-1002,Northwind Books,1180.00,2026-10-11,sent\nINV-1003,Globex Coffee,72.50,2026-10-19,paid\n--- diff of the two files ---\n(no differences: byte-for-byte identical)\n\nButton label observed on every filter: Export 3 invoices as CSV\nINV-1004 (draft) and INV-1005 (void) are absent from both files.\n",
+    "edge-cases-browser-journey.txt": "\n--- 1. fresh load, no query ---\n{\n  \"url\": \"http://localhost:3000/invoices\",\n  \"rows\": [\n    \"INV-1001\",\n    \"INV-1002\",\n    \"INV-1003\",\n    \"INV-1004\",\n    \"INV-1005\"\n  ],\n  \"ariaCurrent\": [\n    \"All\"\n  ],\n  \"button\": \"Export 3 invoices as CSV\"\n}\n\n--- 2. clicked Paid ---\n{\n  \"url\": \"http://localhost:3000/invoices?status=paid\",\n  \"rows\": [\n    \"INV-1001\",\n    \"INV-1003\"\n  ],\n  \"ariaCurrent\": [\n    \"Paid\"\n  ],\n  \"button\": \"Export 3 invoices as CSV\"\n}\n\n--- 3. clicked Paid a second time ---\n{\n  \"url\": \"http://localhost:3000/invoices?status=paid\",\n  \"rows\": [\n    \"INV-1001\",\n    \"INV-1003\"\n  ],\n  \"ariaCurrent\": [\n    \"Paid\"\n  ],\n  \"button\": \"Export 3 invoices as CSV\"\n}\n\n--- 4. reloaded the filtered page ---\n{\n  \"url\": \"http://localhost:3000/invoices?status=paid\",\n  \"rows\": [\n    \"INV-1001\",\n    \"INV-1003\"\n  ],\n  \"ariaCurrent\": [\n    \"Paid\"\n  ],\n  \"button\": \"Export 3 invoices as CSV\"\n}\n\n--- 5. clicked Void from the Paid page ---\n{\n  \"url\": \"http://localhost:3000/invoices?status=void\",\n  \"rows\": [\n    \"INV-1005\"\n  ],\n  \"ariaCurrent\": [\n    \"Void\"\n  ],\n  \"button\": \"Export 3 invoices as CSV\"\n}\n\n--- 6. browser back ---\n{\n  \"url\": \"http://localhost:3000/invoices?status=paid\",\n  \"rows\": [\n    \"INV-1001\",\n    \"INV-1003\"\n  ],\n  \"ariaCurrent\": [\n    \"Paid\"\n  ],\n  \"button\": \"Export 3 invoices as CSV\"\n}\n\n--- 7. browser forward ---\n{\n  \"url\": \"http://localhost:3000/invoices?status=void\",\n  \"rows\": [\n    \"INV-1005\"\n  ],\n  \"ariaCurrent\": [\n    \"Void\"\n  ],\n  \"button\": \"Export 3 invoices as CSV\"\n}\n\n--- 8. clicked All ---\n{\n  \"url\": \"http://localhost:3000/invoices\",\n  \"rows\": [\n    \"INV-1001\",\n    \"INV-1002\",\n    \"INV-1003\",\n    \"INV-1004\",\n    \"INV-1005\"\n  ],\n  \"ariaCurrent\": [\n    \"All\"\n  ],\n  \"button\": \"Export 3 invoices as CSV\"\n}\n",
+    "edge-cases-query-values.txt": "Unrecognised and awkward ?status= values, served over HTTP (each line: what was asked for => what the table showed)\n\nhttp://localhost:3000/invoices?status=\n  HTTP 200 | 5 row(s): INV-1001, INV-1002, INV-1003, INV-1004, INV-1005\n  aria-current=\"page\" on: All | button: Export 3 invoices as CSV\n\nhttp://localhost:3000/invoices?status=paid&status=sent\n  HTTP 200 | 5 row(s): INV-1001, INV-1002, INV-1003, INV-1004, INV-1005\n  aria-current=\"page\" on: All | button: Export 3 invoices as CSV\n\nhttp://localhost:3000/invoices?status=Paid\n  HTTP 200 | 5 row(s): INV-1001, INV-1002, INV-1003, INV-1004, INV-1005\n  aria-current=\"page\" on: All | button: Export 3 invoices as CSV\n\nhttp://localhost:3000/invoices?status=PAID\n  HTTP 200 | 5 row(s): INV-1001, INV-1002, INV-1003, INV-1004, INV-1005\n  aria-current=\"page\" on: All | button: Export 3 invoices as CSV\n\nhttp://localhost:3000/invoices?status=%20paid\n  HTTP 200 | 5 row(s): INV-1001, INV-1002, INV-1003, INV-1004, INV-1005\n  aria-current=\"page\" on: All | button: Export 3 invoices as CSV\n\nhttp://localhost:3000/invoices?other=paid\n  HTTP 200 | 5 row(s): INV-1001, INV-1002, INV-1003, INV-1004, INV-1005\n  aria-current=\"page\" on: All | button: Export 3 invoices as CSV\n\nhttp://localhost:3000/invoices?status=bogus\n  HTTP 200 | 5 row(s): INV-1001, INV-1002, INV-1003, INV-1004, INV-1005\n  aria-current=\"page\" on: All | button: Export 3 invoices as CSV\n\nhttp://localhost:3000/invoices?status=draft#x\n  HTTP 200 | 1 row(s): INV-1004\n  aria-current=\"page\" on: Draft | button: Export 3 invoices as CSV\n\n",
+    "check8-build-route-table.txt": "   Generating static pages (0/6) ...\n   Generating static pages (1/6) \r\n   Generating static pages (2/6) \r\n   Generating static pages (4/6) \r\n ✓ Generating static pages (6/6)\n   Finalizing page optimization ...\n   Collecting build traces ...\n\nRoute (app)                                 Size  First Load JS    \n┌ ○ /                                      162 B         106 kB\n├ ○ /_not-found                            993 B         104 kB\n├ ƒ /invoices                              598 B         107 kB\n└ ƒ /invoices/export                       127 B         103 kB\n+ First Load JS shared by all             103 kB\n  ├ chunks/255-73938ce8a8eac1ad.js       46.6 kB\n  ├ chunks/4bd1b696-c023c6e3521b1417.js  54.2 kB\n  └ other shared chunks (total)          1.88 kB\n\n\n○  (Static)   prerendered as static content\nƒ  (Dynamic)  server-rendered on demand\n\n",
+    "check8-test-typecheck-lint.txt": "### npm test\n\n> ts-webapp@0.1.0 test\n> vitest run\n\nThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.\n\n RUN  v2.1.9 /home/runner/work/ts-webapp/ts-webapp\n\n ✓ app/invoices/export/route.test.ts (5 tests) 10ms\n ✓ lib/invoices.test.ts (23 tests) 12ms\n ✓ app/invoices/page.filter.test.tsx (9 tests) 146ms\n ✓ app/invoices/page.test.tsx (2 tests) 42ms\n ✓ components/ExportButton.test.tsx (4 tests) 78ms\n\n Test Files  5 passed (5)\n      Tests  43 passed (43)\n   Start at  17:15:22\n   Duration  1.72s (transform 132ms, setup 0ms, collect 492ms, tests 287ms, environment 1.95s, prepare 360ms)\n\nexit=0\n\n### npm run typecheck\n\n> ts-webapp@0.1.0 typecheck\n> tsc --noEmit\n\nexit=0\n\n### npm run lint\n\n> ts-webapp@0.1.0 lint\n> eslint .\n\nexit=0\n",
+    "console-clean.txt": "Browser console after loading /invoices and clicking Sent then All (Chromium):\n\n### Result\nTotal messages: 1 (Errors: 1, Warnings: 0)\n\n[ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/favicon.ico:1\n\nThe only message is a favicon 404 that the app has on every page and predates this change (there is no app/favicon.ico in the repo). No React hydration or routing errors from the filter links.\n"
+  },
+  "problems": [],
+  "stored_at": "2026-11-21T17:20:29.542Z"
+}
