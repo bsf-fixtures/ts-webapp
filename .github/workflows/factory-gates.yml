@@ -35,6 +35,7 @@ jobs:
       commit: ${{ steps.plan.outputs.commit }}
       work_item: ${{ steps.plan.outputs.work_item }}
       pr_number: ${{ steps.plan.outputs.pr_number }}
+      judge: ${{ steps.plan.outputs.judge }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -85,7 +86,7 @@ jobs:
 
   static:
     needs: plan
-    if: needs.plan.outputs.static == 'true'
+    if: needs.plan.outputs.judge == 'true' && needs.plan.outputs.static == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -130,7 +131,7 @@ jobs:
 
   verification:
     needs: plan
-    if: needs.plan.outputs.tests == 'true'
+    if: needs.plan.outputs.judge == 'true' && needs.plan.outputs.tests == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -187,7 +188,7 @@ jobs:
 
   agent-verification:
     needs: [plan, verification]
-    if: needs.plan.outputs.agent_verification == 'true'
+    if: needs.plan.outputs.judge == 'true' && needs.plan.outputs.agent_verification == 'true'
     # What the compiled role's own jobs request. A caller must grant at
     # least this, or GitHub refuses to start the run; derived from the lock
     # file and checked by a test, so a gh-aw upgrade cannot silently break it.
@@ -209,7 +210,9 @@ jobs:
 
   record:
     needs: [plan, static, verification, agent-verification]
-    if: always()
+    # A label that is not the verify label changes nothing about the change,
+    # so it neither re-judges it nor records a second verdict on the commit.
+    if: always() && needs.plan.outputs.judge == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
