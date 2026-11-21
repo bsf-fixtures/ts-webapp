@@ -1,0 +1,72 @@
+{
+  "schema": "run/1",
+  "id": "run_01M7YJB23RSE7TZFNCGB2P7E8M",
+  "work_item": "wi_01M7YHSC5JSQYD8BGC6S7G68SW",
+  "pipeline": "product_work",
+  "actor": {
+    "kind": "agent",
+    "harness": "claude-code"
+  },
+  "started_at": "2026-11-21T08:07:37.848Z",
+  "ended_at": "2026-11-21T08:46:26.334Z",
+  "duration_sec": 2328,
+  "outcome": "draft_pr",
+  "pr": 33,
+  "steps": [
+    {
+      "role": "builder",
+      "model": "unknown",
+      "attempt": 2,
+      "duration_sec": 0,
+      "tokens": {
+        "in": 64,
+        "out": 12528
+      },
+      "cost_usd": 1.7991,
+      "transcript": "",
+      "exit": "ok"
+    },
+    {
+      "role": "spec",
+      "model": "unknown",
+      "attempt": 2,
+      "duration_sec": 0,
+      "tokens": {
+        "in": 80,
+        "out": 24299
+      },
+      "cost_usd": 2.273,
+      "transcript": "",
+      "exit": "ok"
+    },
+    {
+      "role": "triage",
+      "model": "unknown",
+      "attempt": 2,
+      "duration_sec": 0,
+      "tokens": {
+        "in": 10,
+        "out": 1776
+      },
+      "cost_usd": 0.0064,
+      "transcript": "",
+      "exit": "ok"
+    }
+  ],
+  "gates": [
+    {
+      "gate": "static",
+      "attempt": 2,
+      "result": "pass",
+      "commit": "5df50d80511b8bd18afcaac40f66874ba2187ae9"
+    },
+    {
+      "gate": "verification",
+      "attempt": 2,
+      "result": "pass",
+      "commit": "5df50d80511b8bd18afcaac40f66874ba2187ae9"
+    }
+  ],
+  "cost_usd": 4.0785,
+  "escalated": false
+}
