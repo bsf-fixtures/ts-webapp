@@ -1,7 +1,16 @@
 {
   "schema": "ledger/1",
-  "updated_at": "2026-11-21T17:12:52.739Z",
+  "updated_at": "2026-11-21T17:15:23.907Z",
   "open": [
+    {
+      "work_item": "wi_01M7XDQPVRKWQTQR8C24VB0HJD",
+      "pipeline": "product_work",
+      "status": "needs_info",
+      "priority": "normal",
+      "created_at": "2026-11-20T21:27:55Z",
+      "fingerprint": "sha256:a2de218aa73b5fde4b6fca604d72951bed0d72be4a8f6a0e9ceb42328c3aa641",
+      "source_ref": "#5"
+    },
     {
       "work_item": "wi_01M7XH7270DH2WAFKX6ZB36YRA",
       "pipeline": "product_work",
@@ -10,6 +19,15 @@
       "created_at": "2026-11-20T22:28:43.872Z",
       "fingerprint": "sha256:6a29be06aa1c006e129f72fb6ffd726985590fe1e9e60ff4fadb7fe55383adb4",
       "source_ref": "#7"
+    },
+    {
+      "work_item": "wi_01M7XHBRQGC845EY55EDEDKSSQ",
+      "pipeline": "product_work",
+      "status": "queued",
+      "priority": "normal",
+      "created_at": "2026-11-20T22:31:18Z",
+      "fingerprint": "sha256:f179d38f79734d33898a1e8f6850d453e2ff03e47b88a77d4170a9313618a0c6",
+      "source_ref": "#9"
     },
     {
       "work_item": "wi_01M7XJWR17KA1PCZXT635DF731",
@@ -48,6 +66,24 @@
       "source_ref": "#15"
     },
     {
+      "work_item": "wi_01M7YHRPC0N8201KF337TC808Y",
+      "pipeline": "product_work",
+      "status": "running",
+      "priority": "normal",
+      "created_at": "2026-11-21T07:57:36Z",
+      "fingerprint": "sha256:e0760c054e399797847bad04f285159e753b96d4df4de769a84a2f03daadf186",
+      "source_ref": "#28"
+    },
+    {
+      "work_item": "wi_01M7YHRQB8J58D19JCQJF0WD92",
+      "pipeline": "product_work",
+      "status": "queued",
+      "priority": "normal",
+      "created_at": "2026-11-21T07:57:37Z",
+      "fingerprint": "sha256:61442040a0a221536e34a7034b84cce7452eb8ccc72daefeefa17114e6dadf23",
+      "source_ref": "#29"
+    },
+    {
       "work_item": "wi_01M7YHSC5JSQYD8BGC6S7G68SW",
       "pipeline": "product_work",
       "status": "running",
@@ -68,6 +104,24 @@
       "source_ref": "#30"
     },
     {
+      "work_item": "wi_01M7ZGEAFGTTWNPPHGYVCCPVAK",
+      "pipeline": "product_work",
+      "status": "queued",
+      "priority": "normal",
+      "created_at": "2026-11-21T16:53:42Z",
+      "fingerprint": "sha256:716d50c227d13afe09c438d72a4abb58639985dd300bff04f7219abe6d53b3af",
+      "source_ref": "#38"
+    },
+    {
+      "work_item": "wi_01M7ZGEBERHW6JBHKTMV3MNV3W",
+      "pipeline": "product_work",
+      "status": "queued",
+      "priority": "normal",
+      "created_at": "2026-11-21T16:53:43Z",
+      "fingerprint": "sha256:39e98fe2ae9c20b23024c37d25025eadfef3a0fbc7a1f708830d3ce20ea277a1",
+      "source_ref": "#39"
+    },
+    {
       "work_item": "wi_01M7ZGET772SABC0FV186GQM27",
       "pipeline": "product_work",
       "status": "running",
@@ -75,16 +129,6 @@
       "created_at": "2026-11-21T16:53:58.119Z",
       "fingerprint": "sha256:289784f558366bf55f7f3769335b723021a138e14e5b028f2f7a80d4082dc7ef",
       "source_ref": "#37"
-    },
-    {
-      "work_item": "wi_01M7YHRPC0N8201KF337TC808Y",
-      "pipeline": "product_work",
-      "status": "running"
-    },
-    {
-      "work_item": "wi_01M7XDQPVRKWQTQR8C24VB0HJD",
-      "pipeline": "product_work",
-      "status": "needs_info"
     }
   ],
   "recent": [
@@ -94,6 +138,11 @@
       "merged_at": "2026-11-21T15:43:37.706Z",
       "fingerprint": "sha256:da3a2ef8b0a410e85e4ecf60ab72999ad4697d60df6a11cf343882eed7389b41",
       "pr": 19
+    },
+    {
+      "work_item": "wi_01M7ZH6KHS5KWNZM9HM52RD1MC",
+      "status": "rejected",
+      "fingerprint": "sha256:5a30ed9c09ce29cc764fc06e92c7013309ab169e106df57583e3a82b77911377"
     }
   ],
   "merge_queue": []
