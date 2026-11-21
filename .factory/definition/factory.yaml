@@ -26,8 +26,10 @@ pipelines:
 
 review:
   every_days: 3
-  run_early_at_runs: 50
-  skip_below_runs: 10
+  # Lowered on this fixture so the scheduled review fires on the runs it
+  # already has (acceptance criterion 1), without paying for fifty.
+  run_early_at_runs: 5
+  skip_below_runs: 3
 
 limits:
   retry_cap: 3
