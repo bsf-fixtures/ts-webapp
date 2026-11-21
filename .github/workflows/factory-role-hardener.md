@@ -102,7 +102,9 @@ safe-outputs:
     # triggering item to default to: the agent names the issue or PR.
     target: "*"
     staged: ${{ inputs.staged }}
-  upload-artifact:
+  # No upload-artifact safe output here: with create-pull-request beside it,
+  # gh-aw 1.2 and 1.3 put the PR checkout ahead of the App token it reads, and
+  # the PR never opened. Media goes through bsf store-media instead.
   threat-detection:
     enabled: true
 

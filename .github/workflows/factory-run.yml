@@ -144,6 +144,7 @@ jobs:
       actions: read
       checks: read
       contents: read
+      id-token: write
       issues: write
       pull-requests: write
     uses: ./.github/workflows/factory-role-triage.lock.yml
@@ -208,6 +209,7 @@ jobs:
       actions: read
       checks: read
       contents: write
+      id-token: write
       issues: write
       pull-requests: write
     uses: ./.github/workflows/factory-role-hardener.lock.yml
@@ -230,6 +232,7 @@ jobs:
       actions: read
       checks: read
       contents: read
+      id-token: write
       issues: write
       pull-requests: read
     uses: ./.github/workflows/factory-role-gardener.lock.yml
@@ -255,6 +258,7 @@ jobs:
       actions: read
       checks: read
       contents: read
+      id-token: write
       issues: write
       pull-requests: write
     uses: ./.github/workflows/factory-role-spec.lock.yml
@@ -281,6 +285,7 @@ jobs:
       actions: read
       checks: read
       contents: write
+      id-token: write
       issues: write
       pull-requests: write
     uses: ./.github/workflows/factory-role-builder.lock.yml
