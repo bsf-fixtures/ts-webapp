@@ -1,0 +1,89 @@
+{
+  "role": "verifier",
+  "attempt": 1,
+  "report": {
+    "schema": "pr-report/1",
+    "summary": [
+      "Ran all four acceptance checks against the production build of the app: all four pass.",
+      "The /invoices table now reads INV-1005 → INV-1001, newest issue date first; the export button, the total and the CSV are untouched.",
+      "Also probed a reload, a client-side nav into the page, and three interleaved table/export requests — the new order never leaks into the CSV."
+    ],
+    "blocks": [
+      {
+        "type": "file",
+        "file": "before-table-seeded-order.png",
+        "caption": "Before (parent commit 73abefb, built and served separately): the table reads INV-1001 at the top down to INV-1005 — seeded order, oldest issue date first."
+      },
+      {
+        "type": "file",
+        "file": "check1-table-newest-first.png",
+        "caption": "Acceptance check 1 — after: the same page now reads INV-1005, INV-1004, INV-1003, INV-1002, INV-1001 top to bottom, the exact reverse. Acceptance check 2 is in this same shot: the button still reads 'Export 3 invoices as CSV' and the line below still reads 'Total sent: $1,497.50'."
+      },
+      {
+        "type": "file",
+        "file": "check2-labels.txt",
+        "caption": "Acceptance check 2, read out of the served HTML rather than off the screenshot: the button label and the total both match the expected strings character for character."
+      },
+      {
+        "type": "diagram",
+        "title": "Where the new ordering applies, and where it deliberately does not",
+        "mermaid": "flowchart LR\n  S[\"INVOICES seeded array\\nINV-1001 … INV-1005\\noldest issue date first\"] --> L[\"listInvoices()\"]\n  L --> P[\"/invoices page\"]\n  L --> E[\"/invoices/export route\"]\n  P --> N[\"newestFirst()\\ncopies, then sorts\"]\n  N --> T[\"Table\\nINV-1005 → INV-1001\\nCHANGED\"]\n  N --> C[\"exportableInvoices + totalCents\\nbutton 'Export 3 invoices as CSV'\\n'Total sent: $1,497.50'\\norder-independent, unchanged\"]\n  E --> V[\"CSV\\nINV-1001, INV-1002, INV-1003\\nUNCHANGED — out of scope\"]\n  style T fill:#d7f5dd,stroke:#2d7a43\n  style V fill:#eef1f4,stroke:#6b7785\n  style C fill:#eef1f4,stroke:#6b7785"
+      },
+      {
+        "type": "file",
+        "file": "check3-export-unchanged.txt",
+        "caption": "Acceptance check 3, exercised both ways: curl against /invoices/export, and clicking the export button in Chromium and opening the downloaded file. Both give the header row then INV-1001, INV-1002, INV-1003, with INV-1004 and INV-1005 absent — the table's new order does not reach the CSV."
+      },
+      {
+        "type": "file",
+        "file": "check4-npm-test.txt",
+        "caption": "Acceptance check 4: `npm test` — 32 tests across 4 files, all passing. The parent commit ran 28, so this change adds 4 and breaks none of the existing ones."
+      },
+      {
+        "type": "file",
+        "file": "check4-newestfirst-tests.txt",
+        "caption": "Acceptance check 4, the two cases the check names specifically: the tie case ('issued on the same day … in the order they were given') and the non-mutation case ('leaves the list it was given in its original order') both exist and both pass, alongside the page-level row-order test."
+      },
+      {
+        "type": "file",
+        "file": "robustness-probes.txt",
+        "caption": "Ways this could look right but be wrong, each tried on the running app: a reload, clicking in from /, interleaved table-then-export requests checking the sort does not leak, a second export click, the one console error (a pre-existing favicon 404), and whether the order tracks issuedOn or the id."
+      }
+    ],
+    "focus": [
+      {
+        "title": "The sort copies the shared list, and that matters here",
+        "detail": "listInvoices() hands the same readonly array to both the page and the export route. newestFirst() spreads before sorting, so the export still sees seeded order. I checked this at runtime rather than trusting the unit test: loading /invoices and then fetching /invoices/export, three times alternating, returned INV-1001, INV-1002, INV-1003 every time.",
+        "files": [
+          "lib/invoices.ts",
+          "app/invoices/export/route.ts"
+        ]
+      },
+      {
+        "title": "The new order is visible only as row order",
+        "detail": "The table shows Invoice, Customer, Amount, Status — there is no issue-date column, which the spec puts out of scope. So nothing on screen explains why the rows sit in that order. I cross-checked the displayed order against the seeded issuedOn values (INV-1005 is 2026-11-08, INV-1001 is 2026-10-02) to confirm it is genuinely date order and not just reversed-by-id, which would look identical on this data.",
+        "files": [
+          "app/invoices/page.tsx"
+        ]
+      },
+      {
+        "title": "The CSV and the table now disagree on order, on purpose",
+        "detail": "The table reads newest first; the CSV still reads INV-1001, INV-1002, INV-1003. The spec calls this out as deliberate and leaves app/invoices/export/route.ts untouched. It is correct against the spec as written, but it is the thing a reader is most likely to file as a bug later, so it is worth a decision rather than a shrug.",
+        "files": [
+          "app/invoices/export/route.ts"
+        ]
+      }
+    ]
+  },
+  "media_commit": "b92dbaf4a789acdab0492b3baad18f72589d0b25",
+  "media_prefix": "reports/wi_01M7YHRPC0N8201KF337TC808Y/verifier-1",
+  "inline": {
+    "check2-labels.txt": "button label found : Export 3 invoices as CSV\nexpected           : Export 3 invoices as CSV\nbutton matches     : \u001b[33mtrue\u001b[39m\n\ntotal line found   : Total sent: $1,497.50\nexpected           : Total sent: $1,497.50\ntotal matches      : \u001b[33mtrue\u001b[39m\n",
+    "check3-export-unchanged.txt": "A. Over HTTP — curl -i http://localhost:3000/invoices/export\n\n   HTTP/1.1 200 OK\r\n   vary: rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch\r\n   cache-control: no-store\r\n   content-disposition: attachment; filename=\"invoices.csv\"\r\n   content-type: text/csv; charset=utf-8\r\n   Date: Sat, 21 Nov 2026 17:37:35 GMT\r\n   Connection: keep-alive\r\n   Keep-Alive: timeout=5\r\n   Transfer-Encoding: chunked\r\n   \r\n   id,customer,amount,issued_on,status\n   INV-1001,Acme Bakery,245.00,2026-10-02,paid\n   INV-1002,Northwind Books,1180.00,2026-10-11,sent\n   INV-1003,Globex Coffee,72.50,2026-10-19,paid\n\nB. Through the browser — clicked the 'Export 3 invoices as CSV' button on /invoices.\n   Chromium downloaded: invoices-2026-11-21.csv\n   Contents of the downloaded file:\n\n   id,customer,amount,issued_on,status\n   INV-1001,Acme Bakery,245.00,2026-10-02,paid\n   INV-1002,Northwind Books,1180.00,2026-10-11,sent\n   INV-1003,Globex Coffee,72.50,2026-10-19,paid\n\nBoth paths: header row, then INV-1001, INV-1002, INV-1003 in seeded order.\nINV-1004 (draft) and INV-1005 (void) are absent, as before.\nThe table's new newest-first order did NOT reach the CSV.\n",
+    "check4-npm-test.txt": "\n> ts-webapp@0.1.0 test\n> vitest run\n\nThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.\n\n RUN  v2.1.9 /home/runner/work/ts-webapp/ts-webapp\n\n ✓ lib/invoices.test.ts (20 tests) 12ms\n ✓ app/invoices/export/route.test.ts (5 tests) 12ms\n ✓ components/ExportButton.test.tsx (4 tests) 96ms\n ✓ app/invoices/page.test.tsx (3 tests) 50ms\n\n Test Files  4 passed (4)\n      Tests  32 passed (32)\n   Start at  17:37:53\n   Duration  1.88s (transform 131ms, setup 0ms, collect 433ms, tests 170ms, environment 1.86s, prepare 305ms)\n\n",
+    "check4-newestfirst-tests.txt": " ✓ lib/invoices.test.ts > newestFirst > puts the most recently issued invoice first, so the newest work is what a reader sees at the top\n ✓ lib/invoices.test.ts > newestFirst > keeps two invoices issued on the same day in the order they were given, so equal dates do not shuffle\n ✓ lib/invoices.test.ts > newestFirst > leaves the list it was given in its original order, because the seeded list is shared with the export\n ✓ app/invoices/page.test.tsx > InvoicesPage > lists the invoices newest first, so INV-1005 is the top row and INV-1001 the last\n",
+    "robustness-probes.txt": "Ways this change could look right but be wrong — each one tried against the running app.\n\n1. Reload the page (server-rendered, so order must not depend on client state)\n   tbody order after reload : INV-1005, INV-1004, INV-1003, INV-1002, INV-1001\n\n2. A different route into the same screen: click 'Go to invoices' on / (client-side nav)\n   landed on http://localhost:3000/invoices\n   tbody order after nav    : INV-1005, INV-1004, INV-1003, INV-1002, INV-1001\n\n3. Does sorting the table leak into the CSV? newestFirst() copies a list the export also reads.\n   Loaded /invoices then fetched /invoices/export, three times alternating:\n   round 1: after loading /invoices, export rows = INV-1001,INV-1002,INV-1003\n   round 2: after loading /invoices, export rows = INV-1001,INV-1002,INV-1003\n   round 3: after loading /invoices, export rows = INV-1001,INV-1002,INV-1003\n   \n   table order (last render):\n   INV-1005,INV-1004,INV-1003,INV-1002,INV-1001\n\n4. Clicking export a second time, after the table had been re-rendered: same three rows.\n\n5. Browser console on /invoices: 1 error, a 404 for /favicon.ico.\n   Unrelated to this change: the repo ships no app/favicon.ico and no public/favicon.ico,\n   and no favicon or layout file appears in this diff, so the 404 predates it.\n   No other console error, and no failed request besides that one.\n\n6. Ordering is genuinely by issue date, not by id. Seeded issuedOn, from lib/invoices.ts:\n     INV-1001 2026-10-02   INV-1002 2026-10-11   INV-1003 2026-10-19\n     INV-1004 2026-11-01   INV-1005 2026-11-08\n   Descending issue date is INV-1005, 1004, 1003, 1002, 1001 — what the table shows.\n   (The table has no date column, so the order is the only visible sign of it.)\n"
+  },
+  "problems": [],
+  "stored_at": "2026-11-21T17:43:00.348Z"
+}
