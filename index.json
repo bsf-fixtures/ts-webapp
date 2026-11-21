@@ -1,6 +1,6 @@
 {
   "schema": "index/1",
-  "updated_at": "2026-11-21T18:48:03.192Z",
+  "updated_at": "2026-11-21T23:55:12.199Z",
   "factory": {
     "runner": "0.1.0 source",
     "harness": "claude-code"
