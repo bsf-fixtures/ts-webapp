@@ -1,0 +1,16 @@
+{
+  "updated_at": "2026-11-21T01:10:25.168Z",
+  "paused": [],
+  "budget": {
+    "limitUsd": 200,
+    "limitMinutes": 2000,
+    "shares": {
+      "product_work": 60,
+      "gardening": 25,
+      "review_and_benchmarks": 15
+    },
+    "spentUsd": {},
+    "spentMinutes": {},
+    "productHardStopPct": 110
+  }
+}
