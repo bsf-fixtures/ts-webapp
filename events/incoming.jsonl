@@ -1,1 +1,0 @@
-{"id":1795279478070640,"kind":"issue_comment","at":"2026-11-21T16:44:22Z","actor":"build-software-factory-bsf-fixture[bot]","actor_association":"CONTRIBUTOR","actor_is_bot":true,"body":"Rebuilt on the current main as #36, because this branch conflicted with it. An approval given here carries to #36 when the rebuilt change adds the same lines and removes nothing new.","ref":"#33"}
