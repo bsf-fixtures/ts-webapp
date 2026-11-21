@@ -21,5 +21,57 @@
   "pr": null,
   "parent": null,
   "related": [],
-  "spec": null
+  "spec": {
+    "plan": "Today `/invoices` renders a plain `<h1>Invoices</h1>` above a table of all five seeded invoices, and nothing on the page says how many rows are listed. After the change the heading reads `Invoices (5)`: the number of rows the table actually renders, derived from the same `invoices` array that `<tbody>` maps over, so the heading and the table cannot disagree. The repo has no status filter today (grep for `status` finds only the invoice field, the `exportableInvoices` sent/paid rule and HTTP status codes), so the request's \"after any status filter\" is honoured by taking the count from the rendered array rather than from `listInvoices()` or `exportableInvoices()` -- if a filter is added later the heading follows it with no further change, and nothing in this work item adds one (filtering by status is its own open issue, #27; this change is written so it needs no follow-up when that lands). Two constraints the builder must respect: the count has to be interpolated in a single template literal (`{`Invoices (${invoices.length})`}`), not as adjacent JSX children, because React 19's server renderer otherwise emits `Invoices (<!-- -->5<!-- -->)` into the HTML -- the same reason the existing `Total sent:` line is written that way; and no new `lib/` function is warranted, since `invoices.length` is the whole computation and fundamentals.md asks for one domain module, not a second near-duplicate. The `ExportButton` count stays on `exportableInvoices` (3) and is not touched: the heading counts rows shown, the button counts rows exported, and those are deliberately different numbers.",
+    "files": [
+      "app/invoices/page.tsx",
+      "app/invoices/page.test.tsx"
+    ],
+    "feature_folders": [
+      "app/invoices"
+    ],
+    "acceptance_checks": [
+      "Load http://localhost:3000/invoices in a browser: the page's first heading reads exactly `Invoices (5)` instead of `Invoices`.",
+      "Count the body rows of the table under that heading: there are 5 (INV-1001, INV-1002, INV-1003, INV-1004, INV-1005), which is the number shown in the heading.",
+      "Fetch the page's HTML directly (`curl -s http://localhost:3000/invoices | grep -F 'Invoices (5)'`): the literal string `Invoices (5)` is present, with no `<!-- -->` markers between `Invoices (`, `5` and `)`.",
+      "On the same page, the export button still reads `Export 3 invoices as CSV` -- the heading's 5 counts the rows listed, not the 3 that are exportable, and clicking the button still downloads a CSV of 3 invoices."
+    ],
+    "tests_added": [
+      "app/invoices/page.test.tsx: \"shows how many invoices are listed, so a reader does not have to count the rows\" -- renders `InvoicesPage` and asserts the `<h1>` text is exactly `Invoices (5)` and that the number in it equals the count of `<tbody> <tr>` elements rendered.",
+      "app/invoices/page.test.tsx: \"counts the rows on the page, not the exportable ones, so the heading cannot read (3) while five rows are visible\" -- asserts the heading is not `Invoices (3)` while the export button still reads `Export 3 invoices as CSV`."
+    ],
+    "tests_changed": [
+      "app/invoices/page.test.tsx"
+    ],
+    "research": [
+      {
+        "claim": "The heading to change is a bare `<h1>Invoices</h1>`, and the number of rows shown is `invoices.length` (5), which is not the number already on the page. `app/invoices/page.tsx:11` is a bare `<h1>Invoices</h1>`, and `app/invoices/page.tsx:23` maps over `invoices` (= `listInvoices()`, all five seeded rows) for the table body, while `app/invoices/page.tsx:12` passes `exportable.length` (3) to `ExportButton`. So \"rows currently shown\" is `invoices.length`, a different number from the one already on the page.",
+        "source": "app/invoices/page.tsx:11"
+      },
+      {
+        "claim": "There is no status filter in the app today, so the count must come from the array the table maps over rather than from a filter that does not exist. `grep -rn status app components lib` returns only the `Invoice.status` field, the sent/paid rule inside `exportableInvoices`, the CSV header column and HTTP `res.status` values. There is no filter control, no searchParams read and no client state on the page, and the feature map lists the page as a server component that \"lists every invoice in a table\". Deriving the count from the array the table maps over satisfies \"after any status filter\" today and keeps following it if one is added later; building a filter is out of scope for this request.",
+        "source": "ran: grep -rn \"status\" app components lib --include=*.ts --include=*.tsx"
+      },
+      {
+        "claim": "The count must be interpolated in one template literal, not rendered as an adjacent JSX child, or the server-rendered HTML carries comment markers. Rendering `<h1>Invoices ({n})</h1>` through React 19.3.1's `renderToString` produces `<h1>Invoices (<!-- -->5<!-- -->)</h1>`; a single template literal produces `<h1>Invoices (5)</h1>`. The repo already hit this -- the comment at `app/invoices/page.tsx:33-34` says the `Total sent:` line is one template literal \"not adjacent children\" for exactly this reason. The builder must follow that pattern, and acceptance check 3 is what catches it if they do not.",
+        "source": "ran: NODE_PATH=./node_modules node /tmp/gh-aw/agent/probe/heading-probe.cjs  (renderToString of both forms; output: adjacent -> \"<h1>Invoices (<!-- -->5<!-- -->)</h1>\", single -> \"<h1>Invoices (5)</h1>\", react 19.3.1)"
+      },
+      {
+        "claim": "No new `lib/` function should be added for the count. fundamentals.md's Taste section says to prefer widening an existing pure function over adding a second one that does nearly the same thing, and that there is one domain module which should stay one until a genuinely separate concept appears. `invoices.length` on an array the page already holds is not a domain concept; `totalCents` exists because summing cents is a rule, counting an array is not.",
+        "source": ".factory/definition/context/fundamentals.md:74"
+      },
+      {
+        "claim": "The new cases belong in the existing `app/invoices/page.test.tsx`, which makes it a declared `tests_changed` edit. Tests are colocated as `<name>.test.tsx` beside the source, with `describe` naming the unit and `it` naming the user-visible consequence in a full sentence; component assertions use plain DOM properties rather than jest-dom matchers to keep the dependency list short. `app/invoices/page.test.tsx` already exists with two cases rendering `InvoicesPage` and asserting on `document.body.textContent`, so the new cases belong in that file -- which makes it an edit to an existing test file and therefore a required `tests_changed` entry under policy.yaml's `tests.declared_edits: required`.",
+        "source": "app/invoices/page.test.tsx:7"
+      },
+      {
+        "claim": "The sandbox can exercise all four acceptance checks, and the coverage gate's 80% diff-coverage floor is already met for this file. The manifest's tier is `renders`: the production server starts, `/invoices` answers 200 server-rendered (so a browser screenshot and a `curl` of the HTML both show the real heading), and Chromium can click the export button and capture the download. The coverage gate wants 80% diff coverage per changed file; `npm test -- --coverage` on the tree as it stands reports `app/invoices/page.tsx` at 100% lines, so adding to its existing test file keeps it there.",
+        "source": "ran: npm ci && npm test -- --coverage  (28 tests pass across 4 files; app/invoices/page.tsx 100% stmts/branch/funcs/lines)"
+      },
+      {
+        "claim": "The change touches nothing the policy protects and moves no guardrail baseline. The `product_work` pipeline may change `code` and `tests`; both files are code/tests under `app/invoices/`, outside every `protected` path (`.github/workflows/**`, `.factory/bin/**`, `.factory/definition/policy.yaml`, `.factory/sandbox/**`). practices.md is empty, baselines.json has no rules and candidates.json no candidates, so there is no lint baseline to move, and eslint.config.mjs's rules (`no-console`, `eqeqeq`, `prefer-const`, `no-var`) are untouched by a template literal in JSX.",
+        "source": ".factory/definition/policy.yaml:33"
+      }
+    ]
+  }
 }
