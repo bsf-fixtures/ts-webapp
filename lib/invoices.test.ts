@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   listInvoices, exportableInvoices, toCsv, formatAmount, CSV_HEADER,
+  parseStatus, invoicesWithStatus, INVOICE_STATUSES,
   type Invoice,
 } from "./invoices.js";
 
@@ -22,6 +23,41 @@ describe("exportableInvoices", () => {
 
   it("returns an empty list for an empty input rather than throwing", () => {
     expect(exportableInvoices([])).toEqual([]);
+  });
+});
+
+describe("parseStatus", () => {
+  it("recognises every status the filter offers, so each link narrows the table", () => {
+    for (const status of INVOICE_STATUSES) {
+      expect(parseStatus(status)).toBe(status);
+    }
+  });
+
+  it("treats a status nobody has as no filter, so a typed-in URL shows everything instead of erroring", () => {
+    expect(parseStatus("bogus")).toBeUndefined();
+    expect(parseStatus("")).toBeUndefined();
+  });
+
+  it("treats a missing or repeated query parameter as no filter", () => {
+    expect(parseStatus(undefined)).toBeUndefined();
+    expect(parseStatus(["draft", "paid"])).toBeUndefined();
+  });
+});
+
+describe("invoicesWithStatus", () => {
+  it("shows every invoice when no status is chosen, which is the All view", () => {
+    const invoices = [invoice({ status: "draft" }), invoice({ status: "paid" })];
+    expect(invoicesWithStatus(invoices, undefined)).toEqual(invoices);
+  });
+
+  it("keeps only the invoices with the chosen status, so the table matches the link", () => {
+    const paid = invoice({ id: "INV-A", status: "paid" });
+    const out = invoicesWithStatus([paid, invoice({ status: "draft" }), invoice({ status: "void" })], "paid");
+    expect(out).toEqual([paid]);
+  });
+
+  it("returns an empty list when nothing has the chosen status, rather than falling back to everything", () => {
+    expect(invoicesWithStatus([invoice({ status: "sent" })], "void")).toEqual([]);
   });
 });
 

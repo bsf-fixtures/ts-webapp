@@ -1,11 +1,16 @@
 /** The fixture's one domain concept: invoices, and a CSV export of them. */
 
+/** The statuses an invoice can have, in the order the filter offers them. */
+export const INVOICE_STATUSES = ["draft", "sent", "paid", "void"] as const;
+
+export type InvoiceStatus = (typeof INVOICE_STATUSES)[number];
+
 export interface Invoice {
   readonly id: string;
   readonly customer: string;
   readonly amountCents: number;
   readonly issuedOn: string; // YYYY-MM-DD
-  readonly status: "draft" | "sent" | "paid" | "void";
+  readonly status: InvoiceStatus;
 }
 
 const INVOICES: readonly Invoice[] = [
@@ -18,6 +23,24 @@ const INVOICES: readonly Invoice[] = [
 
 export function listInvoices(): readonly Invoice[] {
   return INVOICES;
+}
+
+/**
+ * Turns a raw `?status=` query value into a status. Anything unrecognised —
+ * a typo, an empty value, a repeated parameter — is undefined, which the
+ * caller shows as the unfiltered list rather than as an error.
+ */
+export function parseStatus(raw: string | string[] | undefined): InvoiceStatus | undefined {
+  return INVOICE_STATUSES.find((s) => s === raw);
+}
+
+/** Without a status, every invoice; with one, only the invoices that have it. */
+export function invoicesWithStatus(
+  invoices: readonly Invoice[],
+  status: InvoiceStatus | undefined,
+): readonly Invoice[] {
+  if (status === undefined) return invoices;
+  return invoices.filter((i) => i.status === status);
 }
 
 /** Only invoices that were actually sent to a customer belong in an export. */
