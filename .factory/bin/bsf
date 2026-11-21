@@ -4,7 +4,7 @@
 set -eu
 here=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 base="${TMPDIR:-/tmp}"
-dir="$base/bsf-8eae354bac21"
+dir="$base/bsf-c46a4004449f"
 if [ ! -f "$dir/bsf.mjs" ]; then
   tmp=$(mktemp -d "$base/bsf-unpack.XXXXXX")
   tar -xzf "$here/runner.tgz" -C "$tmp"
