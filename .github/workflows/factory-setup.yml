@@ -200,6 +200,7 @@ jobs:
           CHOSEN: ${{ steps.freeze.outputs.chosen }}
           TIER: ${{ steps.freeze.outputs.tier }}
           AMEND: ${{ inputs.amend }}
+          FACTORY_SANDBOX_ENV: ${{ secrets.FACTORY_SANDBOX_ENV }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           set -euo pipefail
@@ -211,6 +212,31 @@ jobs:
           # An amendment changes the sandbox only; the context stays the
           # user's once it has been merged.
           if [ -z "$AMEND" ] && [ -d "$design/context" ]; then cp "$design/context/"*.md .factory/definition/context/; fi
+          # The setup agent's checker configuration. It may not reach the
+          # factory's own files or the workflows; the PR is reviewed in full.
+          if [ -z "$AMEND" ] && [ -s "$design/guardrails.patch" ]; then
+            if grep -E '^(\+\+\+|---) [ab]/(\.github|\.factory)/' "$design/guardrails.patch"; then
+              echo "::warning::guardrails.patch touches .github/ or .factory/; it is left out"
+            elif git apply --index "$design/guardrails.patch"; then
+              echo "applied the guardrails patch"
+            else
+              echo "::warning::guardrails.patch did not apply; it is left out"
+            fi
+          fi
+          # Baseline what the repo's checkers report today, with the rules
+          # just installed, from inside the sandbox that was frozen: the
+          # ratchet starts here, and gardening's work is everything above zero.
+          guard=""
+          if [ -z "$AMEND" ]; then
+            if bsf sandbox start && bsf guardrails record > "$RUNNER_TEMP/baseline.txt"; then
+              guard="$(head -1 "$RUNNER_TEMP/baseline.txt")"
+            else
+              guard="the baseline could not be recorded; the static gate starts from zero"
+            fi
+            if [ -f "$design/guardrails.json" ]; then
+              guard="$guard. Rules: $(jq -r '"\(.installed // [] | length) installed, \(.skipped // [] | length) left out"' "$design/guardrails.json")"
+            fi
+          fi
           branch="factory/setup-${GITHUB_RUN_ID}"
           git config user.name "factory[bot]"
           git config user.email "factory[bot]@users.noreply.github.com"
@@ -220,9 +246,10 @@ jobs:
           if [ -z "$AMEND" ]; then title="Set up the software factory"; else title="Amend the factory's sandbox"; fi
           git commit -q -m "$title (sandbox tier: $TIER)"
           git push -q "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "$branch"
-          body=$(printf '%s\n\n%s\n\n%s\n' \
+          body=$(printf '%s\n\n%s\n\n%s\n\n%s\n' \
             "The sandbox reached **$TIER** when the runner brought it up and measured it; see \`.factory/sandbox/manifest.json\` for what it contains, what it can exercise, and every round that was tried." \
             "No credential of yours is in it. Every value is local, fake, a throwaway service, or a named test-mode secret." \
+            "${guard:+Guardrails: $guard; existing violations are baselined per file, not fixed here, and gardening clears them in small PRs.}" \
             "Rounds and the screenshot: $RUN_URL")
           gh api "repos/${GITHUB_REPOSITORY}/pulls" -f title="$title" -f head="$branch" \
             -f base="${{ github.event.repository.default_branch }}" -f body="$body" --jq .html_url

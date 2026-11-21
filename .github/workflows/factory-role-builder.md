@@ -286,12 +286,16 @@ source .factory/sandbox/.runtime.env
 The manifest's `commands` say how to build, run and test, and `app_url` says
 where the running app answers.
 
-**If `/tmp/gh-aw/agent/bsf/app.json` exists, the app is already running** — on
-the runner, with the services and stubs it needs, which your shell here cannot
-reach. Open its `url` with the browser tool instead of starting the app
-yourself. It serves from this workspace, so a dev server reloads with your
-edits; if the manifest's `run` is a production build, the PR's gates rebuild
-it. Its log is at the `log` path the file gives, on the runner, not here.
+**If `/tmp/gh-aw/agent/bsf/app.json` exists, the sandbox runs on the runner**,
+with the services and stubs the app needs:
+
+- its `url` is the app, already running. Open it with the browser tool; do
+  not start another. It serves from this workspace and **restarts by itself a
+  couple of seconds after you change a file**, so wait for it and reload;
+- its `services` are reachable from your shell at the addresses it lists, and
+  `.factory/sandbox/.agent.env` is the environment rewritten to use them —
+  **source that file instead of `.runtime.env`** when you run tests or
+  scripts yourself.
 
 ## How to work
 

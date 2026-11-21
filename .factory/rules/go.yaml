@@ -1,0 +1,165 @@
+# Go rule pack.
+#
+# `go vet` ships with the toolchain and catches the mistakes that compile;
+# staticcheck covers the rest. Rules name the analyser that reports them, so a
+# count can be attributed to a tool a developer can run themselves.
+schema: rulepack/1
+language: go
+extensions: [".go"]
+
+tools:
+  - id: go-vet
+    kind: linter
+    detect: ["go.mod"]
+    # vet has no config file of its own; which analysers run is chosen on the
+    # command line, which is why the guardrail lives in the workflow.
+    config_file: .golangci.yml
+    install: "# go vet ships with the Go toolchain"
+    check: go vet ./...
+    fix: null
+    native_baseline: null
+
+  - id: staticcheck
+    kind: linter
+    detect: [".golangci.yml", ".golangci.yaml", "staticcheck.conf"]
+    config_file: staticcheck.conf
+    install: go install honnef.co/go/tools/cmd/staticcheck@latest
+    check: staticcheck ./...
+    fix: null
+    native_baseline: null
+
+  - id: gofmt
+    kind: formatter
+    detect: ["go.mod"]
+    config_file: .editorconfig
+    install: "# gofmt ships with the Go toolchain"
+    check: gofmt -l .
+    fix: gofmt -w .
+    native_baseline: null
+
+  - id: gitleaks
+    kind: secrets
+    detect: [".gitleaks.toml"]
+    config_file: .gitleaks.toml
+    install: "# gitleaks runs as a pinned action in CI"
+    check: gitleaks detect --no-banner --redact
+    fix: null
+    native_baseline: null
+
+rules:
+  - id: printf-arguments-match-the-format
+    concern: >-
+      A format string that disagrees with its arguments compiles and then
+      prints nonsense, usually in the log line someone is relying on.
+    tool: go-vet
+    config: { analyser: printf }
+    bad: |
+      package probe
+
+      import "fmt"
+
+      func Describe(n string) string {
+          return fmt.Sprintf("%d items", n)
+      }
+    good: |
+      package probe
+
+      import "fmt"
+
+      func Describe(n string) string {
+          return fmt.Sprintf("%s items", n)
+      }
+
+  - id: no-unused-result-of-append
+    concern: >-
+      `append` may return a new slice, so ignoring its result silently loses
+      the appended element whenever the backing array had to grow.
+    tool: go-vet
+    config: { analyser: appends }
+    bad: |
+      package probe
+
+      func Add(items []string, item string) []string {
+          append(items, item)
+          return items
+      }
+    good: |
+      package probe
+
+      func Add(items []string, item string) []string {
+          return append(items, item)
+      }
+
+  - id: no-lost-loop-variable-in-goroutine
+    concern: >-
+      A goroutine that closes over a loop variable before Go 1.22 observes
+      whatever the variable became, not the value at the time it started.
+    tool: go-vet
+    config: { analyser: loopclosure }
+    bad: |
+      package probe
+
+      import "sync"
+
+      func Each(items []string, f func(string)) {
+          var wg sync.WaitGroup
+          for _, item := range items {
+              wg.Add(1)
+              go func() {
+                  defer wg.Done()
+                  f(item)
+              }()
+          }
+          wg.Wait()
+      }
+    good: |
+      package probe
+
+      import "sync"
+
+      func Each(items []string, f func(string)) {
+          var wg sync.WaitGroup
+          for _, item := range items {
+              wg.Add(1)
+              go func(item string) {
+                  defer wg.Done()
+                  f(item)
+              }(item)
+          }
+          wg.Wait()
+      }
+
+  - id: lock-is-copied-by-value
+    concern: >-
+      Copying a struct that contains a mutex copies the lock's state, so two
+      copies guard nothing and the data race is back.
+    tool: go-vet
+    config: { analyser: copylocks }
+    bad: |
+      package probe
+
+      import "sync"
+
+      type Counter struct {
+          mu sync.Mutex
+          n  int
+      }
+
+      func Snapshot(c Counter) int {
+          return c.n
+      }
+    good: |
+      package probe
+
+      import "sync"
+
+      type Counter struct {
+          mu sync.Mutex
+          n  int
+      }
+
+      func Snapshot(c *Counter) int {
+          c.mu.Lock()
+          defer c.mu.Unlock()
+          return c.n
+      }

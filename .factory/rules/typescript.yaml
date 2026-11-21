@@ -1,0 +1,197 @@
+schema: rulepack/1
+language: typescript
+extensions:
+- .ts
+- .tsx
+- .mts
+- .cts
+tools:
+- id: eslint
+  kind: linter
+  detect:
+  - eslint.config.*
+  - .eslintrc
+  - .eslintrc.*
+  config_file: eslint.config.mjs
+  install: npm i -D eslint typescript-eslint
+  check: npx eslint .
+  fix: npx eslint . --fix
+  native_baseline: eslint-suppressions.json
+  base_config:
+    languageOptions:
+      ecmaVersion: 2022
+      sourceType: module
+- id: tsc
+  kind: typechecker
+  detect:
+  - tsconfig.json
+  config_file: tsconfig.json
+  install: npm i -D typescript
+  check: npx tsc --noEmit
+  fix: null
+  native_baseline: null
+- id: prettier
+  kind: formatter
+  detect:
+  - .prettierrc
+  - .prettierrc.*
+  - prettier.config.*
+  config_file: .prettierrc
+  install: npm i -D prettier
+  check: npx prettier --check .
+  fix: npx prettier --write .
+  native_baseline: null
+- id: gitleaks
+  kind: secrets
+  detect:
+  - .gitleaks.toml
+  config_file: .gitleaks.toml
+  install: '# gitleaks runs as a pinned action in CI'
+  check: gitleaks detect --no-banner --redact
+  fix: null
+  native_baseline: null
+- id: semgrep
+  kind: dataflow
+  detect:
+  - .semgrep.yml
+  - .semgrep/
+rules:
+- id: no-explicit-any
+  concern: '`any` switches off the type checker for everything it touches, so a type error becomes a runtime
+    error somewhere else.'
+  tool: eslint
+  config:
+    '@typescript-eslint/no-explicit-any': error
+  bad: "export function parse(input: any): string {\n  return String(input);\n}\n"
+  good: "export function parse(input: unknown): string {\n  return String(input);\n}\n"
+- id: no-floating-promises
+  concern: An un-awaited promise swallows its own rejection, so a failure shows up as nothing happening
+    rather than as an error.
+  tool: eslint
+  config:
+    '@typescript-eslint/no-floating-promises': error
+  bad: "async function save(): Promise<void> {}\nexport function run(): void {\n  save();\n}\n"
+  good: "async function save(): Promise<void> {}\nexport async function run(): Promise<void> {\n  await\
+    \ save();\n}\n"
+- id: eqeqeq
+  concern: '`==` coerces, so `0 == ""` and `null == undefined` are true. Comparisons that look obvious
+    stop being obvious.'
+  tool: eslint
+  config:
+    eqeqeq:
+    - error
+    - always
+  autofixable: true
+  bad: 'export const same = (a: string, b: number): boolean => a == b;
+
+    '
+  good: 'export const same = (a: string, b: number): boolean => a === String(b);
+
+    '
+- id: no-var
+  concern: '`var` is function-scoped and hoisted, so a loop variable captured in a closure is not the
+    value anyone expects.'
+  tool: eslint
+  config:
+    no-var: error
+  autofixable: true
+  bad: "export function count(): number {\n  var total = 0;\n  return total;\n}\n"
+  good: "export function count(): number {\n  let total = 0;\n  return total;\n}\n"
+- id: no-console
+  concern: 'Console output is not logging: it has no level, no structure, and no destination in production.'
+  tool: eslint
+  config:
+    no-console: error
+  bad: "export function report(): void {\n  console.log(\"done\");\n}\n"
+  good: "import { log } from \"./logger.js\";\nexport function report(): void {\n  log.info(\"done\");\n\
+    }\n"
+- id: no-unused-vars
+  concern: An unused variable is usually the remains of a change that was only half made.
+  tool: eslint
+  config:
+    '@typescript-eslint/no-unused-vars': error
+  bad: "export function area(width: number, height: number): number {\n  const unused = width * 2;\n \
+    \ return width * height;\n}\n"
+  good: "export function area(width: number, height: number): number {\n  return width * height;\n}\n"
+- id: require-await
+  concern: An `async` function with nothing to await is a promise wrapper that reads like concurrency
+    and is not.
+  tool: eslint
+  config:
+    '@typescript-eslint/require-await': error
+  bad: "export async function total(a: number, b: number): Promise<number> {\n  return a + b;\n}\n"
+  good: "export function total(a: number, b: number): number {\n  return a + b;\n}\n"
+- id: no-non-null-assertion
+  concern: '`!` tells the type checker to stop asking. When it is wrong the failure is a runtime crash
+    with no type error anywhere.'
+  tool: eslint
+  config:
+    '@typescript-eslint/no-non-null-assertion': error
+  bad: "export function first(xs: string[]): string {\n  return xs[0]!;\n}\n"
+  good: "export function first(xs: string[]): string {\n  const head = xs[0];\n  if (head === undefined)\
+    \ throw new Error(\"empty list\");\n  return head;\n}\n"
+- id: suppression-needs-a-reason
+  concern: A bare disable comment hides a rule with no record of why. With a reason required, a suppression
+    is a decision someone can review.
+  tool: eslint
+  config:
+    '@typescript-eslint/ban-ts-comment':
+    - error
+    - ts-expect-error: allow-with-description
+      ts-ignore: true
+      minimumDescriptionLength: 10
+  bad: '// @ts-expect-error
+
+    export const x: number = "not a number";
+
+    '
+  good: '// @ts-expect-error the API returns a string here until v3 ships
+
+    export const x: number = "not a number";
+
+    '
+- id: request-data-reaches-shell
+  concern: A value from the request reaches a shell command, so whoever sends the request chooses part
+    of what the shell runs. The call itself is fine with a literal; the data-flow path is the problem.
+  tool: semgrep
+  config:
+    semgrep:
+      mode: taint
+      pattern-sources:
+      - pattern: $REQ.query
+      - pattern: $REQ.body
+      - pattern: $REQ.params
+      pattern-sinks:
+      - pattern: exec($CMD, ...)
+      - pattern: execSync($CMD, ...)
+  bad: "import { execSync } from \"node:child_process\";\n\nexport function archive(req: { query: { name:\
+    \ string } }): string {\n  const name = req.query.name;\n  const command = `tar -czf ${name}.tgz ./data`;\n\
+    \  return String(execSync(command));\n}\n"
+  good: "import { execFileSync } from \"node:child_process\";\n\nexport function archive(req: { query:\
+    \ { name: string } }): string {\n  const name = req.query.name;\n  return String(execFileSync(\"tar\"\
+    , [\"-czf\", `${name}.tgz`, \"./data\"]));\n}\n"
+  severity: error
+  critical_logic: true
+- id: request-data-reaches-raw-sql
+  concern: A value from the request is concatenated into SQL. Parameterising the same query makes it safe,
+    which is why this is a data-flow rule and not a ban on the query call.
+  tool: semgrep
+  config:
+    semgrep:
+      mode: taint
+      pattern-sources:
+      - pattern: $REQ.query
+      - pattern: $REQ.body
+      - pattern: $REQ.params
+      pattern-sinks:
+      - pattern: $DB.query(`...`, ...)
+      - pattern: $DB.query($SQL + $X, ...)
+      - pattern: $DB.unsafe(...)
+  bad: "export async function findUser(req: { query: { id: string } }, db: Db): Promise<unknown> {\n \
+    \ const id = req.query.id;\n  return db.query(`select * from users where id = '${id}'`);\n}\n\ninterface\
+    \ Db { query(sql: string, params?: unknown[]): Promise<unknown> }\n"
+  good: "export async function findUser(req: { query: { id: string } }, db: Db): Promise<unknown> {\n\
+    \  const id = req.query.id;\n  return db.query(\"select * from users where id = $1\", [id]);\n}\n\n\
+    interface Db { query(sql: string, params?: unknown[]): Promise<unknown> }\n"
+  severity: error
+  critical_logic: true

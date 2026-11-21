@@ -1,0 +1,154 @@
+schema: rulepack/1
+language: python
+extensions:
+- .py
+- .pyi
+tools:
+- id: ruff
+  kind: linter
+  detect:
+  - ruff.toml
+  - .ruff.toml
+  - pyproject.toml
+  config_file: pyproject.toml
+  install: pip install ruff
+  check: ruff check .
+  fix: ruff check --fix .
+  native_baseline: null
+- id: ruff-format
+  kind: formatter
+  detect:
+  - ruff.toml
+  - .ruff.toml
+  - pyproject.toml
+  config_file: pyproject.toml
+  install: pip install ruff
+  check: ruff format --check .
+  fix: ruff format .
+  native_baseline: null
+- id: mypy
+  kind: typechecker
+  detect:
+  - mypy.ini
+  - .mypy.ini
+  - pyproject.toml
+  - setup.cfg
+  config_file: pyproject.toml
+  install: pip install mypy
+  check: mypy .
+  fix: null
+  native_baseline: null
+- id: gitleaks
+  kind: secrets
+  detect:
+  - .gitleaks.toml
+  config_file: .gitleaks.toml
+  install: '# gitleaks runs as a pinned action in CI'
+  check: gitleaks detect --no-banner --redact
+  fix: null
+  native_baseline: null
+- id: semgrep
+  kind: dataflow
+  detect:
+  - .semgrep.yml
+  - .semgrep/
+rules:
+- id: no-mutable-default-argument
+  concern: A mutable default is created once and shared by every call, so one caller's additions show
+    up in the next caller's "empty" list.
+  tool: ruff
+  config:
+    select:
+    - B006
+  bad: "def add(item: str, items: list[str] = []) -> list[str]:\n    items.append(item)\n    return items\n"
+  good: "def add(item: str, items: list[str] | None = None) -> list[str]:\n    result = [] if items is\
+    \ None else list(items)\n    result.append(item)\n    return result\n"
+- id: no-bare-except
+  concern: A bare `except` catches KeyboardInterrupt and SystemExit too, so it swallows the signals that
+    are supposed to stop the program.
+  tool: ruff
+  config:
+    select:
+    - E722
+  bad: "def read(path: str) -> str:\n    try:\n        with open(path) as fh:\n            return fh.read()\n\
+    \    except:\n        return \"\"\n"
+  good: "def read(path: str) -> str:\n    try:\n        with open(path) as fh:\n            return fh.read()\n\
+    \    except OSError:\n        return \"\"\n"
+- id: no-unused-import
+  concern: An unused import is usually the remains of a change that was only half made, and it slows every
+    import of the module.
+  tool: ruff
+  config:
+    select:
+    - F401
+  autofixable: true
+  bad: "import json\nimport os\n\n\ndef cwd() -> str:\n    return os.getcwd()\n"
+  good: "import os\n\n\ndef cwd() -> str:\n    return os.getcwd()\n"
+- id: no-undefined-name
+  concern: A name that does not exist is a NameError the moment that line runs, which may be long after
+    the change that caused it.
+  tool: ruff
+  config:
+    select:
+    - F821
+  bad: "def total(values: list[int]) -> int:\n    return sum(vlaues)\n"
+  good: "def total(values: list[int]) -> int:\n    return sum(values)\n"
+- id: no-assert-on-a-tuple
+  concern: '`assert (a, b)` asserts a non-empty tuple, which is always true, so the test passes whatever
+    happens.'
+  tool: ruff
+  config:
+    select:
+    - F631
+  bad: "def check(a: int, b: int) -> None:\n    assert (a == 1, b == 2)\n"
+  good: "def check(a: int, b: int) -> None:\n    assert a == 1\n    assert b == 2\n"
+- id: no-f-string-without-placeholders
+  concern: An f-string with no placeholder is usually a placeholder someone meant to add, or one they
+    deleted.
+  tool: ruff
+  config:
+    select:
+    - F541
+  autofixable: true
+  bad: "def greet(name: str) -> str:\n    return f\"hello\"\n"
+  good: "def greet(name: str) -> str:\n    return f\"hello {name}\"\n"
+- id: imports-sorted
+  concern: Sorted imports mean import changes show up as one-line diffs instead of reshuffles, and two
+    people adding an import rarely conflict.
+  tool: ruff
+  config:
+    select:
+    - I001
+  autofixable: true
+  bad: "import sys\nimport os\n\n\ndef paths() -> list[str]:\n    return [os.getcwd(), sys.executable]\n"
+  good: "import os\nimport sys\n\n\ndef paths() -> list[str]:\n    return [os.getcwd(), sys.executable]\n"
+- id: no-loop-variable-overwritten
+  concern: A loop variable reassigned inside its own loop makes the iteration order a lie, which is hard
+    to see when reading.
+  tool: ruff
+  config:
+    select:
+    - B020
+  bad: "def names(items: list[str]) -> None:\n    for items in items:\n        print(items)\n"
+  good: "def names(items: list[str]) -> None:\n    for item in items:\n        print(item)\n"
+- id: request-data-reaches-shell
+  concern: A value from the request reaches a shell command, so whoever sends the request chooses part
+    of what the shell runs. Passing the same value as an argument list is safe.
+  tool: semgrep
+  config:
+    semgrep:
+      mode: taint
+      pattern-sources:
+      - pattern: request.args.get(...)
+      - pattern: request.form.get(...)
+      - pattern: request.json
+      pattern-sinks:
+      - pattern: subprocess.run($CMD, ..., shell=True, ...)
+      - pattern: subprocess.call($CMD, ..., shell=True, ...)
+      - pattern: os.system($CMD)
+  bad: "import subprocess\nfrom flask import request\n\n\ndef archive() -> str:\n    name = request.args.get(\"\
+    name\", \"\")\n    return subprocess.run(f\"tar -czf {name}.tgz ./data\", shell=True, capture_output=True).stdout.decode()\n"
+  good: "import subprocess\nfrom flask import request\n\n\ndef archive() -> str:\n    name = request.args.get(\"\
+    name\", \"\")\n    return subprocess.run([\"tar\", \"-czf\", f\"{name}.tgz\", \"./data\"], capture_output=True).stdout.decode()\n"
+  severity: error
+  critical_logic: true
