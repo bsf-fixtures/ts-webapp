@@ -19,5 +19,87 @@
   "pr": null,
   "parent": null,
   "related": [],
-  "spec": null
+  "spec": {
+    "plan": "Today the /invoices table shows each invoice's raw status and nothing else, so a sent invoice that has been outstanding for six weeks looks exactly like one sent yesterday. After the change, a new pure predicate `isOverdue(invoice, today)` in lib/invoices.ts returns true only when `status === \"sent\"` and strictly more than 30 whole days have passed between `issuedOn` and `today` (both ISO YYYY-MM-DD strings, compared with Date.parse, which treats the date-only form as UTC midnight so the result does not depend on the server's timezone and no date library is needed); app/invoices/page.tsx computes `today` once per render and renders a small inline-styled `Overdue` marker inside the status cell of every row the predicate accepts. Paid, draft and void invoices never get the marker, whatever their age. One non-obvious consequence settles a decision the builder would otherwise have to make: /invoices is currently prerendered as a static page, and `new Date()` in a server component does not change that (verified — the build still reported it as Static), so the overdue flag would be frozen at build time; the page therefore also gains `export const dynamic = \"force-dynamic\"` with a comment saying why, which the build then reports as server-rendered on demand. The CSV export is deliberately untouched: lib/invoices.ts's `exportableInvoices`, `toCsv` and `CSV_HEADER`, app/invoices/export/route.ts and components/ExportButton.tsx all keep their current behaviour, because the request asked about the table only and adding an overdue column to the file would change the one promise this app exists to make. No refactor is folded in; the 30 stays a module-local named constant in lib/invoices.ts rather than becoming configuration, since nothing has asked for a second value.",
+    "files": [
+      "lib/invoices.ts",
+      "lib/invoices.test.ts",
+      "app/invoices/page.tsx",
+      "app/invoices/page.test.tsx"
+    ],
+    "feature_folders": [
+      "lib/",
+      "app/invoices/"
+    ],
+    "acceptance_checks": [
+      "Load http://localhost:3000/invoices in a browser: the row for INV-1002 (Northwind Books, status `sent`, issued 2026-10-11) shows the word `Overdue` next to its status in the Status column.",
+      "On that same page, the rows for INV-1001 (Acme Bakery, `paid`, issued 2026-10-02) and INV-1003 (Globex Coffee, `paid`, issued 2026-10-19) show their status with no `Overdue` next to it, even though both were issued more than 30 days ago.",
+      "On that same page, the rows for INV-1004 (Initech Hardware, `draft`) and INV-1005 (Hooli Cleaning, `void`) show their status with no `Overdue` next to it.",
+      "Run `curl -s http://localhost:3000/invoices/export`: the response is unchanged — the header line is exactly `id,customer,amount,issued_on,status`, followed by three rows for INV-1001, INV-1002 and INV-1003, with no overdue column added and the word `Overdue` nowhere in the body.",
+      "On http://localhost:3000/invoices, the export button still reads exactly `Export 3 invoices as CSV`.",
+      "Run `npm run build`: the route table lists `/invoices` with the `ƒ` marker (`server-rendered on demand`) rather than the `○` marker (`prerendered as static content`), so the overdue flag is recomputed per request instead of being frozen at build time.",
+      "Run `npm test`: every test passes, including a new case asserting that a `sent` invoice issued exactly 30 days before `today` is not overdue and one issued 31 days before `today` is."
+    ],
+    "tests_added": [
+      "lib/invoices.test.ts — a `describe(\"isOverdue\")` block built on the existing `invoice(over)` factory: a sent invoice issued 31 days before `today` is overdue; one issued exactly 30 days before is not (the boundary, since the rule is 'more than 30 days'); one issued 29 days before is not; a `paid`, a `draft` and a `void` invoice issued 100 days before `today` are each not overdue, because nobody is waiting on them.",
+      "app/invoices/page.test.tsx — a new colocated test rendering the page with @testing-library/react (verified to work under the repo's vitest/jsdom setup): the table row containing INV-1002 includes the text `Overdue`, and the rows containing INV-1001, INV-1003, INV-1004 and INV-1005 do not. These assertions are stable over time: paid, draft and void are never overdue whatever the date, and INV-1002 was issued in October 2026 so it stays past the 30-day mark."
+    ],
+    "tests_changed": [
+      "lib/invoices.test.ts"
+    ],
+    "research": [
+      {
+        "source": "lib/invoices.ts:3-18",
+        "claim": "The `Invoice` interface and the seeded list. Status is the union \"draft\" | \"sent\" | \"paid\" | \"void\" and `issuedOn` is a `string` with a `// YYYY-MM-DD` comment, so the predicate's two inputs are both ISO date strings. The seed holds exactly one `sent` invoice, INV-1002 issued 2026-10-11, which is what makes the acceptance checks concrete."
+      },
+      {
+        "source": "ran: node -e 'console.log(new Date(Date.parse(\"2026-10-11\")).toISOString()); for (const d of [\"2026-10-02\",\"2026-10-11\",\"2026-10-19\",\"2026-11-01\",\"2026-11-08\"]) console.log(d, (Date.parse(\"2026-11-21\")-Date.parse(d))/86400000)'",
+        "claim": "`Date.parse` on the date-only ISO form yields UTC midnight (2026-10-11T00:00:00.000Z), so subtracting two of them and dividing by 86400000 gives whole days independent of the host timezone — no date library, which matches the repo's stated Dates pattern. Ages as of 2026-11-21: INV-1001 50, INV-1002 41, INV-1003 33, INV-1004 20, INV-1005 13. So INV-1002 is the only overdue row, and INV-1001/INV-1003 are the useful negatives: both older than 30 days but `paid`."
+      },
+      {
+        "source": ".factory/definition/context/fundamentals.md",
+        "claim": "Three rows decide the shape of this change. Dates: 'ISO YYYY-MM-DD strings, typed as string ... No date library.' Domain logic: 'Pure functions over readonly data in lib/, with no React and no I/O', so the rule lives in lib and the page only renders it. Taste: 'Prefer widening an existing pure function in lib/ to adding a second one that does nearly the same thing. There is one domain module; it should stay one' — hence `isOverdue` goes into lib/invoices.ts rather than a new lib/overdue.ts, and takes `today` as a parameter rather than calling `new Date()` itself."
+      },
+      {
+        "source": "ran: npm run build (after temporarily adding `const today = new Date().toISOString().slice(0, 10);` to app/invoices/page.tsx; reverted)",
+        "claim": "The route table still printed `○ /invoices` under '○ (Static) prerendered as static content'. Reading the clock in a server component is not a dynamic API in Next 15, so without an explicit opt-out the overdue flag would be computed once at build time and never again — which would silently break the request's 'the 30 days are counted from today'. This is the finding the `force-dynamic` line exists for."
+      },
+      {
+        "source": "ran: npm run build && npx tsc --noEmit && npx eslint . (after temporarily adding `export const dynamic = \"force-dynamic\";` to app/invoices/page.tsx; reverted)",
+        "claim": "The route table then printed `ƒ /invoices` under 'ƒ (Dynamic) server-rendered on demand', and both the typecheck and the lint exited clean with no output. Confirms the one-line opt-out works on this repo's exact toolchain and adds no static-gate findings, and gives acceptance check 6 its exact observable."
+      },
+      {
+        "source": "ran: grep -n 'force-dynamic' node_modules/next/dist/build/segment-config/app/app-segment-config.d.ts",
+        "claim": "Line 23 of the installed Next 15.5.29 types declares `dynamic?: 'auto' | 'error' | 'force-static' | 'force-dynamic';` on `AppSegmentConfig`, documented there as 'The dynamic behavior of the page'. So `force-dynamic` is a supported value of the route segment config in the version this repo actually resolves (package-lock.json pins next 15.5.29), not a deprecated or renamed option. Checked locally because this sandbox's network blocks nextjs.org."
+      },
+      {
+        "source": "ran: npx vitest run app/invoices/scratch-probe.test.tsx (a throwaway test that rendered the page with @testing-library/react and asserted on INV-1002's row; deleted after the run)",
+        "claim": "1 test passed in 71ms. The page is a synchronous server component and `components/ExportButton`'s \"use client\" directive is inert outside Next, so the whole page renders under the repo's existing vitest/jsdom + @vitejs/plugin-react setup with no new dependency and no config change. This is why app/invoices/page.test.tsx is a safe thing to ask the builder for; without the probe it would have been a guess."
+      },
+      {
+        "source": "app/invoices/page.tsx:26-33",
+        "claim": "The table body maps invoices to rows and the Status cell is a bare `<td>{i.status}</td>` — the single place the marker goes. The page is already a server component with no \"use client\", and it already calls `listInvoices()` directly, so it can call `isOverdue` the same way; nothing needs to move to the client."
+      },
+      {
+        "source": "components/ExportButton.tsx:22",
+        "claim": "`new Date().toISOString().slice(0, 10)` is how this codebase already turns the clock into a YYYY-MM-DD string. The page should produce `today` the same way rather than inventing a second idiom."
+      },
+      {
+        "source": "lib/invoices.test.ts:8-11",
+        "claim": "The `invoice(over: Partial<Invoice> = {}) => Invoice` factory with defaults (status \"sent\", issuedOn \"2026-01-01\"). Fundamentals calls this the test-data pattern, so the new isOverdue cases override `issuedOn`/`status` on this factory and pass an explicit `today` literal rather than building objects by hand or reading the real clock."
+      },
+      {
+        "source": ".factory/sandbox/manifest.json",
+        "claim": "Tier `renders`, app_url http://localhost:3000/invoices, and the capabilities list confirms every acceptance check above is exercisable: the production server renders the real table in a Chromium screenshot, `curl` can fetch /invoices/export and read its body, and `npm test` runs the vitest suite. It also records '/invoices prerendered static' as an observed build fact — the `force-dynamic` line changes that one line of description, but breaks none of the exercised capabilities, since the page is still built, still served, and still answers 200."
+      },
+      {
+        "source": ".factory/definition/policy.yaml",
+        "claim": "Pipeline product_work may_change [code, tests]. None of the four files is under paths.protected (.github/workflows, .factory/bin, .factory/sandbox, policy.yaml), paths.guardrails or paths.definition, so nothing here needs trusted human approval. `tests.declared_edits: required` is why lib/invoices.test.ts is listed in tests_changed; app/invoices/page.test.tsx is new and needs no declaration."
+      },
+      {
+        "source": ".factory/definition/context/history.md",
+        "claim": "Under 'Problem classes already eliminated': drafts and voids reaching the export are kept out by the single `exportableInvoices` filter used by both the page's count and the route's body 'so they cannot diverge'. That is the reason this plan leaves the export path alone and keeps the overdue rule in a separate predicate — widening or branching `exportableInvoices` would be a regression of an already-solved problem."
+      }
+    ]
+  }
 }
