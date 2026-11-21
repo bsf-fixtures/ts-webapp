@@ -1,0 +1,44 @@
+{
+  "url": "http://localhost:3000/invoices?status=void",
+  "status": 200,
+  "tbodyRowCount": 1,
+  "tbodyInvoiceIds": [
+    "INV-1005"
+  ],
+  "invoiceIdsAnywhereOnPage": [
+    "INV-1005"
+  ],
+  "navAnchors": [
+    {
+      "label": "All",
+      "href": "/invoices",
+      "ariaCurrent": null,
+      "style": "font-weight:400"
+    },
+    {
+      "label": "Draft",
+      "href": "/invoices?status=draft",
+      "ariaCurrent": null,
+      "style": "font-weight:400"
+    },
+    {
+      "label": "Sent",
+      "href": "/invoices?status=sent",
+      "ariaCurrent": null,
+      "style": "font-weight:400"
+    },
+    {
+      "label": "Paid",
+      "href": "/invoices?status=paid",
+      "ariaCurrent": null,
+      "style": "font-weight:400"
+    },
+    {
+      "label": "Void",
+      "href": "/invoices?status=void",
+      "ariaCurrent": "page",
+      "style": "font-weight:700"
+    }
+  ],
+  "exportButtonLabel": "Export 3 invoices as CSV"
+}
