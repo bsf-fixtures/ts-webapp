@@ -19,5 +19,88 @@
   "pr": null,
   "parent": null,
   "related": [],
-  "spec": null
+  "spec": {
+    "plan": "Today the Invoice cell of each row on /invoices is plain text and there is no route under /invoices/<id>, so an invoice cannot be opened. After this change the id in every row is a next/link to /invoices/<id>; that route is a new async server component at app/invoices/[id]/page.tsx which looks the invoice up with a new pure findInvoice(id) in lib/invoices.ts and renders its customer, amount via the existing formatCurrency (so the figure carries a dollar sign, e.g. $1,180.00), issue date and status, plus a 'Back to invoices' link; when no invoice has that id it calls notFound() from next/navigation, which answers 404 and renders a new app/invoices/[id]/not-found.tsx saying the invoice was not found with the same back link.\n\nFour decisions the builder should not re-open, each settled by the research below. (1) The lookup is a new findInvoice in lib/invoices.ts rather than filtering in the page, because lib/ is this repo's one domain module and the page must stay free of domain rules. (2) findInvoice searches the whole seeded list, NOT exportableInvoices — drafts and voids are visible in the table, so every row must open; the sent/paid rule belongs to the export and nowhere else. (3) The amount uses formatCurrency, which already exists and already yields the dollar sign and thousands separator; do not add a second formatter. (4) A small not-found.tsx is included rather than falling back to Next's built-in 404, because the built-in page is a bare framework screen with no way back to the list and nothing invoice-specific to assert on; the custom one is eleven lines and uses the same conventions as app/page.tsx.\n\nEvery new and changed source file must finish at 100% line coverage, because .factory/guardrails/coverage.json sets diff_min_pct to 80 and the runner measures diff coverage over the changed lines — a not-found.tsx with no test was measured here at 0% and pulled the whole change under the minimum. Follow the repo's conventions throughout: server components with no \"use client\", no inline styles (app/page.tsx has none either), @/ imports across folders and ./name.js inside a folder, and test names that say what a reader loses. Nothing else is in scope: the invoices table is not re-laid-out, no sorting or filtering is added, and the feature map is not edited (it is under .factory/definition/, which this pipeline may not change).",
+    "files": [
+      "lib/invoices.ts",
+      "lib/invoices.test.ts",
+      "app/invoices/page.tsx",
+      "app/invoices/page.test.tsx",
+      "app/invoices/[id]/page.tsx",
+      "app/invoices/[id]/page.test.tsx",
+      "app/invoices/[id]/not-found.tsx",
+      "app/invoices/[id]/not-found.test.tsx"
+    ],
+    "feature_folders": [
+      "app/invoices/",
+      "app/invoices/[id]/",
+      "lib/"
+    ],
+    "acceptance_checks": [
+      "On http://localhost:3000/invoices, the Invoice cell of every row is a link: the INV-1002 cell is an anchor whose href is /invoices/INV-1002, and clicking it leaves the list for that URL.",
+      "http://localhost:3000/invoices/INV-1002 answers HTTP 200 and the page shows all four fields for that invoice: the customer Northwind Books, the amount $1,180.00 with the dollar sign, the issue date 2026-10-11 and the status sent.",
+      "http://localhost:3000/invoices/INV-1004 answers HTTP 200 and shows Initech Hardware, $931.00, 2026-11-01 and draft — a draft is listed in the table, so its row must open too; the sent/paid rule stays confined to the export.",
+      "The invoice page carries a link reading 'Back to invoices' whose href is /invoices, and clicking it returns to the list showing all five invoices.",
+      "http://localhost:3000/invoices/INV-9999 answers HTTP 404 and the rendered page reads 'Invoice not found' with a 'Back to invoices' link. Check this in a browser, not with curl's raw HTML: the not-found body is delivered inside a streamed Suspense template, so it is present in the response bytes but only becomes visible text once React hydrates it.",
+      "npm run build, npm test, npm run typecheck and npm run lint all still exit 0, and the build's route table lists /invoices/[id] as a dynamic (f) route."
+    ],
+    "tests_added": [
+      "app/invoices/[id]/page.test.tsx — renders the page component directly with `render(await InvoicePage({ params: Promise.resolve({ id: \"INV-1001\" }) }))` and asserts the heading is INV-1001 and the body contains Acme Bakery, $245.00, 2026-10-02 and paid; a second case asserts the back link's href is /invoices; a third asserts an unknown id rejects, with `await expect(InvoicePage({ params: Promise.resolve({ id: \"INV-9999\" }) })).rejects.toThrow()`, because notFound() throws rather than returning.",
+      "app/invoices/[id]/not-found.test.tsx — renders the not-found component and asserts it says 'Invoice not found' and links back to /invoices. This test is what keeps the file off 0% coverage."
+    ],
+    "tests_changed": [
+      "lib/invoices.test.ts",
+      "app/invoices/page.test.tsx"
+    ],
+    "research": [
+      {
+        "claim": "The Invoice cell renders the bare id today, so making a row openable is a one-line change here: wrap {i.id} in a next/link anchor to `/invoices/${i.id}`. The table lists every invoice, drafts and voids included, which is why the detail route must not filter.",
+        "source": "app/invoices/page.tsx:25 (the <td> for the id), with the unfiltered listInvoices() it maps over at app/invoices/page.tsx:23"
+      },
+      {
+        "claim": "formatCurrency already renders cents with a dollar sign and a thousands separator from a locale-pinned Intl.NumberFormat, so 'amount (with a dollar sign)' needs no new code; its test already fixes $1,497.50 as the expected shape. Adding a second money formatter would contradict the 'one domain module' rule in fundamentals.md.",
+        "source": "lib/invoices.ts:41 (formatCurrency), asserted at lib/invoices.test.ts:61"
+      },
+      {
+        "claim": "The seeded INVOICES array in lib/ is the only data source in the app, and every reader already reaches it through a pure exported function. A findInvoice(id) built on INVOICES.find is therefore the shape this repo already uses, and placing it beside listInvoices keeps the page free of domain logic.",
+        "source": "lib/invoices.ts:11 (the readonly INVOICES array) and lib/invoices.ts:19 (listInvoices, the existing accessor)"
+      },
+      {
+        "claim": "next/link is already how this repo links between routes, used with no wrapper and no styling, so the table cell and the back link should look the same way.",
+        "source": "app/page.tsx:8"
+      },
+      {
+        "claim": "Route handlers and pages here are nested one segment deep under app/invoices/, so app/invoices/[id]/ mirrors the existing app/invoices/export/ layout rather than inventing a new top-level folder. Neither imports from another feature folder; both reach down to lib/ only.",
+        "source": "app/invoices/export/route.ts:1 (its only import is @/lib/invoices)"
+      },
+      {
+        "claim": "This repo already renders server page components directly with @testing-library/react under jsdom — no router mock, no Next test harness — and that test is why app/invoices/page.tsx measures 100% line coverage today. The new page tests follow the same pattern; the async page is awaited before being handed to render().",
+        "source": "app/invoices/page.test.tsx:9"
+      },
+      {
+        "claim": "Next is pinned at 15.5.29, where a page's params prop is a Promise. The signature `{ params: Promise<{ id: string }> }` with `const { id } = await params` was compiled by the real build and by tsc --noEmit with strict and noUncheckedIndexedAccess, both exit 0; the build's route table printed `f /invoices/[id]` (server-rendered on demand) alongside the existing static routes, so the new route does not disturb the prerendering of / and /invoices.",
+        "source": "ran: npm ci && npm run build && npm run typecheck && npm run lint — with a scratch app/invoices/[id]/page.tsx in place, since reverted; version from package-lock.json"
+      },
+      {
+        "claim": "notFound() from next/navigation produces a real 404: the built production server answered 404 for an unknown id and 200 for a real one, and the table's draft invoice INV-1004 opened at 200 showing 'Initech Hardware $931.00 2026-11-01 draft'. Every row of the table also gained an href — /invoices/INV-1001 through /invoices/INV-1005 appeared in the list page's HTML.",
+        "source": "ran: npm run start -- --port 3000 then curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/invoices/INV-9999 (404), the same for /invoices/INV-1004 (200), and curl -s http://localhost:3000/invoices | grep -o 'href=\"/invoices/INV-[0-9]*\"'"
+      },
+      {
+        "claim": "The not-found body does not appear as visible text in the raw HTML: Next streams it inside a hidden <template> Suspense slot, so stripping tags from the curl response yields only the document title. The string is in the response bytes and renders in a browser. A verifier that greps curl output for visible text would wrongly call this missing, which is why the acceptance check says to use a browser — the sandbox is tier 'renders' and drives Chromium.",
+        "source": "ran: curl -s http://localhost:3000/invoices/INV-9999 -o nf2.html && grep -c 'Invoice not found' nf2.html (1 hit, inside the streamed payload, while tag-stripped visible text was only 'Invoices')"
+      },
+      {
+        "claim": "Diff coverage must reach 80%, and the runner computes it over the changed lines using the DA records in coverage/lcov.info, falling back to whole-file totals only when per-line data is absent. A scratch run with every file in this plan but no test for not-found.tsx measured that file at 0% over 11 lines and would have dragged the change under the minimum; adding the one not-found test brought every new and changed file to 100% line coverage, with total coverage rising from 72.0% to 78.6% over 35 passing tests.",
+        "source": "ran: npm test -- --coverage, read against the diff_min_pct of 80 in .factory/guardrails/coverage.json"
+      },
+      {
+        "claim": "app/invoices/page.test.tsx and lib/invoices.test.ts are existing test files this change edits, so both are declared. The repo's fourth test file was not in the feature map's list; the committed test files are the four named by git, and tests live beside their source with no tests/ directory.",
+        "source": "ran: git ls-files | grep -E 'test|spec' — app/invoices/export/route.test.ts, app/invoices/page.test.tsx, components/ExportButton.test.tsx, lib/invoices.test.ts"
+      },
+      {
+        "claim": "Nothing in this plan touches a protected path: .github/workflows/, .factory/bin/, .factory/definition/policy.yaml and .factory/sandbox/ are all out of the change set, and product_work may change code and tests only.",
+        "source": ".factory/definition/policy.yaml"
+      }
+    ]
+  }
 }
