@@ -163,7 +163,7 @@ pre-agent-steps:
     shell: bash
     env:
       FACTORY_SANDBOX_ENV: ${{ secrets.FACTORY_SANDBOX_ENV }}
-    run: bsf sandbox start
+    run: bsf sandbox start --serve
   - name: Check out the exact commit under verification
     shell: bash
     env:
@@ -246,6 +246,13 @@ its own work.
    ```
 
    The sandbox gives the app exactly those variables and nothing else.
+
+**If `/tmp/gh-aw/agent/bsf/app.json` exists, the app is already running** — on
+the runner, with the services and stubs it needs, which your shell here cannot
+reach. Open its `url` with the browser tool instead of starting the app
+yourself. It serves from this workspace, so a dev server reloads with your
+edits; if the manifest's `run` is a production build, the PR's gates rebuild
+it. Its log is at the `log` path the file gives, on the runner, not here.
 2. Work through the spec's `acceptance_checks` **one at a time**. For each, use
    the app the way a developer would: click through it in the browser, call the
    API, query the database. Record what you observe, not what you expect.

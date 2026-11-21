@@ -57,6 +57,7 @@ jobs:
       # (the item was already taken, or escalated) starts no role.
       proceed: ${{ steps.start.outputs.run_id != '' && steps.plan.outputs.proceed == 'true' }}
       run_id: ${{ steps.start.outputs.run_id }}
+      host_access: ${{ steps.plan.outputs.host_access }}
     steps:
       - uses: actions/checkout@v4
       # The runner that judges a change must not come from the change. A pull
@@ -277,7 +278,8 @@ jobs:
       always() && needs.plan.outputs.proceed == 'true' &&
       (needs.triage.result == 'skipped' || needs.triaged.outputs.proceed == 'true') &&
       (needs.spec.result == 'success' || (needs.spec.result == 'skipped' && needs.plan.outputs.needs_spec != 'true')) &&
-      (needs.gardener.result == 'success' || needs.gardener.result == 'skipped')
+      (needs.gardener.result == 'success' || needs.gardener.result == 'skipped') &&
+      needs.plan.outputs.host_access != 'true'
     # What the compiled role's own jobs request. A caller must grant at
     # least this, or GitHub refuses to start the run; derived from the lock
     # file and checked by a test, so a gh-aw upgrade cannot silently break it.
@@ -298,11 +300,43 @@ jobs:
       protected_files_policy: ${{ needs.plan.outputs.protected_files_policy }}
     secrets: inherit
 
+  # The same builder, compiled with host access: chosen when the frozen
+  # manifest needs the runner (services, or stubs at a third party's own
+  # address), so the app runs there and the agent can look at it. Weaker
+  # isolation, which is why it is a separate workflow and never the default.
+  build-host:
+    needs: [plan, triage, triaged, spec, gardener]
+    if: >-
+      always() && needs.plan.outputs.proceed == 'true' &&
+      (needs.triage.result == 'skipped' || needs.triaged.outputs.proceed == 'true') &&
+      (needs.spec.result == 'success' || (needs.spec.result == 'skipped' && needs.plan.outputs.needs_spec != 'true')) &&
+      (needs.gardener.result == 'success' || needs.gardener.result == 'skipped') &&
+      needs.plan.outputs.host_access == 'true'
+    # What the compiled role's own jobs request. A caller must grant at
+    # least this, or GitHub refuses to start the run; derived from the lock
+    # file and checked by a test, so a gh-aw upgrade cannot silently break it.
+    permissions:
+      actions: read
+      checks: read
+      contents: write
+      id-token: write
+      issues: write
+      pull-requests: write
+    uses: ./.github/workflows/factory-role-builder-host.lock.yml
+    with:
+      model: ${{ needs.plan.outputs.model_builder }}
+      work_item: ${{ inputs.work_item }}
+      pipeline: ${{ needs.plan.outputs.pipeline }}
+      attempt: ${{ fromJSON(inputs.attempt) }}
+      pr_number: ${{ fromJSON(inputs.pr_number) }}
+      protected_files_policy: ${{ needs.plan.outputs.protected_files_policy }}
+    secrets: inherit
+
   # The builder's safe output pushes with the factory App's token, which starts
   # factory-gates on the branch as a separate workflow. This job waits only for
   # the gate *results*, which are keyed by commit, and decides what happens next.
   after-gates:
-    needs: [plan, build]
+    needs: [plan, build, build-host]
     # Runs whatever the build did, so the item always leaves "running".
     if: always() && needs.plan.outputs.proceed == 'true'
     runs-on: ubuntu-latest
@@ -365,8 +399,8 @@ jobs:
           WORK_ITEM: ${{ inputs.work_item }}
           ATTEMPT: ${{ inputs.attempt }}
           RUN_ID: ${{ needs.plan.outputs.run_id }}
-          PR: ${{ needs.build.outputs.created_pr_number || inputs.pr_number }}
-          BUILD_RESULT: ${{ needs.build.result }}
+          PR: ${{ needs.build.outputs.created_pr_number || needs.build-host.outputs.created_pr_number || inputs.pr_number }}
+          BUILD_RESULT: ${{ needs.build.result != 'skipped' && needs.build.result || needs.build-host.result }}
         run: bsf run after-gates "$WORK_ITEM" --run-id "$RUN_ID" --attempt "$ATTEMPT" --pr "$PR" --build-result "$BUILD_RESULT"
 
   rollup:

@@ -188,13 +188,25 @@ genuinely work:
 - **`stub`** — a third party you cannot run. Write a small local server under
   `stubs/<name>/` that answers the requests this app actually makes with the
   shapes the real API returns (read the client code and the provider's docs),
-  start it as part of the `run` command, and record it under `stubs` with where
-  its fixture shapes came from and when.
+  record it under `stubs` with where its fixture shapes came from and when.
+  Where the app can be told the endpoint, point the variable at the stub and
+  start it as part of `run`. Where it cannot — a client library with a fixed
+  host, a driver that derives its endpoint from a connection string, an OAuth
+  provider found by discovery — give the stub `hosts` (the names the app
+  calls), a `port` and a `start` command: the sandbox makes those names
+  resolve to this runner and serves them over HTTPS with a certificate the
+  runtime trusts, forwarding to your stub. Any credential the client needs to
+  sign with (a service-account key, a client secret) is one you generate for
+  the stub, never the owner's. A fixed host is a reason for `hosts`, not for
+  `inert`.
 - **`test_mode`** — only when the provider has a real test mode and the app
   cannot be exercised otherwise. Name the secret; never write a value.
 - **`inert`** — present so the app starts; any path needing it will not work
-  here. Use it last, and list what it costs under
-  `capabilities.not_exercised`.
+  here. Use it last, only once `service` and `stub` (with `hosts` where the
+  address is fixed) are both impossible, and list what it costs under
+  `capabilities.not_exercised`. Sign-in is not a reason for `inert`: an
+  identity provider can be stubbed like any other, so the pages behind
+  sign-in can be seen.
 
 **No credential of the owner's goes in the sandbox.** Not a real database
 URL, not a real API key, not a production origin. The environment is closed:
