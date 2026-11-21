@@ -81,11 +81,11 @@ network:
 sandbox:
   agent:
     # Host-access variant, derived by runner/scripts/host-variants.mjs: the app
-    # runs on the runner with its services and stubs, and this is the one
-    # port the agent may reach it on. Chosen only when the frozen manifest
+    # runs on the runner with its services and stubs, and these are the only
+    # ports the agent may reach there. Chosen only when the frozen manifest
     # needs the runner; it is weaker isolation, and setup says so.
     runtime: docker-sudo-iptables
-    allow-host-ports: [8787]
+    allow-host-ports: [8787, 8788, 8789, 8790]
     id: awf
     # gh-aw takes no expression here: runtime is a literal, so the posture is
     # a COMPILE-TIME decision. Phase 2 of setup decides it and phase 6 writes
@@ -252,12 +252,16 @@ its own work.
 
    The sandbox gives the app exactly those variables and nothing else.
 
-**If `/tmp/gh-aw/agent/bsf/app.json` exists, the app is already running** — on
-the runner, with the services and stubs it needs, which your shell here cannot
-reach. Open its `url` with the browser tool instead of starting the app
-yourself. It serves from this workspace, so a dev server reloads with your
-edits; if the manifest's `run` is a production build, the PR's gates rebuild
-it. Its log is at the `log` path the file gives, on the runner, not here.
+**If `/tmp/gh-aw/agent/bsf/app.json` exists, the sandbox runs on the runner**,
+with the services and stubs the app needs:
+
+- its `url` is the app, already running. Open it with the browser tool; do
+  not start another. It serves from this workspace and **restarts by itself a
+  couple of seconds after you change a file**, so wait for it and reload;
+- its `services` are reachable from your shell at the addresses it lists, and
+  `.factory/sandbox/.agent.env` is the environment rewritten to use them —
+  **source that file instead of `.runtime.env`** when you run tests or
+  scripts yourself.
 2. Work through the spec's `acceptance_checks` **one at a time**. For each, use
    the app the way a developer would: click through it in the browser, call the
    API, query the database. Record what you observe, not what you expect.

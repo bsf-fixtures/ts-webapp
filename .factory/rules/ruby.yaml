@@ -1,0 +1,116 @@
+# Ruby rule pack.
+#
+# Rules are RuboCop cop names, because RuboCop is what Ruby projects already
+# run and its cop names are the vocabulary a developer will recognise.
+#
+# UNVERIFIED HERE. rubygems.org is unreachable from the environment this pack
+# was written in, so RuboCop could not be installed and no rule's examples
+# have been run against it. The cop names come from RuboCop's own
+# documentation; the examples are written to the cop's documented behaviour.
+# Phase 3 runs every rule's two examples before installing it, which is where
+# this gets checked for real — a rule whose bad example does not fire is
+# rejected there.
+schema: rulepack/1
+language: ruby
+extensions: [".rb", ".rake", ".gemspec"]
+verification: documented_not_run
+
+tools:
+  - id: rubocop
+    kind: linter
+    detect: [".rubocop.yml", ".rubocop_todo.yml"]
+    config_file: .rubocop.yml
+    install: gem install rubocop
+    check: rubocop --format json
+    fix: rubocop --autocorrect
+    # RuboCop has a baseline of its own, which the factory reads rather than
+    # duplicating: a repo that already has a todo file has already decided
+    # what it is living with.
+    native_baseline: .rubocop_todo.yml
+
+  - id: rubocop-format
+    kind: formatter
+    detect: [".rubocop.yml"]
+    config_file: .rubocop.yml
+    install: gem install rubocop
+    check: rubocop --only Layout --format json
+    fix: rubocop --only Layout --autocorrect
+    native_baseline: .rubocop_todo.yml
+
+  - id: gitleaks
+    kind: secrets
+    detect: [".gitleaks.toml"]
+    config_file: .gitleaks.toml
+    install: "# gitleaks runs as a pinned action in CI"
+    check: gitleaks detect --no-banner --redact
+    fix: null
+    native_baseline: null
+
+rules:
+  - id: no-rescue-without-a-class
+    concern: >-
+      A bare `rescue` catches StandardError and everything below it, so it
+      swallows the bugs it was not written for along with the error it was.
+    tool: rubocop
+    config: { cop: "Lint/RescueException" }
+    bad: |
+      def fetch(url)
+        get(url)
+      rescue Exception => e
+        nil
+      end
+    good: |
+      def fetch(url)
+        get(url)
+      rescue Net::HTTPError => e
+        nil
+      end
+
+  - id: no-assignment-in-a-condition
+    concern: >-
+      An assignment in a condition reads as a comparison, so the next person
+      to read it sees a test where there is a side effect.
+    tool: rubocop
+    config: { cop: "Lint/AssignmentInCondition" }
+    bad: |
+      if total = compute_total
+        puts total
+      end
+    good: |
+      total = compute_total
+      if total
+        puts total
+      end
+
+  - id: no-unused-block-argument
+    concern: >-
+      An unused block argument is usually a sign the block was changed and its
+      parameters were not, which means it is reading something other than
+      what its author intended.
+    tool: rubocop
+    config: { cop: "Lint/UnusedBlockArgument" }
+    bad: |
+      items.each_with_index do |item, index|
+        puts item
+      end
+    good: |
+      items.each do |item|
+        puts item
+      end
+
+  - id: no-shadowed-local-in-block
+    concern: >-
+      A block parameter that shadows an outer local silently hides it, so an
+      assignment inside the block does not do what it looks like it does.
+    tool: rubocop
+    config: { cop: "Lint/ShadowingOuterLocalVariable" }
+    bad: |
+      total = 0
+      items.each do |total|
+        puts total
+      end
+    good: |
+      total = 0
+      items.each do |item|
+        total += item
+      end

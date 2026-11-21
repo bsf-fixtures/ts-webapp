@@ -1,0 +1,170 @@
+# Java rule pack.
+#
+# The rules here are `javac -Xlint` categories, which need nothing installed:
+# they are the compiler's own warnings, named, so a count can be attributed to
+# something a developer can reproduce with the JDK they already have. PMD and
+# SpotBugs are declared as well for the checks the compiler does not make, and
+# their rules are added by hardening when a repo needs them.
+schema: rulepack/1
+language: java
+extensions: [".java"]
+
+tools:
+  - id: javac-lint
+    kind: linter
+    detect: ["pom.xml", "build.gradle", "build.gradle.kts"]
+    # Which categories are errors is set in the build file's compiler
+    # arguments, which is where the guardrail lives.
+    config_file: pom.xml
+    install: "# javac ships with the JDK"
+    check: javac -Xlint:all -Werror -d /tmp/javac-out $(find . -name '*.java' -not -path './target/*')
+    fix: null
+    native_baseline: null
+
+  - id: pmd
+    kind: linter
+    detect: ["pmd-ruleset.xml", "ruleset.xml"]
+    config_file: pmd-ruleset.xml
+    install: "# pmd runs as a pinned action in CI"
+    check: pmd check -d . -R pmd-ruleset.xml -f json
+    fix: null
+    native_baseline: null
+
+  - id: spotless
+    kind: formatter
+    detect: ["pom.xml", "build.gradle", ".editorconfig"]
+    config_file: pom.xml
+    install: "# spotless runs through the build"
+    check: mvn -q spotless:check
+    fix: mvn -q spotless:apply
+    native_baseline: null
+
+  - id: gitleaks
+    kind: secrets
+    detect: [".gitleaks.toml"]
+    config_file: .gitleaks.toml
+    install: "# gitleaks runs as a pinned action in CI"
+    check: gitleaks detect --no-banner --redact
+    fix: null
+    native_baseline: null
+
+rules:
+  - id: no-raw-types
+    concern: >-
+      A raw `List` opts out of generics entirely, so every element becomes an
+      Object and the cast that fails does so at runtime, far from here.
+    tool: javac-lint
+    config: { category: rawtypes }
+    bad: |
+      import java.util.*;
+
+      public class Probe {
+          public static List names() {
+              List items = new ArrayList();
+              items.add("x");
+              return items;
+          }
+      }
+    good: |
+      import java.util.*;
+
+      public class Probe {
+          public static List<String> names() {
+              List<String> items = new ArrayList<>();
+              items.add("x");
+              return items;
+          }
+      }
+
+  - id: no-switch-fallthrough
+    concern: >-
+      A case without a break falls into the next one, so a switch that looks
+      like a choice runs two branches.
+    tool: javac-lint
+    config: { category: fallthrough }
+    bad: |
+      public class Probe {
+          public static String describe(int n) {
+              switch (n) {
+                  case 1:
+                      return "one";
+                  case 2:
+                      System.out.println("two");
+                  case 3:
+                      return "three";
+                  default:
+                      return "many";
+              }
+          }
+      }
+    good: |
+      public class Probe {
+          public static String describe(int n) {
+              switch (n) {
+                  case 1:
+                      return "one";
+                  case 2:
+                      return "two";
+                  case 3:
+                      return "three";
+                  default:
+                      return "many";
+              }
+          }
+      }
+
+  - id: no-unchecked-cast
+    concern: >-
+      An unchecked cast is a promise the compiler cannot keep, so the
+      ClassCastException arrives wherever the value is finally used.
+    tool: javac-lint
+    config: { category: unchecked }
+    bad: |
+      import java.util.*;
+
+      public class Probe {
+          public static List<String> names(Object value) {
+              return (List<String>) value;
+          }
+      }
+    good: |
+      import java.util.*;
+
+      public class Probe {
+          public static List<String> names(Object value) {
+              List<String> out = new ArrayList<>();
+              if (value instanceof Collection<?> items) {
+                  for (Object item : items) out.add(String.valueOf(item));
+              }
+              return out;
+          }
+      }
+
+  - id: no-deprecated-api
+    concern: >-
+      A deprecated call works today and is the thing that breaks on the next
+      upgrade, usually long after whoever wrote it has moved on.
+    tool: javac-lint
+    config: { category: deprecation }
+    # The deprecated member has to be outside this class: javac suppresses
+    # the warning when the use site shares an outer class with the
+    # declaration, so a self-contained example of the obvious shape does not
+    # fire at all. A JDK API that is actually deprecated does.
+    bad: |
+      import java.util.Date;
+
+      public class Probe {
+          @SuppressWarnings("removal")
+          public static int year(Date date) {
+              return date.getYear();
+          }
+      }
+    good: |
+      import java.time.ZoneId;
+      import java.util.Date;
+
+      public class Probe {
+          public static int year(Date date) {
+              return date.toInstant().atZone(ZoneId.systemDefault()).getYear();
+          }
+      }

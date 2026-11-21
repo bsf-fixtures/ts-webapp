@@ -1,0 +1,115 @@
+# Rust rule pack.
+#
+# Rules are clippy lint names, because clippy ships with the toolchain and
+# already covers what would otherwise be several tools. Each rule carries the
+# two examples phase 3 uses to prove it discriminates.
+schema: rulepack/1
+language: rust
+extensions: [".rs"]
+
+tools:
+  - id: clippy
+    kind: linter
+    detect: ["Cargo.toml", "clippy.toml", ".clippy.toml"]
+    # clippy's own config file holds thresholds; the lint levels live in
+    # Cargo.toml's [lints.clippy] or a crate-level attribute.
+    config_file: Cargo.toml
+    install: rustup component add clippy
+    check: cargo clippy --all-targets --all-features -- -D warnings
+    fix: cargo clippy --fix --allow-dirty --allow-staged
+    native_baseline: null
+
+  - id: rustfmt
+    kind: formatter
+    detect: ["rustfmt.toml", ".rustfmt.toml", "Cargo.toml"]
+    config_file: rustfmt.toml
+    install: rustup component add rustfmt
+    check: cargo fmt --all --check
+    fix: cargo fmt --all
+    native_baseline: null
+
+  - id: gitleaks
+    kind: secrets
+    detect: [".gitleaks.toml"]
+    config_file: .gitleaks.toml
+    install: "# gitleaks runs as a pinned action in CI"
+    check: gitleaks detect --no-banner --redact
+    fix: null
+    native_baseline: null
+
+rules:
+  - id: no-unwrap-in-library-code
+    concern: >-
+      `unwrap` turns a recoverable error into a panic, which takes the whole
+      process down rather than returning something the caller can handle.
+    tool: clippy
+    config: { lint: "clippy::unwrap_used" }
+    bad: |
+      pub fn parse(text: &str) -> i32 {
+          text.parse::<i32>().unwrap()
+      }
+    good: |
+      pub fn parse(text: &str) -> Result<i32, std::num::ParseIntError> {
+          text.parse::<i32>()
+      }
+
+  - id: no-vec-parameter-where-slice-works
+    concern: >-
+      Taking `&Vec<T>` forces every caller to own a Vec; `&[T]` accepts a Vec,
+      an array and a slice, so the same function serves more callers.
+    tool: clippy
+    config: { lint: "clippy::ptr_arg" }
+    bad: |
+      pub fn total(values: &Vec<i32>) -> i32 {
+          values.iter().sum()
+      }
+    good: |
+      pub fn total(values: &[i32]) -> i32 {
+          values.iter().sum()
+      }
+
+  - id: no-needless-clone
+    concern: >-
+      Cloning to satisfy the borrow checker copies data the caller already
+      owns, and it hides which value the code actually depends on.
+    tool: clippy
+    config: { lint: "clippy::redundant_clone" }
+    bad: |
+      pub fn shout(text: String) -> String {
+          let owned = text.clone();
+          owned.to_uppercase()
+      }
+    good: |
+      pub fn shout(text: String) -> String {
+          text.to_uppercase()
+      }
+
+  - id: no-index-without-bounds-check
+    concern: >-
+      Indexing a slice panics on an out-of-range index; `get` returns an
+      Option, which makes the empty case something the code has to answer.
+    tool: clippy
+    config: { lint: "clippy::indexing_slicing" }
+    bad: |
+      pub fn first(values: &[i32]) -> i32 {
+          values[0]
+      }
+    good: |
+      pub fn first(values: &[i32]) -> Option<i32> {
+          values.first().copied()
+      }
+
+  - id: handle-every-result
+    concern: >-
+      A `Result` dropped on the floor is an error nobody sees — the operation
+      failed and the program carried on as though it had not.
+    tool: clippy
+    config: { lint: "clippy::let_underscore_must_use" }
+    bad: |
+      pub fn save(path: &str, text: &str) {
+          let _ = std::fs::write(path, text);
+      }
+    good: |
+      pub fn save(path: &str, text: &str) -> std::io::Result<()> {
+          std::fs::write(path, text)
+      }

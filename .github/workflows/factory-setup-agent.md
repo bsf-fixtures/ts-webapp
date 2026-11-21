@@ -152,6 +152,9 @@ in the repo itself is kept.
 4. **`research-domains.txt`** — one host per line: the documentation sites of
    the frameworks and libraries this repo actually uses. The spec role reads
    them when it researches.
+5. **`guardrails.patch`** and **`guardrails.json`** — the repo's own checkers,
+   extended with the factory's rules (see "Guardrails" below). Skip both on an
+   amendment.
 
 ## Read first, then hypothesize
 
@@ -232,6 +235,34 @@ commands once more in an empty directory: commands that pass there too —
 guarded on a file the repo does not have, or an `echo` — build and test
 nothing, and the tier is `static`. When there is nothing to build or test,
 say so with `static` and null commands.
+
+## Guardrails
+
+`.factory/rules/<language>.yaml` holds the factory's rules for each language:
+what each one guards against, the tool and config that enforce it, and a `bad`
+and a `good` example. Install the ones that fit **into the tools this repo
+already runs** — extend its eslint config, its ruff section in
+`pyproject.toml`, its `.rubocop.yml`. Never add a second linter beside an
+existing one, and do not add a tool the repo does not use.
+
+**Every rule you install must fail on its `bad` example and pass on its
+`good` one, with this repo's own config.** Write each example to a scratch
+file inside the repo's source tree (so its config applies), run the tool on
+it, and delete the file. A rule that fires on both would block correct code;
+one that fires on neither is decoration. Leave either out and say why.
+
+Change only checker configuration (and, if the tool has one, its native
+baseline file). Do not fix any existing violation: the runner baselines them
+per file after you, and gardening clears them in small reviewed PRs. Never
+touch `.github/` or `.factory/`.
+
+Write the result as a patch from the repo root, and what you decided:
+
+```bash
+git diff > /tmp/gh-aw/agent/bsf/setup/guardrails.patch
+```
+
+`guardrails.json`: `{ "installed": [{ "rule", "tool", "file" }], "skipped": [{ "rule", "why" }] }`.
 
 ## If this is not the first round
 

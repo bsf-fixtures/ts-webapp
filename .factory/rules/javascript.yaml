@@ -1,0 +1,219 @@
+# JavaScript rule pack.
+#
+# The TypeScript pack's typed rules are not available here, so this pack leans
+# on what can be decided from syntax alone. That is the real difference between
+# the two: a JS repo gets fewer guarantees, and the honest answer to that is a
+# smaller pack rather than rules that only look like they work.
+schema: rulepack/1
+language: javascript
+extensions: [".js", ".jsx", ".mjs", ".cjs"]
+
+tools:
+  - id: eslint
+    kind: linter
+    detect: ["eslint.config.*", ".eslintrc", ".eslintrc.*"]
+    config_file: eslint.config.mjs
+    install: npm i -D eslint
+    check: npx eslint .
+    fix: npx eslint . --fix
+    native_baseline: eslint-suppressions.json
+    # Without this, `no-undef` fires on `module` and `require` and would block
+    # correct CommonJS. Phase 3 writes it once; each rule merges on top.
+    base_config:
+      languageOptions:
+        ecmaVersion: 2022
+        sourceType: commonjs
+        globals:
+          require: readonly
+          module: writable
+          exports: writable
+          process: readonly
+          console: readonly
+          __dirname: readonly
+          __filename: readonly
+          Buffer: readonly
+          setTimeout: readonly
+          clearTimeout: readonly
+
+  - id: prettier
+    kind: formatter
+    detect: [".prettierrc", ".prettierrc.*", "prettier.config.*"]
+    config_file: .prettierrc
+    install: npm i -D prettier
+    check: npx prettier --check .
+    fix: npx prettier --write .
+    native_baseline: null
+
+  - id: gitleaks
+    kind: secrets
+    detect: [".gitleaks.toml"]
+    config_file: .gitleaks.toml
+    install: "# gitleaks runs as a pinned action in CI"
+    check: gitleaks detect --no-banner --redact
+    fix: null
+    native_baseline: null
+
+rules:
+  - id: no-var
+    concern: >-
+      `var` is function-scoped and hoisted, so a loop variable captured in a
+      closure is not the value anyone expects. In a legacy codebase this is
+      usually the largest baseline, and the one worth clearing first.
+    tool: eslint
+    config: { "no-var": "error" }
+    autofixable: true
+    bad: |
+      function count() {
+        var total = 0;
+        return total;
+      }
+      module.exports = { count: count };
+    good: |
+      function count() {
+        let total = 0;
+        return total;
+      }
+      module.exports = { count };
+
+  - id: eqeqeq
+    concern: >-
+      `==` coerces, so `0 == ""` and `null == undefined` are true. In code that
+      compares ids this silently matches a string to a number.
+    tool: eslint
+    config: { eqeqeq: ["error", "always"] }
+    bad: |
+      function find(items, id) {
+        return items.filter(function (i) {
+          return i.id == id;
+        });
+      }
+      module.exports = { find };
+    good: |
+      function find(items, id) {
+        return items.filter((i) => i.id === String(id));
+      }
+      module.exports = { find };
+
+  - id: no-undef
+    concern: >-
+      Without a type checker this is the only thing standing between a typo and
+      a runtime crash, so it is the single most valuable rule in a JS repo.
+    tool: eslint
+    config: { "no-undef": "error" }
+    bad: |
+      function total(values) {
+        return vlaues.length;
+      }
+      module.exports = { total };
+    good: |
+      function total(values) {
+        return values.length;
+      }
+      module.exports = { total };
+
+  - id: no-unused-vars
+    concern: >-
+      An unused variable is usually the remains of a change that was only half
+      made.
+    tool: eslint
+    config: { "no-unused-vars": "error" }
+    bad: |
+      function area(width, height) {
+        const unused = width * 2;
+        return width * height;
+      }
+      module.exports = { area };
+    good: |
+      function area(width, height) {
+        return width * height;
+      }
+      module.exports = { area };
+
+  - id: no-console
+    concern: >-
+      Console output is not logging: it has no level, no structure, and no
+      destination in production.
+    tool: eslint
+    config: { "no-console": "error" }
+    bad: |
+      function report() {
+        console.log("done");
+      }
+      module.exports = { report };
+    good: |
+      const log = require("./logger");
+      function report() {
+        log.info("done");
+      }
+      module.exports = { report };
+
+  - id: no-fallthrough
+    concern: >-
+      A `case` without a `break` runs the next one too. When it is deliberate
+      it needs saying; when it is not it is a bug that only shows for one input.
+    tool: eslint
+    config: { "no-fallthrough": "error" }
+    bad: |
+      function label(kind) {
+        switch (kind) {
+          case "a":
+            return "first";
+          case "b":
+            const x = 1;
+          default:
+            return "other";
+        }
+      }
+      module.exports = { label };
+    good: |
+      function label(kind) {
+        switch (kind) {
+          case "a":
+            return "first";
+          case "b":
+            return "second";
+          default:
+            return "other";
+        }
+      }
+      module.exports = { label };
+
+  - id: no-dupe-keys
+    concern: >-
+      A duplicated key silently wins over the earlier one, so a config object
+      can look right and behave differently.
+    tool: eslint
+    config: { "no-dupe-keys": "error" }
+    bad: |
+      const config = { retries: 3, timeout: 1000, retries: 5 };
+      module.exports = config;
+    good: |
+      const config = { retries: 5, timeout: 1000 };
+      module.exports = config;
+
+  - id: require-atomic-updates
+    concern: >-
+      Reading a value, awaiting, then writing it back loses whatever else wrote
+      in between. This is the common shape of a concurrency bug.
+    tool: eslint
+    config: { "require-atomic-updates": "error" }
+    critical_logic: true
+    bad: |
+      let total = 0;
+      async function fetchAmount() {
+        return 1;
+      }
+      async function add() {
+        total += await fetchAmount();
+      }
+      module.exports = { add };
+    good: |
+      let total = 0;
+      async function fetchAmount() {
+        return 1;
+      }
+      async function add() {
+        const amount = await fetchAmount();
+        total += amount;
+      }
+      module.exports = { add };

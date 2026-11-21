@@ -1,0 +1,121 @@
+# C# rule pack.
+#
+# Rules are Roslyn analyser ids, which ship with the .NET SDK — so the repo
+# runs its own compiler's analysers rather than installing a separate linter.
+#
+# UNVERIFIED HERE. The .NET SDK is not installed in the environment this pack
+# was written in, so no rule's examples have been run. The analyser ids and
+# their behaviour come from Microsoft's own documentation. Phase 3 runs every
+# rule's two examples before installing it, and rejects any rule whose bad
+# example does not fire — which is where this is checked for real.
+schema: rulepack/1
+language: csharp
+extensions: [".cs"]
+verification: documented_not_run
+
+tools:
+  - id: roslyn
+    kind: linter
+    detect: [".editorconfig", "Directory.Build.props", "*.csproj"]
+    # Analyser severities live in .editorconfig, which is also where the
+    # formatter's rules live — one file, which is why it is the config file.
+    config_file: .editorconfig
+    install: "# Roslyn analysers ship with the .NET SDK"
+    check: dotnet build -warnaserror
+    fix: null
+    native_baseline: null
+
+  - id: dotnet-format
+    kind: formatter
+    detect: [".editorconfig"]
+    config_file: .editorconfig
+    install: "# dotnet format ships with the .NET SDK"
+    check: dotnet format --verify-no-changes
+    fix: dotnet format
+    native_baseline: null
+
+  - id: gitleaks
+    kind: secrets
+    detect: [".gitleaks.toml"]
+    config_file: .gitleaks.toml
+    install: "# gitleaks runs as a pinned action in CI"
+    check: gitleaks detect --no-banner --redact
+    fix: null
+    native_baseline: null
+
+rules:
+  - id: dispose-what-you-create
+    concern: >-
+      An IDisposable that is never disposed holds its handle until the
+      finaliser runs, which under load means running out of connections.
+    tool: roslyn
+    config: { analyser: "CA2000" }
+    bad: |
+      public string Read(string path)
+      {
+          var reader = new StreamReader(path);
+          return reader.ReadToEnd();
+      }
+    good: |
+      public string Read(string path)
+      {
+          using var reader = new StreamReader(path);
+          return reader.ReadToEnd();
+      }
+
+  - id: no-async-void
+    concern: >-
+      An `async void` method's exceptions cannot be caught by its caller: they
+      go to the synchronisation context and usually crash the process.
+    tool: roslyn
+    config: { analyser: "CS4014" }
+    bad: |
+      public async void Save(string text)
+      {
+          await File.WriteAllTextAsync("out.txt", text);
+      }
+    good: |
+      public async Task Save(string text)
+      {
+          await File.WriteAllTextAsync("out.txt", text);
+      }
+
+  - id: await-every-task
+    concern: >-
+      A Task that is never awaited runs unobserved, so its failure is silent
+      and its ordering against the rest of the method is undefined.
+    tool: roslyn
+    config: { analyser: "CS4014" }
+    bad: |
+      public async Task Process()
+      {
+          SaveAsync("a");
+          await SaveAsync("b");
+      }
+    good: |
+      public async Task Process()
+      {
+          await SaveAsync("a");
+          await SaveAsync("b");
+      }
+
+  - id: no-string-concatenation-in-a-loop
+    concern: >-
+      Each concatenation allocates a new string, so a loop over n items copies
+      the whole string n times — quadratic work for a linear job.
+    tool: roslyn
+    config: { analyser: "CA1834" }
+    bad: |
+      public string Join(IEnumerable<string> parts)
+      {
+          var result = "";
+          foreach (var part in parts) result += part;
+          return result;
+      }
+    good: |
+      public string Join(IEnumerable<string> parts)
+      {
+          var builder = new StringBuilder();
+          foreach (var part in parts) builder.Append(part);
+          return builder.ToString();
+      }
