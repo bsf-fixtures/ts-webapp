@@ -236,6 +236,27 @@ guarded on a file the repo does not have, or an `echo` — build and test
 nothing, and the tier is `static`. When there is nothing to build or test,
 say so with `static` and null commands.
 
+## Coverage and checkers the gates run
+
+The gates measure diff coverage and count static findings per rule per file.
+They can only measure what this repo's own toolchain reports, so tell them how:
+
+- **`commands.coverage`** with **`coverage_report`** — the tests, run so they
+  also write a coverage report (`lcov`, `cobertura` or `istanbul-summary`) at
+  `coverage_report.path`. The tests gate runs this instead of `commands.test`,
+  so it must run the same tests. Use the coverage tool the repo's ecosystem
+  already has; where its native format is another one, add the step that
+  converts it. Leave both out when the repo has no tests.
+- **`static_checks`** — for a language with a checker the repo uses (or a
+  compiler's own warnings) that the factory does not run itself, each entry
+  is `{ "name", "command", "sarif", "why" }`: a command that runs the checker
+  over the repo and writes SARIF at `sarif`. A finding is usually a non-zero
+  exit; the SARIF is what is counted. Skip a checker the repo does not use.
+
+The trial runs each one after the tests. One that writes no report, or no
+SARIF, is dropped from the frozen sandbox and recorded under `dropped` with
+what happened, so the gates never fail every PR on a check that cannot run.
+
 ## Guardrails
 
 `.factory/rules/<language>.yaml` holds the factory's rules for each language:
