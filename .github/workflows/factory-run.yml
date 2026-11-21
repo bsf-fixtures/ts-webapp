@@ -46,9 +46,6 @@ jobs:
       model_builder: ${{ steps.models.outputs.model_builder }}
       model_hardener: ${{ steps.models.outputs.model_hardener }}
       needs_hardener: ${{ steps.plan.outputs.needs_hardener }}
-      needs_gardener: ${{ steps.plan.outputs.needs_gardener }}
-      model_gardener: ${{ steps.models.outputs.model_gardener }}
-      garden_max_prs: ${{ steps.models.outputs.garden_max_prs }}
       needs_spec: ${{ steps.plan.outputs.needs_spec }}
       pipeline: ${{ steps.plan.outputs.pipeline }}
       protected_files_policy: ${{ steps.plan.outputs.protected_files_policy }}
@@ -222,30 +219,6 @@ jobs:
       protected_files_policy: ${{ needs.plan.outputs.protected_files_policy }}
     secrets: inherit
 
-  # Gardening's intent comes from drift the nightly scan found.
-  gardener:
-    needs: plan
-    if: needs.plan.outputs.needs_gardener == 'true' && needs.plan.outputs.proceed == 'true'
-    # What the compiled role's own jobs request. A caller must grant at
-    # least this, or GitHub refuses to start the run; derived from the lock
-    # file and checked by a test, so a gh-aw upgrade cannot silently break it.
-    permissions:
-      actions: read
-      checks: read
-      contents: read
-      id-token: write
-      issues: write
-      pull-requests: read
-    uses: ./.github/workflows/factory-role-gardener.lock.yml
-    with:
-      model: ${{ needs.plan.outputs.model_gardener }}
-      max_prs: ${{ fromJSON(needs.plan.outputs.garden_max_prs) }}
-      work_item: ${{ inputs.work_item }}
-      pipeline: ${{ needs.plan.outputs.pipeline }}
-      attempt: ${{ fromJSON(inputs.attempt) }}
-      protected_files_policy: ${{ needs.plan.outputs.protected_files_policy }}
-    secrets: inherit
-
   spec:
     needs: [plan, triage, triaged, hardener]
     if: >-
@@ -273,12 +246,11 @@ jobs:
   # Runs when spec ran, and also when the pipeline has no spec step at all
   # (conflict, gardening). A failed spec still stops it.
   build:
-    needs: [plan, triage, triaged, spec, gardener]
+    needs: [plan, triage, triaged, spec]
     if: >-
       always() && needs.plan.outputs.proceed == 'true' &&
       (needs.triage.result == 'skipped' || needs.triaged.outputs.proceed == 'true') &&
       (needs.spec.result == 'success' || (needs.spec.result == 'skipped' && needs.plan.outputs.needs_spec != 'true')) &&
-      (needs.gardener.result == 'success' || needs.gardener.result == 'skipped') &&
       needs.plan.outputs.host_access != 'true'
     # What the compiled role's own jobs request. A caller must grant at
     # least this, or GitHub refuses to start the run; derived from the lock
@@ -305,12 +277,11 @@ jobs:
   # address), so the app runs there and the agent can look at it. Weaker
   # isolation, which is why it is a separate workflow and never the default.
   build-host:
-    needs: [plan, triage, triaged, spec, gardener]
+    needs: [plan, triage, triaged, spec]
     if: >-
       always() && needs.plan.outputs.proceed == 'true' &&
       (needs.triage.result == 'skipped' || needs.triaged.outputs.proceed == 'true') &&
       (needs.spec.result == 'success' || (needs.spec.result == 'skipped' && needs.plan.outputs.needs_spec != 'true')) &&
-      (needs.gardener.result == 'success' || needs.gardener.result == 'skipped') &&
       needs.plan.outputs.host_access == 'true'
     # What the compiled role's own jobs request. A caller must grant at
     # least this, or GitHub refuses to start the run; derived from the lock

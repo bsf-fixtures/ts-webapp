@@ -1,6 +1,6 @@
 ---
 # Gardener role. Compiled by `gh aw compile` into factory-role-gardener.lock.yml.
-# A workflow_call reusable workflow called as a job by factory-run (spike §3).
+# A workflow_call reusable workflow called as a job by factory-garden, once a night.
 on:
   # Who may start this: decided upstream, not here. This workflow's only
   # trigger is workflow_call, so only this repo's own workflows can start it, and
@@ -164,7 +164,7 @@ post-steps:
       app-id: ${{ vars.FACTORY_APP_CLIENT_ID }}
       private-key: ${{ secrets.FACTORY_APP_PRIVATE_KEY }}
       permission-contents: write
-      permission-actions: read
+      permission-actions: write
       # Scoped to this repository: an App token otherwise reaches every repo
       # the installation covers.
       owner: ${{ github.repository_owner }}

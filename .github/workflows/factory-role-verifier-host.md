@@ -193,6 +193,8 @@ post-steps:
       permission-contents: write
       # write: a sandbox report starts factory-setup to amend the sandbox.
       permission-actions: write
+      # read: a report waits while an amendment PR is open.
+      permission-pull-requests: read
       # Scoped to this repository: an App token otherwise reaches every repo
       # the installation covers.
       owner: ${{ github.repository_owner }}

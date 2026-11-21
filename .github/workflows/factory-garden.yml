@@ -71,13 +71,36 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.token.outputs.token }}
         run: bsf budget check --pipeline gardening
-      # Files each item and dispatches factory-run for it, into free slots.
-      # factory-run then runs the gardening pipeline: gardener, builder,
-      # verifier. There was also a job here calling the gardener directly, left
-      # from an earlier design; it read outputs this job never set, so the
-      # gardener would have started with no work item.
-      - name: Pick tonight's cleanup and file it as work items
+      - name: Read the gardener's model and PR limit from factory.yaml
+        id: models
         if: steps.budget.outputs.paused != 'true'
-        env:
-          GH_TOKEN: ${{ steps.token.outputs.token }}
-        run: bsf garden
+        run: bsf models
+    outputs:
+      paused: ${{ steps.budget.outputs.paused }}
+      model_gardener: ${{ steps.models.outputs.model_gardener }}
+      garden_max_prs: ${{ steps.models.outputs.garden_max_prs }}
+
+  # The gardener runs here, once a night, and nowhere else. It reads the drift
+  # and files what it picks as gardening work items; factory-run then builds
+  # and verifies each one. It used to run again at the start of every item's
+  # run too, and each of those runs filed another night's worth of items.
+  gardener:
+    needs: garden
+    if: needs.garden.outputs.paused != 'true'
+    # What the compiled role's own jobs request. A caller must grant at
+    # least this, or GitHub refuses to start the run; derived from the lock
+    # file and checked by a test, so a gh-aw upgrade cannot silently break it.
+    permissions:
+      actions: read
+      checks: read
+      contents: read
+      id-token: write
+      issues: write
+      pull-requests: read
+    uses: ./.github/workflows/factory-role-gardener.lock.yml
+    with:
+      model: ${{ needs.garden.outputs.model_gardener }}
+      max_prs: ${{ fromJSON(needs.garden.outputs.garden_max_prs) }}
+      work_item: nightly-scan
+      pipeline: gardening
+    secrets: inherit
