@@ -195,6 +195,7 @@ jobs:
       actions: read
       checks: read
       contents: read
+      id-token: write
       issues: write
       pull-requests: write
     uses: ./.github/workflows/factory-role-verifier.lock.yml

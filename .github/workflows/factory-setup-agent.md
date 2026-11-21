@@ -74,6 +74,15 @@ network:
     - nodejs.org
     - learn.microsoft.com
 
+# The setup agent reads a repo it has never seen, and roles: all lets anyone
+# who can start factory-setup reach it. Threat detection inspects what the
+# agent produced before anything downstream acts on it: the trial and the
+# setup PR wait for this whole workflow, detection included, to succeed.
+safe-outputs:
+  noop:
+  threat-detection:
+    enabled: true
+
 sandbox:
   agent:
     id: awf

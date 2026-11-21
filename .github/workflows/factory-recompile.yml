@@ -71,7 +71,8 @@ jobs:
         if: steps.app.outputs.present == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh extension install github/gh-aw
+        # The same compiler version the release's locks were made with.
+        run: gh extension install github/gh-aw --pin v1.3.1
       # Strict, and without --approve: a recompile that adds a secret the last
       # compile did not have is shown in the PR, where a person approves it.
       - name: Compile
