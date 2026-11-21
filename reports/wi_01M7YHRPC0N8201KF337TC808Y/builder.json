@@ -1,0 +1,74 @@
+{
+  "role": "builder",
+  "attempt": 1,
+  "report": {
+    "schema": "pr-report/1",
+    "summary": [
+      "The /invoices table now lists invoices by issue date, newest first.",
+      "Why: the list was in seeded order, so the oldest invoice sat at the top and the most recent work was last.",
+      "What you would notice: the table reads INV-1005 down to INV-1001; the export button, the total and the CSV file are unchanged."
+    ],
+    "blocks": [
+      {
+        "type": "file",
+        "file": "files/after.png",
+        "caption": "After: the table's top row is INV-1005 (issued 2026-11-08) and its last is INV-1001 (2026-10-02). The button still reads 'Export 3 invoices as CSV' and the line below still reads 'Total sent: $1,497.50'."
+      },
+      {
+        "type": "file",
+        "file": "files/before.png",
+        "caption": "Before: the same five invoices in seeded order, oldest first — INV-1001 at the top, the newest invoice at the bottom."
+      },
+      {
+        "type": "diagram",
+        "title": "Where the ordering sits: the page sorts, the export does not",
+        "mermaid": "flowchart TD\n  seed[\"INVOICES (seeded, readonly)\\noldest first\"] --> list[\"listInvoices()\"]\n  list --> page[\"app/invoices/page.tsx\"]\n  list --> route[\"app/invoices/export/route.ts\"]\n  page --> sort[\"newestFirst()\\nNEW in lib/invoices.ts\"]\n  sort --> table[\"table rows\\nINV-1005 … INV-1001\"]\n  page --> filter[\"exportableInvoices() → totalCents()\\ncount and total, order-independent\"]\n  route --> csv[\"toCsv(exportableInvoices(...))\\nINV-1001, INV-1002, INV-1003 — unchanged\"]"
+      },
+      {
+        "type": "diagram",
+        "title": "How newestFirst orders a list, and what it does with a tie",
+        "mermaid": "sequenceDiagram\n  participant P as InvoicesPage\n  participant L as listInvoices()\n  participant N as newestFirst()\n  P->>L: ask for the seeded invoices\n  L-->>P: readonly Invoice[] (oldest first)\n  P->>N: newestFirst(invoices)\n  Note over N: copies the array first —<br/>the seeded list is readonly<br/>and sort mutates in place\n  Note over N: compares issuedOn as ISO strings;<br/>equal dates return 0, and a stable sort<br/>leaves them in input order\n  N-->>P: a new readonly Invoice[], newest first\n  P->>P: render tbody in that order"
+      }
+    ],
+    "focus": [
+      {
+        "title": "The order lives in lib/, not in the page",
+        "detail": "newestFirst() is a new pure function beside exportableInvoices and totalCents: it takes a readonly Invoice[] and returns a derived readonly Invoice[], with no React and no I/O. The page gained one call and one import; it still holds no logic of its own.",
+        "files": [
+          "lib/invoices.ts",
+          "app/invoices/page.tsx"
+        ]
+      },
+      {
+        "title": "The sort is deliberately not inside listInvoices()",
+        "detail": "The CSV route handler calls listInvoices() too. Sorting at the source would silently reorder the export, which the request did not ask for. The page sorts what it was handed instead, so the file keeps its row order (INV-1001, INV-1002, INV-1003) and the one product rule this app exists to hold is untouched.",
+        "files": [
+          "lib/invoices.ts",
+          "app/invoices/export/route.ts"
+        ]
+      },
+      {
+        "title": "Ties keep their input order, and the input is not mutated",
+        "detail": "The comparator returns 0 for equal issue dates and Array.prototype.sort has been stable since ES2019, so invoices issued on the same day stay as they were given. The spread copy is there because the seeded array is readonly and shared with the export — sorting it in place would reorder the CSV from a distance. Both properties have their own test.",
+        "files": [
+          "lib/invoices.ts",
+          "lib/invoices.test.ts"
+        ]
+      },
+      {
+        "title": "No new column, and no date library",
+        "detail": "issuedOn is an ISO YYYY-MM-DD string, so plain < / > is chronological comparison with nothing to parse — matching the repo's stated 'no date library' pattern, and avoiding localeCompare, whose result would depend on the host locale this repo deliberately pins elsewhere. The table still shows Invoice, Customer, Amount, Status, so the new order reads as a change in row order rather than a new field.",
+        "files": [
+          "lib/invoices.ts"
+        ]
+      }
+    ],
+    "technical": "technical.md",
+    "conceptual": "conceptual.md"
+  },
+  "media_commit": "78b8db3617de5c76cdec3ee1365ea30a3c917ff2",
+  "media_prefix": "reports/wi_01M7YHRPC0N8201KF337TC808Y/builder-1",
+  "inline": {},
+  "problems": [],
+  "stored_at": "2026-11-21T17:30:07.952Z"
+}
