@@ -144,6 +144,14 @@ jobs:
           "$RUNNER_TEMP/bsf/bsf" --version
       # All static rules, the per-file ratchet across each linter's native
       # baseline and baselines.json, the weakening check and suppression control.
+      # The repo's own linters run from its installed dependencies (eslint
+      # lives in node_modules), so the static gate runs in the sandbox too.
+      # Before this, a TypeScript repo's eslint never ran and the gate was
+      # neutral on every PR.
+      - name: Start the sandbox
+        env:
+          FACTORY_SANDBOX_ENV: ${{ secrets.FACTORY_SANDBOX_ENV }}
+        run: bsf sandbox start --if-present
       - name: Gate 1 — static rules
         env:
           GH_TOKEN: ${{ github.token }}
