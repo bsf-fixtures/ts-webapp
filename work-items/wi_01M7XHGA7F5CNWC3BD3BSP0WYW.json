@@ -14,7 +14,7 @@
   "body": "Under the invoices table, show one line with the total amount of the invoices that were actually sent to customers — the same set the Export button counts. Drafts and voids do not count. With today's data that line should read: Total sent: $1,497.50",
   "priority": "normal",
   "fingerprint": "sha256:da3a2ef8b0a410e85e4ecf60ab72999ad4697d60df6a11cf343882eed7389b41",
-  "status": "running",
+  "status": "in_review",
   "runs": [
     "run_01M7XMTRA4WZ7093DYGKANMG4F",
     "run_01M7XNQE08N9JHVKT96MQTRR68",
