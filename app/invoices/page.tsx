@@ -1,9 +1,15 @@
-import { listInvoices, exportableInvoices, formatAmount } from "@/lib/invoices";
+import { listInvoices, exportableInvoices, formatAmount, isOverdue } from "@/lib/invoices";
 import { ExportButton } from "@/components/ExportButton";
+
+// Reading the clock in a server component does not make a page dynamic, so
+// without this the overdue markers would be frozen at whatever the date was
+// when the app was built.
+export const dynamic = "force-dynamic";
 
 export default function InvoicesPage() {
   const invoices = listInvoices();
   const exportable = exportableInvoices(invoices);
+  const today = new Date().toISOString().slice(0, 10);
 
   return (
     <main>
@@ -24,7 +30,14 @@ export default function InvoicesPage() {
               <td style={{ paddingRight: "1.5rem" }}>{i.id}</td>
               <td style={{ paddingRight: "1.5rem" }}>{i.customer}</td>
               <td style={{ textAlign: "right", paddingRight: "1.5rem" }}>{formatAmount(i.amountCents)}</td>
-              <td>{i.status}</td>
+              <td>
+                {i.status}
+                {isOverdue(i, today) && (
+                  // The margin separates the two words on screen; only the
+                  // leading space separates them for a screen reader.
+                  <span style={{ marginLeft: "0.5rem", color: "#b00020", fontWeight: 600 }}>{" Overdue"}</span>
+                )}
+              </td>
             </tr>
           ))}
         </tbody>
