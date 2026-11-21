@@ -7,12 +7,12 @@ harness: claude-code
 # Model per step. The scheduled review may change these, benchmark-gated.
 models:
   triage: claude-haiku-5-5
-  spec: claude-opus-5
-  builder: claude-opus-5
-  verifier: claude-opus-5
+  spec: claude-opus-5-5
+  builder: claude-sonnet-5-5
+  verifier: claude-haiku-5-5
   gardener: claude-sonnet-5-5
-  hardener: claude-opus-5
-  scorer: claude-sonnet-5-5
+  hardener: claude-sonnet-5-5
+  scorer: claude-haiku-5-5
 
 pipelines:
   product_work:
@@ -20,7 +20,7 @@ pipelines:
   gardening:
     auto_merge: false
     schedule: "0 6 * * *"
-    max_prs_per_run: 5
+    max_prs_per_run: 1
   hardening:
     auto_merge: false
 
@@ -40,7 +40,7 @@ limits:
     max_runs: 5
 
 budget:
-  monthly_usd: 200
+  monthly_usd: 35
   # Defaults to the plan's included minutes; null on public repos, where
   # standard runners are free.
   monthly_actions_minutes: 2000
