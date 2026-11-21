@@ -24,5 +24,81 @@
   "pr": null,
   "parent": null,
   "related": [],
-  "spec": null
+  "spec": {
+    "plan": "Today /invoices shows a table of all five invoices and an export button labelled with the count of sent/paid ones, and nowhere on the page is the money added up. After this change, one line sits directly under the table reading `Total sent: $1,497.50` — the sum of exactly the invoices `exportableInvoices()` returns, so it can never disagree with the button's count or the CSV. Two additions to `lib/invoices.ts`, both pure: `totalCents(invoices: readonly Invoice[]): number`, which sums `amountCents` over whatever list it is given (the caller passes `exportable`, so the sent/paid rule stays in its one existing place), and `formatCurrency(amountCents: number): string`, which renders a figure read on its own as `$1,497.50` using a module-level `new Intl.NumberFormat(\"en-US\", { style: \"currency\", currency: \"USD\" })`. `formatAmount` is deliberately NOT widened: every table cell calls it and must keep printing a bare `245.00`, so widening it would change output the request did not ask to change. In `app/invoices/page.tsx`, add `totalCents` and `formatCurrency` to the existing `@/lib/invoices` import, compute `const totalSentCents = totalCents(exportable);` next to the existing `exportable`, and render immediately after `</table>`: `<p style={{ marginTop: \"0.75rem\" }}>{`Total sent: ${formatCurrency(totalSentCents)}`}</p>`. The child must be ONE template literal, not `\"Total sent: \"` followed by `{...}` — React's server renderer puts a `<!-- -->` marker between adjacent text children, which would make the HTML read `Total sent: <!-- -->$1,497.50` and break a text search of the served page. Nothing else changes: the table keeps all five rows and its bare amounts, the button keeps its label, and `GET /invoices/export` is untouched. No refactor is folded in; if the repo later wants one money formatter with a currency option instead of two functions, that is a separate work item.",
+    "files": [
+      "lib/invoices.ts",
+      "app/invoices/page.tsx",
+      "lib/invoices.test.ts",
+      "app/invoices/page.test.tsx"
+    ],
+    "feature_folders": [
+      "lib/",
+      "app/invoices/"
+    ],
+    "acceptance_checks": [
+      "Open http://localhost:3000/invoices in a browser: directly below the invoices table there is a line reading exactly `Total sent: $1,497.50` — with the dollar sign, the thousands comma and two decimals.",
+      "Run `curl -s http://localhost:3000/invoices` and grep the HTML for the literal string `Total sent: $1,497.50`: it is present as one unbroken string (if the builder split the JSX children, the served HTML contains `Total sent: <!-- -->$1,497.50` instead and this check fails).",
+      "On the same page, the total counts the same invoices the button does: the button reads `Export 3 invoices as CSV`, the table still lists INV-1004 (draft) and INV-1005 (void), and the total line reads $1,497.50 — not $2,878.50, which is what it would say if the draft and the void were counted.",
+      "Run `curl -s -D- http://localhost:3000/invoices/export`: the export is unchanged — 200 with `Content-Type: text/csv; charset=utf-8`, a header row plus exactly three data rows, and no INV-1004 or INV-1005 anywhere in the body."
+    ],
+    "tests_added": [
+      "lib/invoices.test.ts — a `describe(\"totalCents\")` block, using the existing `invoice(over)` factory: adds up the amounts of the invoices it is given (e.g. 24500 + 118000 + 7250 === 149750); returns 0 for an empty list rather than NaN; and, given the five seeded invoices filtered through `exportableInvoices`, returns 149750 — the draft and the void are not in the sum because they are not in the list.",
+      "lib/invoices.test.ts — a `describe(\"formatCurrency\")` block: writes a four-figure total the way a customer reads it, `formatCurrency(149750) === \"$1,497.50\"`, so the thousands separator and the currency symbol are both there; and `formatCurrency(0) === \"$0.00\"`.",
+      "app/invoices/page.test.tsx — a new colocated component test rendering `<InvoicesPage />` with `@testing-library/react` (the page is a synchronous server component with no async work, so it renders in jsdom): asserts `document.body.textContent` contains `Total sent: $1,497.50`, and that it does NOT contain `$2,878.50`, which is the total a reader would be shown if the draft and void invoices were counted. Test names say what a reader loses if they fail, matching the existing style."
+    ],
+    "tests_changed": [
+      "lib/invoices.test.ts"
+    ],
+    "research": [
+      {
+        "source": "lib/invoices.ts:24 — `export function exportableInvoices(...)`, called from app/invoices/page.tsx:6 and app/invoices/export/route.ts:5",
+        "claim": "`exportableInvoices()` is the single sent/paid filter, and both the page's button count and the export route already go through it. The total must be computed from its result rather than from a second status check, or the page could show a total that disagrees with the button and the file."
+      },
+      {
+        "source": "app/invoices/page.tsx:6 — `const exportable = exportableInvoices(invoices);`",
+        "claim": "The page already holds the filtered list in a local `exportable`, so the total costs one more call on a value in hand; no new filtering and no change to how the table is built."
+      },
+      {
+        "source": "lib/invoices.ts:29 and lib/invoices.test.ts:29 — `expect(formatAmount(24500)).toBe(\"245.00\")`; used at app/invoices/page.tsx:28",
+        "claim": "`formatAmount` returns a bare two-decimal string with no currency symbol and no thousands separator (`formatAmount(24500) === \"245.00\"`, asserted in the existing test), and every amount cell in the table renders through it. The requested line needs both a `$` and the comma, so a second edge formatter is correct here; widening `formatAmount` would change all five table cells, which the request did not ask for."
+      },
+      {
+        "source": ".factory/definition/context/fundamentals.md — the \"Money\" row of Dominant patterns, and the Taste bullet \"Prefer widening an existing pure function in lib/\"",
+        "claim": "The repo's money rule is integer cents in the domain, formatted to a string only at the edge, and the taste note prefers widening the one `lib/` domain module over adding a parallel one. Hence `totalCents` returns cents and lives beside `exportableInvoices` in lib/invoices.ts; the formatting happens at the page."
+      },
+      {
+        "source": "ran: node -e 'console.log(new Intl.NumberFormat(\"en-US\",{style:\"currency\",currency:\"USD\"}).format(149750/100))' → $1,497.50",
+        "claim": "`Intl.NumberFormat(\"en-US\", { style: \"currency\", currency: \"USD\" }).format(1497.5)` returns exactly `$1,497.50` on this runner (Node v24.22.3, full ICU), so the requested string is produced by a built-in with no new dependency and no hand-rolled grouping regex. The locale is pinned explicitly so the output cannot drift with the host locale."
+      },
+      {
+        "source": "ran: NODE_PATH=./node_modules node /tmp/gh-aw/agent/probe/ssr.cjs (renderToString on both forms, react-dom 19 from this repo's lockfile)",
+        "claim": "React's server renderer inserts a `<!-- -->` separator between adjacent text children: `React.createElement(\"p\", null, \"Total sent: \", total)` renders as `<p>Total sent: <!-- -->$1,497.50</p>`, while a single template-literal child renders as `<p>Total sent: $1,497.50</p>`. This is why the plan pins the JSX to one template literal — otherwise the string a verifier greps for is not in the served HTML."
+      },
+      {
+        "source": "ran: npx vitest run probe-page.test.tsx (temporary file, since deleted; `render(<InvoicesPage />)` passed, body text contained \"Export 3 invoices as CSV\") — repo left clean per `git status --porcelain`",
+        "claim": "`app/invoices/page.tsx` can be rendered in the existing vitest/jsdom setup — it is a synchronous function component, and `ExportButton`'s `\"use client\"` directive is inert under vitest. A throwaway probe rendered it and found the table and the real button label, which is what makes the new app/invoices/page.test.tsx viable."
+      },
+      {
+        "source": ".factory/guardrails/coverage.json — `\"diff_min_pct\": 80`; vitest.config.ts coverage.include lists app/**",
+        "claim": "Diff coverage of changed files must be at least 80%, and coverage includes `app/**`. The lines added to app/invoices/page.tsx would otherwise be uncovered — no test renders the page today — which is the reason app/invoices/page.test.tsx is in the plan rather than optional."
+      },
+      {
+        "source": "lib/invoices.ts:11 — the INVOICES array; ran: node -e 'console.log(24500+118000+7250, 24500+118000+7250+93100+45000)' → 149750 287850",
+        "claim": "The seeded sent/paid invoices are INV-1001 (24500), INV-1002 (118000) and INV-1003 (7250) = 149750 cents = $1,497.50, which matches the figure in the request. All five invoices together are 287850 cents = $2,878.50, which is the wrong-answer sentinel used in the acceptance checks and the page test."
+      },
+      {
+        "source": ".factory/sandbox/manifest.json — capabilities.exercised (\"/invoices answers 200, rendering the five seeded invoices\") and capabilities.not_exercised",
+        "claim": "The sandbox serves the page from a production build (`next start`), /invoices is server-rendered, and a browser pointed at it shows the real text — so every acceptance check above is exercisable here with curl and with Chromium. Nothing in the plan needs the dev server, a second browser engine, persistence or a network call, all of which this sandbox lists as not exercised."
+      },
+      {
+        "source": ".factory/definition/policy.yaml — `tests.declared_edits: required`, `paths.protected`, `pipelines.product_work.may_change`",
+        "claim": "Editing an existing test file requires declaring it, so lib/invoices.test.ts is listed in tests_changed; app/invoices/page.test.tsx is new and needs no declaration. Nothing in the plan touches a protected path (.github/workflows/**, .factory/bin/**, .factory/sandbox/**) or a guardrail, and `product_work` may change code and tests."
+      },
+      {
+        "source": "lib/invoices.test.ts:8 (the factory) and lib/invoices.test.ts:18 (\"leaves out drafts and voids, which were never sent to a customer\"); .factory/definition/context/fundamentals.md, the Imports and Tests rows",
+        "claim": "New tests must use the existing `invoice(over: Partial<Invoice> = {})` factory and name each `it` after what a reader loses, and local imports inside a folder carry a `.js` extension (`./invoices.js`) while cross-folder imports use `@/`. The page test therefore imports `@/app/invoices/page`."
+      }
+    ]
+  }
 }
