@@ -20,7 +20,7 @@
     "run_01M7YJB23RSE7TZFNCGB2P7E8M",
     "run_01M7ZF3SM2EM2C97Z0EQCKDWQ8"
   ],
-  "pr": 33,
+  "pr": 36,
   "parent": null,
   "related": [],
   "spec": {
@@ -102,5 +102,8 @@
         "claim": "This change touches no protected path and needs nothing the product_work pipeline may not change: it edits only code and tests, while protected covers .github/workflows/**, .factory/bin/**, .factory/definition/policy.yaml and .factory/sandbox/**. practices.md currently states no practices, so none can be contradicted."
       }
     ]
-  }
+  },
+  "previous_prs": [
+    33
+  ]
 }
