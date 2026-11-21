@@ -273,6 +273,7 @@ smallest thing that explains it, and write the whole manifest again.
 
 ## If this is an amendment
 
-`amend.json` is a report from a role that could not exercise what a change
-needed. Start from the current `.factory/sandbox/manifest.json` and extend it
+`amend.json` holds `reports`: one or more reports from roles that could not
+exercise what a change needed. Several may describe the same shortfall in
+different words; treat them as one need. Start from the current `.factory/sandbox/manifest.json` and extend it
 to cover what the report asks for. Keep everything that already works.

@@ -228,6 +228,14 @@ with the most violations, then untested behavior, then principle drift.
   what is in flight. Re-fixing it wastes a run and creates a conflict.
 - **One problem class per item** — one rule, or one principle. At most 20 files.
   A PR that cleans two things is a PR a reviewer cannot judge.
+- **Picks must not overlap.** No two picks, and no pick and an open gardening
+  item, may change the same files. Each runs as its own PR at the same time,
+  so overlapping picks race and conflict. List every file a pick will touch
+  in its `files`; a pick with no `files` is taken as repo-wide and blocks the
+  rest. Picks that overlap are dropped after the first.
+- **A shared prerequisite is one pick.** If several picks would each need the
+  same missing thing first (a test runner, a config, a helper), pick only that
+  prerequisite tonight. The others become possible once it merges.
 - Each item must be *checkable as behavior-unchanged*. Name the flows the
   verifier should compare before and after.
 
