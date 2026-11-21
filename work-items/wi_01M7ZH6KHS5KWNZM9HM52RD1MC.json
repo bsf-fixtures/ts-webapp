@@ -14,10 +14,11 @@
   "body": null,
   "priority": "normal",
   "fingerprint": "sha256:5a30ed9c09ce29cc764fc06e92c7013309ab169e106df57583e3a82b77911377",
-  "status": "queued",
+  "status": "rejected",
   "runs": [],
   "pr": null,
   "parent": null,
   "related": [],
-  "spec": null
+  "spec": null,
+  "closed_at": "2026-11-21T17:09:46.973Z"
 }
