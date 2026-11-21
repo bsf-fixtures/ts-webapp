@@ -86,6 +86,9 @@ tools:
 
 safe-outputs:
   add-comment:
+    # A role is dispatched, not triggered by an issue, so there is no
+    # triggering item to default to: the agent names the issue or PR.
+    target: "*"
     staged: ${{ inputs.staged }}
   add-labels:
     allowed: [factory:duplicate, factory:out-of-scope, factory:needs-info]
@@ -185,6 +188,14 @@ post-steps:
     env:
       GH_TOKEN: ${{ steps.write-token.outputs.token }}
     run: bsf store-media --run-dir /tmp/gh-aw/agent/bsf/media
+  # The outcome is what decides whether the run goes on: without it on the
+  # work item, a "duplicate" was a comment and the build ran anyway.
+  - name: Record the triage outcome on the work item
+    shell: bash
+    env:
+      GH_TOKEN: ${{ steps.write-token.outputs.token }}
+      WORK_ITEM: ${{ inputs.work_item }}
+    run: bsf write-triage "$WORK_ITEM" --from /tmp/gh-aw/agent/bsf/triage.json
 ---
 
 # Triage
@@ -226,13 +237,26 @@ The work item is in `/tmp/gh-aw/agent/bsf/work-item.json`. Read
 
 ## Your outcome
 
-Exactly one of:
+Write it to `/tmp/gh-aw/agent/bsf/triage.json` — this file is what decides
+whether the run goes on:
 
-- **proceed** — understood, in scope, reproduced if it is a bug.
-- **needs info** — comment one specific question on the source and stop. One
-  question, answerable in a sentence. Not a list.
-- **out of scope** — comment why, in plain language, and close the item.
-- **duplicate** — link the open item it duplicates.
+```json
+{ "outcome": "proceed", "reason": "one or two sentences" }
+```
+
+`outcome` is exactly one of:
+
+- **`proceed`** — understood, in scope, reproduced if it is a bug.
+- **`needs_info`** — also comment one specific question on the source and stop.
+  One question, answerable in a sentence. Not a list.
+- **`out_of_scope`** — also comment why, in plain language.
+- **`duplicate`** — set `"duplicate_of": "wi_…"` to the open item it duplicates,
+  and say which in `reason`.
+
+The source is the work item's `source.ref` (`#N`, an issue or PR number): when
+you comment, pass that number as the item number. When `source.ref` is null
+the request came from the dashboard and has no thread; your `reason` is the
+answer, and the dashboard shows it.
 
 ## Do not
 

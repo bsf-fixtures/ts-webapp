@@ -83,4 +83,7 @@ jobs:
       - name: Work the queue
         env:
           GH_TOKEN: ${{ steps.token.outputs.token }}
+          # The App's own login, from the token step, so its approvals and
+          # change requests are recognised without a variable to keep in sync.
+          FACTORY_APP_LOGINS: ${{ steps.token.outputs.app-slug }}[bot]
         run: bsf merge-queue

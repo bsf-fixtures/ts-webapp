@@ -7,8 +7,9 @@
 name: factory-gates
 
 on:
-  push:
-    branches: ['factory/*']
+  # A push to a factory branch is a PR synchronize, which this already gets.
+  # A separate push trigger judged the same commit twice, once without its
+  # PR, and the two verdicts landed on the same commit.
   pull_request:
     types: [opened, synchronize, reopened, labeled]
   merge_group:
@@ -165,6 +166,12 @@ jobs:
           rm -rf .factory-trusted
           echo "$RUNNER_TEMP/bsf" >> "$GITHUB_PATH"
           "$RUNNER_TEMP/bsf/bsf" --version
+      # The tests run where the app runs: the sandbox's services, its install
+      # and its closed environment, from the default branch's manifest.
+      - name: Start the sandbox
+        env:
+          FACTORY_SANDBOX_ENV: ${{ secrets.FACTORY_SANDBOX_ENV }}
+        run: bsf sandbox start
       # Where the repo already has a CI test check that runs on factory
       # branches, this reads its result for the same commit rather than
       # re-running the tests; after wait_minutes with no result, it runs them.

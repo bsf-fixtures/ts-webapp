@@ -154,6 +154,47 @@ jobs:
       attempt: ${{ fromJSON(inputs.attempt) }}
     secrets: inherit
 
+  # Triage writes its outcome onto the work item. Only "proceed" leaves it
+  # running; needs-info, out-of-scope and duplicate stop the run here.
+  triaged:
+    needs: [plan, triage]
+    if: always() && needs.triage.result == 'success'
+    runs-on: ubuntu-latest
+    outputs:
+      proceed: ${{ steps.status.outputs.proceed }}
+    steps:
+      - name: Fetch the factory runner from the default branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          path: .factory-trusted
+          sparse-checkout: |
+            .factory/bin
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+      - name: Put the trusted runner on PATH
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/bsf"
+          cp -R .factory-trusted/.factory/bin/. "$RUNNER_TEMP/bsf/"
+          rm -rf .factory-trusted
+          echo "$RUNNER_TEMP/bsf" >> "$GITHUB_PATH"
+      - name: Mint a token for reading the work item
+        id: token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.FACTORY_APP_CLIENT_ID }}
+          private-key: ${{ secrets.FACTORY_APP_PRIVATE_KEY }}
+          permission-contents: read
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+      - name: Read what triage decided
+        id: status
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+          WORK_ITEM: ${{ inputs.work_item }}
+        run: bsf run status "$WORK_ITEM"
+
   # Hardening starts here instead of at triage: its intent comes from a found
   # weakness, not a request. Nothing called this role before, so the hardening
   # pipeline that run-plan describes could not run.
@@ -202,10 +243,10 @@ jobs:
     secrets: inherit
 
   spec:
-    needs: [plan, triage, hardener]
+    needs: [plan, triage, triaged, hardener]
     if: >-
       always() && needs.plan.outputs.proceed == 'true' && needs.plan.outputs.needs_spec == 'true' &&
-      (needs.triage.result == 'success' || needs.triage.result == 'skipped') &&
+      (needs.triage.result == 'skipped' || needs.triaged.outputs.proceed == 'true') &&
       (needs.hardener.result == 'success' || needs.hardener.result == 'skipped')
     # What the compiled role's own jobs request. A caller must grant at
     # least this, or GitHub refuses to start the run; derived from the lock
@@ -227,10 +268,11 @@ jobs:
   # Runs when spec ran, and also when the pipeline has no spec step at all
   # (conflict, gardening). A failed spec still stops it.
   build:
-    needs: [plan, spec, gardener]
+    needs: [plan, triage, triaged, spec, gardener]
     if: >-
       always() && needs.plan.outputs.proceed == 'true' &&
-      (needs.spec.result == 'success' || needs.spec.result == 'skipped') &&
+      (needs.triage.result == 'skipped' || needs.triaged.outputs.proceed == 'true') &&
+      (needs.spec.result == 'success' || (needs.spec.result == 'skipped' && needs.plan.outputs.needs_spec != 'true')) &&
       (needs.gardener.result == 'success' || needs.gardener.result == 'skipped')
     # What the compiled role's own jobs request. A caller must grant at
     # least this, or GitHub refuses to start the run; derived from the lock
