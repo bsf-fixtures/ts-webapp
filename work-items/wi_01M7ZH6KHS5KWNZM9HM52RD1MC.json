@@ -1,0 +1,23 @@
+{
+  "schema": "work-item/1",
+  "id": "wi_01M7ZH6KHS5KWNZM9HM52RD1MC",
+  "created_at": "2026-11-21T17:06:57.721Z",
+  "source": {
+    "kind": "dashboard",
+    "ref": null,
+    "actor": "ChampPhil",
+    "via": null
+  },
+  "trigger_class": "request",
+  "pipeline": "product_work",
+  "title": "noop",
+  "body": null,
+  "priority": "normal",
+  "fingerprint": "sha256:5a30ed9c09ce29cc764fc06e92c7013309ab169e106df57583e3a82b77911377",
+  "status": "queued",
+  "runs": [],
+  "pr": null,
+  "parent": null,
+  "related": [],
+  "spec": null
+}
