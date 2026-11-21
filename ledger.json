@@ -1,6 +1,6 @@
 {
   "schema": "ledger/1",
-  "updated_at": "2026-11-21T09:56:37.446Z",
+  "updated_at": "2026-11-21T15:43:37.706Z",
   "open": [
     {
       "work_item": "wi_01M7XH7270DH2WAFKX6ZB36YRA",
@@ -10,15 +10,6 @@
       "created_at": "2026-11-20T22:28:43.872Z",
       "fingerprint": "sha256:6a29be06aa1c006e129f72fb6ffd726985590fe1e9e60ff4fadb7fe55383adb4",
       "source_ref": "#7"
-    },
-    {
-      "work_item": "wi_01M7XHGA7F5CNWC3BD3BSP0WYW",
-      "pipeline": "product_work",
-      "status": "in_review",
-      "priority": "normal",
-      "created_at": "2026-11-20T22:33:46.991Z",
-      "fingerprint": "sha256:da3a2ef8b0a410e85e4ecf60ab72999ad4697d60df6a11cf343882eed7389b41",
-      "pr": 19
     },
     {
       "work_item": "wi_01M7XJWR17KA1PCZXT635DF731",
@@ -77,6 +68,14 @@
       "source_ref": "#30"
     }
   ],
-  "recent": [],
+  "recent": [
+    {
+      "work_item": "wi_01M7XHGA7F5CNWC3BD3BSP0WYW",
+      "status": "merged",
+      "merged_at": "2026-11-21T15:43:37.706Z",
+      "fingerprint": "sha256:da3a2ef8b0a410e85e4ecf60ab72999ad4697d60df6a11cf343882eed7389b41",
+      "pr": 19
+    }
+  ],
   "merge_queue": []
 }
