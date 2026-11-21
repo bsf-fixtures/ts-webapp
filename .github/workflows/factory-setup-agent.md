@@ -215,7 +215,11 @@ under `not_exercised`, what it cannot and why. Write each thing you tried in
 `episode`.
 
 The trial measures the tier itself. Claiming higher than it reaches costs a
-round; it does not change the result.
+round; it does not change the result. It also runs the build and test
+commands once more in an empty directory: commands that pass there too —
+guarded on a file the repo does not have, or an `echo` — build and test
+nothing, and the tier is `static`. When there is nothing to build or test,
+say so with `static` and null commands.
 
 ## If this is not the first round
 

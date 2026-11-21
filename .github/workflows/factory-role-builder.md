@@ -221,7 +221,8 @@ post-steps:
       app-id: ${{ vars.FACTORY_APP_CLIENT_ID }}
       private-key: ${{ secrets.FACTORY_APP_PRIVATE_KEY }}
       permission-contents: write
-      permission-actions: read
+      # write: a sandbox report starts factory-setup to amend the sandbox.
+      permission-actions: write
       # Scoped to this repository: an App token otherwise reaches every repo
       # the installation covers.
       owner: ${{ github.repository_owner }}
@@ -241,6 +242,14 @@ post-steps:
     with:
       name: step-report-builder-${{ inputs.attempt }}
       path: /tmp/gh-aw/agent/bsf/step-report.json
+  # The one way the sandbox changes after setup: the agent said it could not
+  # exercise something its change needs. Nothing happens without the report.
+  - name: Hand a sandbox report to setup
+    shell: bash
+    env:
+      GH_TOKEN: ${{ steps.write-token.outputs.token }}
+      WORK_ITEM: ${{ inputs.work_item }}
+    run: bsf sandbox report --from /tmp/gh-aw/agent/bsf/sandbox-report.json --work-item "$WORK_ITEM"
 ---
 # Builder
 
