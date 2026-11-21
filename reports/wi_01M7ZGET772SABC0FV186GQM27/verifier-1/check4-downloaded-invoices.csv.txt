@@ -1,0 +1,4 @@
+id,customer,amount,issued_on,status
+INV-1001,Acme Bakery,245.00,2026-10-02,paid
+INV-1002,Northwind Books,1180.00,2026-10-11,sent
+INV-1003,Globex Coffee,72.50,2026-10-19,paid

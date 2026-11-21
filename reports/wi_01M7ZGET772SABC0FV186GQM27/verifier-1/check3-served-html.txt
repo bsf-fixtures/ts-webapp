@@ -1,0 +1,17 @@
+$ curl -s http://localhost:3000/invoices | grep -o "<h1[^>]*>[^<]*</h1>"
+<h1>Invoices (5)</h1>
+
+$ curl -s http://localhost:3000/invoices | grep -c -F "Invoices (5)"   # literal string present
+1
+
+$ curl -s http://localhost:3000/invoices | grep -o "<!-- -->" | wc -l   # React comment markers in the whole document
+0
+
+--- 160 bytes of the served HTML around the heading (verbatim) ---
+<main><h1>Invoices (5)</h1><button type="button" aria-busy="false">Export 3 invoices as CSV</button><table style="margin-top:1.5rem;border-collapse:collapse"><t
+
+--- hydrated DOM after reload, read in the browser ---
+h1.textContent  = "Invoices (5)"
+h1.innerHTML    = "Invoices (5)"   (no <!-- --> nodes)
+tbody tr count  = 5
+button.textContent = "Export 3 invoices as CSV"
