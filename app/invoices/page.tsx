@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { listInvoices, exportableInvoices, formatAmount, totalCents, formatCurrency } from "@/lib/invoices";
 import { ExportButton } from "@/components/ExportButton";
 
@@ -22,7 +23,9 @@ export default function InvoicesPage() {
         <tbody>
           {invoices.map((i) => (
             <tr key={i.id}>
-              <td style={{ paddingRight: "1.5rem" }}>{i.id}</td>
+              <td style={{ paddingRight: "1.5rem" }}>
+                <Link href={`/invoices/${i.id}`}>{i.id}</Link>
+              </td>
               <td style={{ paddingRight: "1.5rem" }}>{i.customer}</td>
               <td style={{ textAlign: "right", paddingRight: "1.5rem" }}>{formatAmount(i.amountCents)}</td>
               <td>{i.status}</td>
