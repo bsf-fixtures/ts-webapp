@@ -25,8 +25,21 @@ export function exportableInvoices(invoices: readonly Invoice[]): readonly Invoi
   return invoices.filter((i) => i.status === "sent" || i.status === "paid");
 }
 
+/** Sums whatever list it is given, so the sent/paid rule stays in exportableInvoices. */
+export function totalCents(invoices: readonly Invoice[]): number {
+  return invoices.reduce((sum, i) => sum + i.amountCents, 0);
+}
+
 export function formatAmount(amountCents: number): string {
   return (amountCents / 100).toFixed(2);
+}
+
+// The locale is pinned so the grouping and the symbol cannot drift with the host's.
+const CURRENCY = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
+
+/** A figure read on its own, with the currency symbol and thousands separator. */
+export function formatCurrency(amountCents: number): string {
+  return CURRENCY.format(amountCents / 100);
 }
 
 /** A CSV cell is quoted when it holds a comma, a quote or a newline. */
