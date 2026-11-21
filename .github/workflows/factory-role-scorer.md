@@ -160,6 +160,14 @@ post-steps:
       ROLE: scorer
       ATTEMPT: ${{ inputs.attempt }}
     run: bsf step-report --role "$ROLE" --attempt "$ATTEMPT" --out /tmp/gh-aw/agent/bsf/step-report.json
+  # The run record is made from these: model, tokens and cost for each role.
+  - name: Upload the StepReport
+    if: always()
+    uses: actions/upload-artifact@v4
+    with:
+      name: step-report-scorer
+      path: /tmp/gh-aw/agent/bsf/step-report.json
+      if-no-files-found: ignore
   - name: Write the scores into the review report
     shell: bash
     env:
