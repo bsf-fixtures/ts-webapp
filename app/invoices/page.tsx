@@ -1,8 +1,8 @@
-import { listInvoices, exportableInvoices, formatAmount, totalCents, formatCurrency } from "@/lib/invoices";
+import { listInvoices, newestFirst, exportableInvoices, formatAmount, totalCents, formatCurrency } from "@/lib/invoices";
 import { ExportButton } from "@/components/ExportButton";
 
 export default function InvoicesPage() {
-  const invoices = listInvoices();
+  const invoices = newestFirst(listInvoices());
   const exportable = exportableInvoices(invoices);
   const totalSentCents = totalCents(exportable);
 

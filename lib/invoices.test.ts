@@ -1,12 +1,40 @@
 import { describe, it, expect } from "vitest";
 import {
-  listInvoices, exportableInvoices, toCsv, formatAmount, totalCents, formatCurrency, CSV_HEADER,
+  listInvoices, newestFirst, exportableInvoices, toCsv, formatAmount, totalCents, formatCurrency, CSV_HEADER,
   type Invoice,
 } from "./invoices.js";
 
 const invoice = (over: Partial<Invoice> = {}): Invoice => ({
   id: "INV-9000", customer: "Test Co", amountCents: 1000,
   issuedOn: "2026-01-01", status: "sent", ...over,
+});
+
+describe("newestFirst", () => {
+  it("puts the most recently issued invoice first, so the newest work is what a reader sees at the top", () => {
+    const out = newestFirst([
+      invoice({ id: "OLD", issuedOn: "2026-10-02" }),
+      invoice({ id: "NEW", issuedOn: "2026-11-08" }),
+      invoice({ id: "MID", issuedOn: "2026-10-19" }),
+    ]);
+    expect(out.map((i) => i.id)).toEqual(["NEW", "MID", "OLD"]);
+  });
+
+  it("keeps two invoices issued on the same day in the order they were given, so equal dates do not shuffle", () => {
+    const out = newestFirst([
+      invoice({ id: "FIRST", issuedOn: "2026-10-02" }),
+      invoice({ id: "SECOND", issuedOn: "2026-10-02" }),
+    ]);
+    expect(out.map((i) => i.id)).toEqual(["FIRST", "SECOND"]);
+  });
+
+  it("leaves the list it was given in its original order, because the seeded list is shared with the export", () => {
+    const input = [
+      invoice({ id: "OLD", issuedOn: "2026-10-02" }),
+      invoice({ id: "NEW", issuedOn: "2026-11-08" }),
+    ];
+    newestFirst(input);
+    expect(input.map((i) => i.id)).toEqual(["OLD", "NEW"]);
+  });
 });
 
 describe("exportableInvoices", () => {

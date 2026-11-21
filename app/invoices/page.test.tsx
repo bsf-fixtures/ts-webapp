@@ -14,4 +14,11 @@ describe("InvoicesPage", () => {
     render(<InvoicesPage />);
     expect(document.body.textContent).not.toContain("$2,878.50");
   });
+
+  it("lists the invoices newest first, so INV-1005 is the top row and INV-1001 the last", () => {
+    render(<InvoicesPage />);
+    const rows = [...document.querySelectorAll("tbody tr")];
+    const ids = rows.map((row) => row.querySelector("td")?.textContent);
+    expect(ids).toEqual(["INV-1005", "INV-1004", "INV-1003", "INV-1002", "INV-1001"]);
+  });
 });
