@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-  listInvoices, exportableInvoices, toCsv, formatAmount, CSV_HEADER,
+  listInvoices, exportableInvoices, toCsv, formatAmount, totalCents, formatCurrency, CSV_HEADER,
   type Invoice,
 } from "./invoices.js";
 
@@ -34,6 +34,35 @@ describe("formatAmount", () => {
 
   it("renders zero as 0.00", () => {
     expect(formatAmount(0)).toBe("0.00");
+  });
+});
+
+describe("totalCents", () => {
+  it("adds up the amounts of the invoices it is given", () => {
+    const out = totalCents([
+      invoice({ amountCents: 24500 }),
+      invoice({ amountCents: 118000 }),
+      invoice({ amountCents: 7250 }),
+    ]);
+    expect(out).toBe(149750);
+  });
+
+  it("totals an empty list as zero rather than NaN, so the page still shows a figure", () => {
+    expect(totalCents([])).toBe(0);
+  });
+
+  it("leaves drafts and voids out of the total, because they are not in the exportable list", () => {
+    expect(totalCents(exportableInvoices(listInvoices()))).toBe(149750);
+  });
+});
+
+describe("formatCurrency", () => {
+  it("writes a four-figure total the way a customer reads it, with symbol and thousands separator", () => {
+    expect(formatCurrency(149750)).toBe("$1,497.50");
+  });
+
+  it("renders zero as $0.00", () => {
+    expect(formatCurrency(0)).toBe("$0.00");
   });
 });
 

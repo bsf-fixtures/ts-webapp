@@ -1,9 +1,10 @@
-import { listInvoices, exportableInvoices, formatAmount } from "@/lib/invoices";
+import { listInvoices, exportableInvoices, formatAmount, totalCents, formatCurrency } from "@/lib/invoices";
 import { ExportButton } from "@/components/ExportButton";
 
 export default function InvoicesPage() {
   const invoices = listInvoices();
   const exportable = exportableInvoices(invoices);
+  const totalSentCents = totalCents(exportable);
 
   return (
     <main>
@@ -29,6 +30,9 @@ export default function InvoicesPage() {
           ))}
         </tbody>
       </table>
+      {/* One template literal, not adjacent children: React's server renderer
+          would otherwise separate them with a <!-- --> marker. */}
+      <p style={{ marginTop: "0.75rem" }}>{`Total sent: ${formatCurrency(totalSentCents)}`}</p>
     </main>
   );
 }
