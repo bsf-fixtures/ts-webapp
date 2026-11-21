@@ -208,16 +208,19 @@ pre-agent-steps:
   # its services, its closed environment, its install. It used to be a script
   # run from the workspace, which on a retry is the PR branch — code from the
   # change under judgement, running before the agent did.
-  - name: Start the sandbox
-    shell: bash
-    env:
-      FACTORY_SANDBOX_ENV: ${{ secrets.FACTORY_SANDBOX_ENV }}
-    run: bsf sandbox start --serve
+  # The commit first, then the sandbox: the app it starts is then the change
+  # under verification, built once, rather than the default branch's app
+  # restarted mid-check. The manifest still comes from the trusted copy.
   - name: Check out the exact commit under verification
     shell: bash
     env:
       COMMIT: ${{ inputs.commit }}
     run: git checkout --detach "$COMMIT"
+  - name: Start the sandbox
+    shell: bash
+    env:
+      FACTORY_SANDBOX_ENV: ${{ secrets.FACTORY_SANDBOX_ENV }}
+    run: bsf sandbox start --serve
   - name: Fetch the spec only — never the builder's transcript
     shell: bash
     env:
