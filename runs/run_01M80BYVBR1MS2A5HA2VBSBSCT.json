@@ -1,0 +1,33 @@
+{
+  "schema": "run/1",
+  "id": "run_01M80BYVBR1MS2A5HA2VBSBSCT",
+  "work_item": "wi_01M80BY72VCS4WTCQ40JVEQCY3",
+  "pipeline": "hardening",
+  "actor": {
+    "kind": "agent",
+    "harness": "claude-code"
+  },
+  "started_at": "2026-11-22T00:54:35.128Z",
+  "ended_at": "2026-11-22T01:04:28.008Z",
+  "duration_sec": 593,
+  "outcome": "failed",
+  "pr": null,
+  "steps": [
+    {
+      "role": "hardener",
+      "model": "claude-sonnet-5-5",
+      "attempt": 1,
+      "duration_sec": 0,
+      "tokens": {
+        "in": 19,
+        "out": 4547
+      },
+      "cost_usd": 0.183,
+      "transcript": "",
+      "exit": "ok"
+    }
+  ],
+  "gates": [],
+  "cost_usd": 0.183,
+  "escalated": false
+}
