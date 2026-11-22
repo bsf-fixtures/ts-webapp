@@ -1,0 +1,46 @@
+# Money must only be formatted through lib/invoices
+
+## plan
+
+Before: nothing stops a page or component from formatting integer cents inline (`amountCents / 100`, `.toFixed(...)`, `new Intl.NumberFormat`), which rounds differently from the CSV export; `npm run lint` passes on such code. After: `eslint.config.mjs` gains one config object scoped to `files: ["app/**/*.{ts,tsx}", "components/**/*.{ts,tsx}"]` with `ignores: ["**/*.test.{ts,tsx}"]`, appended as the last argument of the existing `tseslint.config(...)` call, that sets `"no-restricted-syntax": ["error", ...]` with exactly three entries, each `{ selector, message }` sharing one message string held in a `const` above the export: (1) `BinaryExpression[operator='/'][right.type='Literal'][right.value=100]`, (2) `CallExpression[callee.property.name='toFixed']`, (3) `MemberExpression[object.name='Intl'][property.name='NumberFormat']` (this catches `new Intl.NumberFormat(...)`, `Intl.NumberFormat(...)` and aliasing it). The message must read: "Amounts are integer cents: format them with formatAmount or formatCurrency from @/lib/invoices, so the page rounds the same way the CSV export does." Add a one-line why-comment above the block, matching the file's comment style. `lib/` is out of scope on purpose because `lib/invoices.ts` is where `formatAmount`/`formatCurrency` legitimately do this. Test files are exempt because the request names pages and components, and tests assert literal strings. No existing rule, ignore or setting in `eslint.config.mjs` changes, so this tightens the guardrail and does not loosen it. The repo has zero existing violations (verified), so there is nothing to fix and nothing to baseline; leave `.factory/guardrails/baselines.json` untouched. To prove the rule, add a new root test file `lint-rules.test.ts`. Its first line is `// @vitest-environment node`. It builds one `new ESLint()` from `eslint` (the repo's own config, cwd = repo root) and uses `lintText(code, { filePath })` with virtual paths, counting messages whose `ruleId === "no-restricted-syntax"`. Name it `lint-rules.test.ts`, not `eslint.config.test.ts`, because policy's guardrail glob `eslint.config.*` would match the latter. No application file changes. In the PR body, state the rule in plain words, show the bad example failing and the good one passing, and say 0 existing violations.
+
+## files
+
+- eslint.config.mjs
+- lint-rules.test.ts
+
+## feature folders
+
+- (root)
+
+## acceptance checks
+
+- On the built tree, `npm run lint` exits 0 with no output: the new rule finds no existing violation, including in lib/invoices.ts, which still uses `/ 100`, `.toFixed(2)` and `new Intl.NumberFormat`.
+- Replace `{formatAmount(i.amountCents)}` in app/invoices/page.tsx with `{(i.amountCents / 100).toFixed(2)}` and run `npm run lint`: it exits non-zero, reports two `no-restricted-syntax` errors on that line, and the message names formatAmount and formatCurrency. Revert the edit.
+- Add `const fmt = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });` inside the component in components/ExportButton.tsx and run `npm run lint`: it exits non-zero with a `no-restricted-syntax` error on that line. Revert the edit.
+- Add the same `(c / 100).toFixed(2)` expression to a function in lib/invoices.ts and run `npm run lint`: it exits 0, because lib is where formatting belongs. Revert the edit.
+- `npm test` passes, and its output includes lint-rules.test.ts with every test in it passing.
+- Start the app and open http://localhost:3000/invoices: the page still shows the five invoices, amounts such as 245.00 and 1180.00, 'Total sent: $1,497.50', and the button 'Export 3 invoices as CSV', unchanged from before.
+
+## tests added
+
+- lint-rules.test.ts: a page (filePath app/invoices/page.tsx) that renders `(amountCents / 100).toFixed(2)` fails the money-formatting rule, so an amount that rounds differently from the CSV cannot land on a page
+- lint-rules.test.ts: a component (filePath components/Example.tsx) that builds its own `new Intl.NumberFormat(...)` fails the rule
+- lint-rules.test.ts: the same page using `formatAmount` and `formatCurrency` imported from `@/lib/invoices` passes with zero `no-restricted-syntax` messages
+- lint-rules.test.ts: the inline expression in lib/invoices.ts (filePath lib/invoices.ts) is allowed, because that is where the formatting is supposed to live
+
+## tests changed
+
+
+## research
+
+- `{"claim":"formatAmount and formatCurrency are the two formatters in lib/invoices.ts. They are themselves built from `/ 100`, `.toFixed(2)` and `new Intl.NumberFormat`, so the rule must exclude lib/ and target only app/ and components/.","source":"lib/invoices.ts:33"}`
+- `{"claim":"The CSV export formats amounts through formatAmount, so an inline format on a page can drift from the export.","source":"lib/invoices.ts:57"}`
+- `{"claim":"The /invoices page already formats only through formatAmount and formatCurrency, so there are no existing violations to fix or baseline.","source":"ran: grep -rn \"toFixed\\|/ 100\\|NumberFormat\\|toLocaleString\" app components lib — matches only in lib/invoices.ts"}`
+- `{"claim":"ESLint is the repo's own linter, configured in eslint.config.mjs as a typescript-eslint flat config. The factory's static gate runs it natively, so extending this file is the strongest existing tool to use.","source":"eslint.config.mjs"}`
+- `{"claim":"eslint.config.* is a guardrail path, and the hardening pipeline may change guardrails to tighten them. eslint.config.mjs is not a protected path.","source":".factory/definition/policy.yaml:22"}`
+- `{"claim":"The static gate runs node_modules/eslint over the repo and counts findings per rule and file, so a new no-restricted-syntax finding in a PR raises a count above its zero baseline and fails the gate.","source":".factory/sandbox/manifest.json — dropped entry for eslint: the gate runs eslint natively"}`
+- `{"claim":"With the three selectors scoped to app/ and components/ and test files ignored, the bad example raises 4 no-restricted-syntax errors in app/ and components/, 0 in lib/ and 0 in a .test.tsx file. The good example and the whole current repo lint clean (exit 0). ESLint here is v9.39.5.","source":"ran: write a scratch eslint.bsf-exp.config.mjs that spreads ./eslint.config.mjs and appends the block, then `echo \"$bad\" | node_modules/.bin/eslint -c eslint.bsf-exp.config.mjs --stdin --stdin-filename app/x.tsx` (and components/X.tsx, lib/x.tsx, app/x.test.tsx), plus `eslint -c ... .`; scratch file removed"}`
+- `{"claim":"A vitest file with `// @vitest-environment node` that calls `new ESLint().lintText(code, { filePath })` against the edited eslint.config.mjs works under this repo's jsdom-default vitest config. tsc --noEmit and eslint . stay clean with it present.","source":"ran: temporarily appended the block to eslint.config.mjs and added a scratch root test file, then `npx vitest run` (4 files, 28 passed), `npx tsc --noEmit` (exit 0), `node_modules/.bin/eslint .` (exit 0); both reverted"}`
+- `{"claim":"vitest picks up a root-level test because its include pattern is **/*.test.{ts,tsx}. Coverage includes only app/, lib/ and components/, so neither changed file affects diff coverage.","source":"vitest.config.ts:8"}`
+- `{"claim":"Tests use describe and it with full-sentence names that say what a user loses, and there is no jest-dom. Imports cross folders with @/.","source":".factory/definition/context/fundamentals.md"}`
