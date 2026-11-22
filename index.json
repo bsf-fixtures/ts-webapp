@@ -1,19 +1,19 @@
 {
   "schema": "index/1",
-  "updated_at": "2026-11-22T01:03:55.844Z",
+  "updated_at": "2026-11-22T01:04:40.772Z",
   "factory": {
     "runner": "0.1.0 source",
     "harness": "claude-code"
   },
   "metrics": {
     "window_days": 30,
-    "runs": 6,
+    "runs": 7,
     "merged": 0,
     "escalated": 0,
     "automation_rate": 0,
     "human_interactions_per_pr": null,
     "revert_rate": 0,
-    "spend_usd": 20.31,
+    "spend_usd": 20.5,
     "cycle_time_p50_sec": 61791,
     "cycle_time_p90_sec": 61791,
     "by_pipeline": {
@@ -24,14 +24,15 @@
         "revert_rate": 0
       },
       "hardening": {
-        "runs": 1,
+        "runs": 2,
         "merged": 0,
-        "spend_usd": 0,
+        "spend_usd": 0.18,
         "revert_rate": 0
       }
     }
   },
   "recent_runs": [
+    "run_01M80BYVBR1MS2A5HA2VBSBSCT",
     "run_01M80BYRYZF8Y7DVP9JYYC4NS3",
     "run_01M7ZH7RN6A07PB22AE0E3SERW",
     "run_01M7ZGFMV8NX72DCFHP11EPB6Y",
