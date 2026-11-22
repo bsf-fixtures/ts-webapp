@@ -1,0 +1,18 @@
+{
+  "schema": "pr-report/1",
+  "summary": [
+    "Verdict: PASS. All six acceptance checks passed on the committed tree (HEAD 3e93e6e): the lint rule is clean on the repo, catches inline money formatting in app/ and components/, allows it in lib/, all 32 tests pass including the four lint-rules tests, and the invoices page renders unchanged."
+  ],
+  "blocks": [
+    { "type": "diagram", "title": "What each check exercised", "mermaid": "flowchart LR\n  C1[Check 1: npm run lint on clean tree] --> P1[exit 0]\n  C2[Check 2: /100 + toFixed in app/invoices/page.tsx] --> F2[2x no-restricted-syntax, exit 1]\n  C3[Check 3: new Intl.NumberFormat in components/ExportButton.tsx] --> F3[1x no-restricted-syntax, exit 1]\n  C4[Check 4: (c / 100).toFixed(2) in lib/invoices.ts] --> P4[exit 0]\n  C5[Check 5: npm test] --> P5[32/32 pass, lint-rules.test.ts 4/4]\n  C6[Check 6: GET /invoices in browser and over HTTP] --> P6[5 rows, total 1497.50, button unchanged]" },
+    { "type": "file", "file": "check1-lint-clean-tree.txt", "caption": "Acceptance check 1: npm run lint on the clean tree exits 0 with no output, so the new rule finds no existing violation" },
+    { "type": "file", "file": "check2-lint-inline-format.txt", "caption": "Acceptance check 2: inline (amountCents / 100).toFixed(2) on app/invoices/page.tsx line 27 gives two no-restricted-syntax errors, and the message names formatAmount and formatCurrency (the tree was reverted afterwards)" },
+    { "type": "file", "file": "check3-lint-intl-component.txt", "caption": "Acceptance check 3: new Intl.NumberFormat inside components/ExportButton.tsx gives a no-restricted-syntax error on line 11 and a non-zero exit (the edit was reverted afterwards)" },
+    { "type": "file", "file": "check4-lint-lib-allowed.txt", "caption": "Acceptance check 4: the same (c / 100).toFixed(2) appended to lib/invoices.ts still lints with exit 0, because lib/ is out of the rule's scope (the edit was reverted afterwards)" },
+    { "type": "file", "file": "check5-npm-test.txt", "caption": "Acceptance check 5: npm test exits 0, 5 files and 32 tests pass, and lint-rules.test.ts reports 4 of 4 passing" },
+    { "type": "file", "file": "check6-invoices-page.png", "caption": "Acceptance check 6: /invoices in Chromium after next build and next start shows the five invoices, the amounts 245.00 and 1180.00, 'Total sent: $1,497.50', and the button 'Export 3 invoices as CSV'" },
+    { "type": "file", "file": "check6-invoices-snapshot.yml", "caption": "Acceptance check 6: accessibility snapshot of the same page, listing every table row and the total paragraph as text" },
+    { "type": "file", "file": "check6-export-http.txt", "caption": "Acceptance check 6 (regression probe): GET /invoices/export returns 200 text/csv with the header row and the three sent or paid rows, INV-1004 (draft) and INV-1005 (void) absent" },
+    { "type": "file", "file": "check6-invoices.html", "caption": "Acceptance check 6: server-rendered HTML of /invoices, the raw response for the five invoices and the export button label" }
+  ]
+}
