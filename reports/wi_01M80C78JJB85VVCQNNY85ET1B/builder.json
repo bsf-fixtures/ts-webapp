@@ -1,0 +1,35 @@
+{
+  "role": "builder",
+  "attempt": 1,
+  "report": {
+    "schema": "pr-report/1",
+    "summary": [
+      "Inline money formatting (`/ 100`, `.toFixed`, `Intl.NumberFormat`) in app/ and components/ now fails lint.",
+      "Why: inline formats round differently from the CSV export.",
+      "Nothing visible changes; 0 existing violations. Bad example `(c / 100).toFixed(2)` in a page fails; `formatAmount(c)` passes."
+    ],
+    "blocks": [
+      {
+        "type": "diagram",
+        "title": "How the rule applies",
+        "mermaid": "flowchart LR\n  A[app/ and components/] -->|inline cents formatting| E[lint error]\n  A -->|formatAmount / formatCurrency| OK[passes]\n  L[lib/invoices.ts] --> OK"
+      }
+    ],
+    "focus": [
+      {
+        "title": "New lint rule scoped to app/ and components/",
+        "detail": "Tightens the guardrail; lib/ and test files are exempt.",
+        "files": [
+          "eslint.config.mjs"
+        ]
+      }
+    ],
+    "technical": "technical.md",
+    "conceptual": "conceptual.md"
+  },
+  "media_commit": "12658a8dc3142fb045c58f0bc9b9580aa03c0390",
+  "media_prefix": "reports/wi_01M80C78JJB85VVCQNNY85ET1B/builder-1",
+  "inline": {},
+  "problems": [],
+  "stored_at": "2026-11-22T01:17:47.211Z"
+}
