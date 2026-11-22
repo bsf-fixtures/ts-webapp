@@ -1,6 +1,6 @@
 {
   "schema": "index/1",
-  "updated_at": "2026-11-22T00:49:09.011Z",
+  "updated_at": "2026-11-22T00:57:43.921Z",
   "factory": {
     "runner": "0.1.0 source",
     "harness": "claude-code"
@@ -40,6 +40,7 @@
   },
   "health": {
     "sandbox_profile": "docker",
+    "last_review": "rev_20261122",
     "enforcement": "audit",
     "gardening_schedule_active": true
   }
