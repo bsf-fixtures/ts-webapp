@@ -20,9 +20,18 @@ export function listInvoices(): readonly Invoice[] {
   return INVOICES;
 }
 
+declare const exportableBrand: unique symbol;
+
+/**
+ * An invoice that has passed through `exportableInvoices`. The brand exists
+ * only in the type system, so `toCsv` cannot be handed an unfiltered list:
+ * building an export from `listInvoices()` directly fails to typecheck.
+ */
+export type ExportableInvoice = Invoice & { readonly [exportableBrand]: true };
+
 /** Only invoices that were actually sent to a customer belong in an export. */
-export function exportableInvoices(invoices: readonly Invoice[]): readonly Invoice[] {
-  return invoices.filter((i) => i.status === "sent" || i.status === "paid");
+export function exportableInvoices(invoices: readonly Invoice[]): readonly ExportableInvoice[] {
+  return invoices.filter((i): i is ExportableInvoice => i.status === "sent" || i.status === "paid");
 }
 
 /** Sums whatever list it is given, so the sent/paid rule stays in exportableInvoices. */
@@ -50,7 +59,7 @@ function csvCell(value: string): string {
 
 export const CSV_HEADER = ["id", "customer", "amount", "issued_on", "status"] as const;
 
-export function toCsv(invoices: readonly Invoice[]): string {
+export function toCsv(invoices: readonly ExportableInvoice[]): string {
   const rows = [
     CSV_HEADER.join(","),
     ...invoices.map((i) =>
