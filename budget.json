@@ -13,6 +13,15 @@
       "agent_ceiling_usd": 1.83,
       "detection_ceiling_usd": 0.83,
       "started_at": "2026-11-22T00:49:38.212Z"
+    },
+    {
+      "key": "44968886884-1-hardener",
+      "pipeline": "hardening",
+      "role": "hardener",
+      "model": "claude-sonnet-5-5",
+      "agent_ceiling_usd": 4.32,
+      "detection_ceiling_usd": 0.83,
+      "started_at": "2026-11-22T00:55:22.833Z"
     }
   ],
   "settled": [
@@ -21,5 +30,5 @@
     "44965604663-1-score",
     "44966855282-1-score"
   ],
-  "updated_at": "2026-11-22T00:49:38.212Z"
+  "updated_at": "2026-11-22T00:55:22.833Z"
 }
