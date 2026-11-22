@@ -14,6 +14,15 @@
       "agent_ceiling_usd": 5.64,
       "detection_ceiling_usd": 0.83,
       "started_at": "2026-11-22T01:07:36.014Z"
+    },
+    {
+      "key": "44969313735-1-agent-verification",
+      "pipeline": "product_work",
+      "role": "verifier",
+      "model": "claude-haiku-5-5",
+      "agent_ceiling_usd": 2.33,
+      "detection_ceiling_usd": 0.83,
+      "started_at": "2026-11-22T01:07:55.992Z"
     }
   ],
   "settled": [
@@ -27,5 +36,5 @@
     "44968886884-1-spec",
     "44969401572-1-hardener"
   ],
-  "updated_at": "2026-11-22T01:07:36.014Z"
+  "updated_at": "2026-11-22T01:07:55.992Z"
 }
