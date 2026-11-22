@@ -4,11 +4,21 @@
   "spent_usd": {
     "definition": 0.6736
   },
-  "inflight": [],
+  "inflight": [
+    {
+      "key": "44966855282-1-score",
+      "pipeline": "definition",
+      "role": "scorer",
+      "model": "claude-haiku-5-5",
+      "agent_ceiling_usd": 1.83,
+      "detection_ceiling_usd": 0.83,
+      "started_at": "2026-11-22T00:30:20.624Z"
+    }
+  ],
   "settled": [
     "44961477010-1-score",
     "44964072907-1-score",
     "44965604663-1-score"
   ],
-  "updated_at": "2026-11-22T00:21:36.166Z"
+  "updated_at": "2026-11-22T00:30:20.624Z"
 }
