@@ -17,4 +17,27 @@ export default tseslint.config(
       "no-var": "error",
     },
   },
+  {
+    // Money is integer cents and is formatted in one place, lib/invoices.ts
+    // (formatAmount / formatCurrency), so the UI and the CSV export cannot drift.
+    files: ["**/*.{ts,tsx}"],
+    ignores: ["lib/invoices.ts"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "BinaryExpression[operator='/'][right.value=100]",
+          message: "Do not convert cents inline. Use formatAmount or formatCurrency from lib/invoices.",
+        },
+        {
+          selector: "CallExpression[callee.property.name='toFixed']",
+          message: "Do not format money with toFixed. Use formatAmount or formatCurrency from lib/invoices.",
+        },
+        {
+          selector: "NewExpression[callee.object.name='Intl'][callee.property.name='NumberFormat'], CallExpression[callee.object.name='Intl'][callee.property.name='NumberFormat']",
+          message: "Do not build an Intl.NumberFormat. Use formatAmount or formatCurrency from lib/invoices.",
+        },
+      ],
+    },
+  },
 );
