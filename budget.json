@@ -3,7 +3,7 @@
   "month": "2026-11",
   "spent_usd": {
     "definition": 1.2283,
-    "hardening": 0.3287
+    "hardening": 0.3669
   },
   "inflight": [
     {
@@ -23,7 +23,8 @@
     "44966855282-1-score",
     "44968432870-1-score",
     "44968886884-1-hardener",
-    "44968884453-1-hardener"
+    "44968884453-1-hardener",
+    "44968886884-1-spec"
   ],
-  "updated_at": "2026-11-22T01:01:57.995Z"
+  "updated_at": "2026-11-22T01:04:11.584Z"
 }
