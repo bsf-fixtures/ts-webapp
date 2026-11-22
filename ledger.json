@@ -1,6 +1,6 @@
 {
   "schema": "ledger/1",
-  "updated_at": "2026-11-22T00:59:23.811Z",
+  "updated_at": "2026-11-22T00:59:51.195Z",
   "open": [
     {
       "work_item": "wi_01M7XDQPVRKWQTQR8C24VB0HJD",
@@ -157,15 +157,6 @@
       "priority": "normal",
       "created_at": "2026-11-22T00:54:14.363Z",
       "fingerprint": "sha256:83f0b7bf9c01aa17ea091b118a1eee300955cfb1aa1b5f8ca6a5cdab7d0183ba"
-    },
-    {
-      "work_item": "wi_01M80C5V55D8925GZQ786R0KX9",
-      "pipeline": "product_work",
-      "status": "running",
-      "priority": "normal",
-      "created_at": "2026-11-22T00:58:24.293Z",
-      "fingerprint": "sha256:93b6cb4e581c5f2df9896c853b5eb753d5606bd8dec5ad1edd0c15def6d1bc3e",
-      "source_ref": "#48"
     }
   ],
   "recent": [
@@ -180,6 +171,10 @@
       "work_item": "wi_01M7ZH6KHS5KWNZM9HM52RD1MC",
       "status": "rejected",
       "fingerprint": "sha256:5a30ed9c09ce29cc764fc06e92c7013309ab169e106df57583e3a82b77911377"
+    },
+    {
+      "work_item": "wi_01M80C5V55D8925GZQ786R0KX9",
+      "status": "rejected"
     }
   ],
   "merge_queue": []
