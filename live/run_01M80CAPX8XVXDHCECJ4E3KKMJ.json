@@ -1,0 +1,10 @@
+{
+  "schema": "live/1",
+  "run": "run_01M80CAPX8XVXDHCECJ4E3KKMJ",
+  "work_item": "wi_01M80C78JJB85VVCQNNY85ET1B",
+  "pipeline": "hardening",
+  "step": "hardener",
+  "attempt": 1,
+  "started_at": "2026-11-22T01:01:03.784Z",
+  "actions_run": 44969401572
+}
