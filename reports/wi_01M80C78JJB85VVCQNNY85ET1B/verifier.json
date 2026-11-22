@@ -1,0 +1,78 @@
+{
+  "role": "verifier",
+  "attempt": 1,
+  "report": {
+    "schema": "pr-report/1",
+    "summary": [
+      "Verdict: PASS. All six acceptance checks passed on the committed tree (HEAD 3e93e6e): the lint rule is clean on the repo, catches inline money formatting in app/ and components/, allows it in lib/, a…"
+    ],
+    "blocks": [
+      {
+        "type": "diagram",
+        "title": "What each check exercised",
+        "mermaid": "flowchart LR\n  C1[Check 1: npm run lint on clean tree] --> P1[exit 0]\n  C2[Check 2: /100 + toFixed in app/invoices/page.tsx] --> F2[2x no-restricted-syntax, exit 1]\n  C3[Check 3: new Intl.NumberFormat in components/ExportButton.tsx] --> F3[1x no-restricted-syntax, exit 1]\n  C4[Check 4: (c / 100).toFixed(2) in lib/invoices.ts] --> P4[exit 0]\n  C5[Check 5: npm test] --> P5[32/32 pass, lint-rules.test.ts 4/4]\n  C6[Check 6: GET /invoices in browser and over HTTP] --> P6[5 rows, total 1497.50, button unchanged]"
+      },
+      {
+        "type": "file",
+        "file": "check1-lint-clean-tree.txt",
+        "caption": "Acceptance check 1: npm run lint on the clean tree exits 0 with no output, so the new rule finds no existing violation"
+      },
+      {
+        "type": "file",
+        "file": "check2-lint-inline-format.txt",
+        "caption": "Acceptance check 2: inline (amountCents / 100).toFixed(2) on app/invoices/page.tsx line 27 gives two no-restricted-syntax errors, and the message names formatAmount and formatCurrency (the tree was reverted afterwards)"
+      },
+      {
+        "type": "file",
+        "file": "check3-lint-intl-component.txt",
+        "caption": "Acceptance check 3: new Intl.NumberFormat inside components/ExportButton.tsx gives a no-restricted-syntax error on line 11 and a non-zero exit (the edit was reverted afterwards)"
+      },
+      {
+        "type": "file",
+        "file": "check4-lint-lib-allowed.txt",
+        "caption": "Acceptance check 4: the same (c / 100).toFixed(2) appended to lib/invoices.ts still lints with exit 0, because lib/ is out of the rule's scope (the edit was reverted afterwards)"
+      },
+      {
+        "type": "file",
+        "file": "check5-npm-test.txt",
+        "caption": "Acceptance check 5: npm test exits 0, 5 files and 32 tests pass, and lint-rules.test.ts reports 4 of 4 passing"
+      },
+      {
+        "type": "file",
+        "file": "check6-invoices-page.png",
+        "caption": "Acceptance check 6: /invoices in Chromium after next build and next start shows the five invoices, the amounts 245.00 and 1180.00, 'Total sent: $1,497.50', and the button 'Export 3 invoices as CSV'"
+      },
+      {
+        "type": "file",
+        "file": "check6-invoices-snapshot.yml",
+        "caption": "Acceptance check 6: accessibility snapshot of the same page, listing every table row and the total paragraph as text"
+      },
+      {
+        "type": "file",
+        "file": "check6-export-http.txt",
+        "caption": "Acceptance check 6 (regression probe): GET /invoices/export returns 200 text/csv with the header row and the three sent or paid rows, INV-1004 (draft) and INV-1005 (void) absent"
+      },
+      {
+        "type": "file",
+        "file": "check6-invoices.html",
+        "caption": "Acceptance check 6: server-rendered HTML of /invoices, the raw response for the five invoices and the export button label"
+      }
+    ]
+  },
+  "media_commit": "88bb91871821492d6c2a764285eca82c1664f7e1",
+  "media_prefix": "reports/wi_01M80C78JJB85VVCQNNY85ET1B/verifier-1",
+  "inline": {
+    "check1-lint-clean-tree.txt": "\n> ts-webapp@0.1.0 lint\n> eslint .\n\nlint exit=0\n",
+    "check2-lint-inline-format.txt": "\n/home/runner/work/ts-webapp/ts-webapp/app/invoices/page.tsx\n   1:44  error  'formatAmount' is defined but never used                                                                                                             @typescript-eslint/no-unused-vars\n  27:75  error  Amounts are integer cents: format them with formatAmount or formatCurrency from @/lib/invoices, so the page rounds the same way the CSV export does  no-restricted-syntax\n  27:76  error  Amounts are integer cents: format them with formatAmount or formatCurrency from @/lib/invoices, so the page rounds the same way the CSV export does  no-restricted-syntax\n\n✖ 3 problems (3 errors, 0 warnings)\n\nlint exit=1\n",
+    "check3-lint-intl-component.txt": "\n/home/runner/work/ts-webapp/ts-webapp/components/ExportButton.tsx\n  11:9   error  'fmt' is assigned a value but never used                                                                                                             @typescript-eslint/no-unused-vars\n  11:19  error  Amounts are integer cents: format them with formatAmount or formatCurrency from @/lib/invoices, so the page rounds the same way the CSV export does  no-restricted-syntax\n\n✖ 2 problems (2 errors, 0 warnings)\n\nlint exit=1\n",
+    "check4-lint-lib-allowed.txt": "\n> ts-webapp@0.1.0 lint\n> eslint .\n\nlint exit=0\n",
+    "check5-npm-test.txt": "\n> ts-webapp@0.1.0 test\n> vitest run\n\n\u001b[33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.\u001b[39m\n\n\u001b[1m\u001b[7m\u001b[36m RUN \u001b[39m\u001b[27m\u001b[22m \u001b[36mv2.1.9 \u001b[39m\u001b[90m/home/runner/work/ts-webapp/ts-webapp\u001b[39m\n\n \u001b[32m✓\u001b[39m lib/invoices.test.ts \u001b[2m(\u001b[22m\u001b[2m17 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[90m 9\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m app/invoices/export/route.test.ts \u001b[2m(\u001b[22m\u001b[2m5 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[90m 10\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m components/ExportButton.test.tsx \u001b[2m(\u001b[22m\u001b[2m4 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[90m 154\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m app/invoices/page.test.tsx \u001b[2m(\u001b[22m\u001b[2m2 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[90m 54\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m lint-rules.test.ts \u001b[2m(\u001b[22m\u001b[2m4 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[33m 567\u001b[2mms\u001b[22m\u001b[39m\n   \u001b[33m\u001b[2m✓\u001b[22m\u001b[39m money formatting rule\u001b[2m > \u001b[22mfails a page that formats cents inline, so an amount cannot round differently from the CSV \u001b[33m549\u001b[2mms\u001b[22m\u001b[39m\n\n\u001b[2m Test Files \u001b[22m \u001b[1m\u001b[32m5 passed\u001b[39m\u001b[22m\u001b[90m (5)\u001b[39m\n\u001b[2m      Tests \u001b[22m \u001b[1m\u001b[32m32 passed\u001b[39m\u001b[22m\u001b[90m (32)\u001b[39m\n\u001b[2m   Start at \u001b[22m 01:25:48\n\u001b[2m   Duration \u001b[22m 2.10s\u001b[2m (transform 164ms, setup 0ms, collect 609ms, tests 794ms, environment 1.85s, prepare 455ms)\u001b[22m\n\ntest exit=0\n",
+    "check6-invoices-snapshot.yml": "- generic [active] [ref=e1]:\n  - main [ref=e2]:\n    - heading \"Invoices\" [level=1] [ref=e3]\n    - button \"Export 3 invoices as CSV\" [ref=e4]\n    - table [ref=e5]:\n      - rowgroup [ref=e6]:\n        - row [ref=e7]:\n          - columnheader \"Invoice\" [ref=e8]\n          - columnheader \"Customer\" [ref=e9]\n          - columnheader \"Amount\" [ref=e10]\n          - columnheader \"Status\" [ref=e11]\n      - rowgroup [ref=e12]:\n        - row [ref=e13]:\n          - cell \"INV-1001\" [ref=e14]\n          - cell \"Acme Bakery\" [ref=e15]\n          - cell \"245.00\" [ref=e16]\n          - cell \"paid\" [ref=e17]\n        - row [ref=e18]:\n          - cell \"INV-1002\" [ref=e19]\n          - cell \"Northwind Books\" [ref=e20]\n          - cell \"1180.00\" [ref=e21]\n          - cell \"sent\" [ref=e22]\n        - row [ref=e23]:\n          - cell \"INV-1003\" [ref=e24]\n          - cell \"Globex Coffee\" [ref=e25]\n          - cell \"72.50\" [ref=e26]\n          - cell \"paid\" [ref=e27]\n        - row [ref=e28]:\n          - cell \"INV-1004\" [ref=e29]\n          - cell \"Initech Hardware\" [ref=e30]\n          - cell \"931.00\" [ref=e31]\n          - cell \"draft\" [ref=e32]\n        - row [ref=e33]:\n          - cell \"INV-1005\" [ref=e34]\n          - cell \"Hooli Cleaning\" [ref=e35]\n          - cell \"450.00\" [ref=e36]\n          - cell \"void\" [ref=e37]\n    - paragraph [ref=e38]: \"Total sent: $1,497.50\"\n  - alert [ref=e39]",
+    "check6-export-http.txt": "HTTP/1.1 200 OK\r\nvary: rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch\r\ncache-control: no-store\r\ncontent-disposition: attachment; filename=\"invoices.csv\"\r\ncontent-type: text/csv; charset=utf-8\r\nDate: Sun, 22 Nov 2026 01:25:33 GMT\r\nConnection: keep-alive\r\nKeep-Alive: timeout=5\r\nTransfer-Encoding: chunked\r\n\r\nid,customer,amount,issued_on,status\nINV-1001,Acme Bakery,245.00,2026-10-02,paid\nINV-1002,Northwind Books,1180.00,2026-10-11,sent\nINV-1003,Globex Coffee,72.50,2026-10-19,paid\n",
+    "check6-invoices.html": "<!DOCTYPE html><!--IgDiBVtFv0mNG2B4G4q8O--><html lang=\"en\"><head><meta charSet=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><link rel=\"preload\" as=\"script\" fetchPriority=\"low\" href=\"/_next/static/chunks/webpack-078f6dfb37dff419.js\"/><script src=\"/_next/static/chunks/4bd1b696-c023c6e3521b1417.js\" async=\"\"></script><script src=\"/_next/static/chunks/255-73938ce8a8eac1ad.js\" async=\"\"></script><script src=\"/_next/static/chunks/main-app-031dc85969a5ae43.js\" async=\"\"></script><script src=\"/_next/static/chunks/app/invoices/page-c4baa151c0fd67e3.js\" async=\"\"></script><title>Invoices</title><meta name=\"description\" content=\"A fixture app for Build Software Factory\"/><script src=\"/_next/static/chunks/polyfills-42372ed130431b0a.js\" noModule=\"\"></script></head><body style=\"font-family:system-ui, sans-serif;margin:0;padding:2rem\"><div hidden=\"\"><!--$--><!--/$--></div><main><h1>Invoices</h1><button type=\"button\" aria-busy=\"false\">Export 3 invoices as CSV</button><table style=\"margin-top:1.5rem;border-collapse:collapse\"><thead><tr><th style=\"text-align:left;padding-right:1.5rem\">Invoice</th><th style=\"text-align:left;padding-right:1.5rem\">Customer</th><th style=\"text-align:right;padding-right:1.5rem\">Amount</th><th style=\"text-align:left\">Status</th></tr></thead><tbody><tr><td style=\"padding-right:1.5rem\">INV-1001</td><td style=\"padding-right:1.5rem\">Acme Bakery</td><td style=\"text-align:right;padding-right:1.5rem\">245.00</td><td>paid</td></tr><tr><td style=\"padding-right:1.5rem\">INV-1002</td><td style=\"padding-right:1.5rem\">Northwind Books</td><td style=\"text-align:right;padding-right:1.5rem\">1180.00</td><td>sent</td></tr><tr><td style=\"padding-right:1.5rem\">INV-1003</td><td style=\"padding-right:1.5rem\">Globex Coffee</td><td style=\"text-align:right;padding-right:1.5rem\">72.50</td><td>paid</td></tr><tr><td style=\"padding-right:1.5rem\">INV-1004</td><td style=\"padding-right:1.5rem\">Initech Hardware</td><td style=\"text-align:right;padding-right:1.5rem\">931.00</td><td>draft</td></tr><tr><td style=\"padding-right:1.5rem\">INV-1005</td><td style=\"padding-right:1.5rem\">Hooli Cleaning</td><td style=\"text-align:right;padding-right:1.5rem\">450.00</td><td>void</td></tr></tbody></table><p style=\"margin-top:0.75rem\">Total sent: $1,497.50</p></main><!--$--><!--/$--><script src=\"/_next/static/chunks/webpack-078f6dfb37dff419.js\" id=\"_R_\" async=\"\"></script><script>(self.__next_f=self.__next_f||[]).push([0])</script><script>self.__next_f.push([1,\"1:\\\"$Sreact.fragment\\\"\\n2:I[9766,[],\\\"\\\"]\\n3:I[8924,[],\\\"\\\"]\\n4:I[268,[\\\"175\\\",\\\"static/chunks/app/invoices/page-c4baa151c0fd67e3.js\\\"],\\\"ExportButton\\\"]\\n5:I[4431,[],\\\"OutletBoundary\\\"]\\n7:I[5278,[],\\\"AsyncMetadataOutlet\\\"]\\n9:I[4431,[],\\\"ViewportBoundary\\\"]\\nb:I[4431,[],\\\"MetadataBoundary\\\"]\\nc:\\\"$Sreact.suspense\\\"\\ne:I[7150,[],\\\"\\\"]\\n\"])</script><script>self.__next_f.push([1,\"0:{\\\"P\\\":null,\\\"b\\\":\\\"IgDiBVtFv0mNG2B4G4q8O\\\",\\\"p\\\":\\\"\\\",\\\"c\\\":[\\\"\\\",\\\"invoices\\\"],\\\"i\\\":false,\\\"f\\\":[[[\\\"\\\",{\\\"children\\\":[\\\"invoices\\\",{\\\"children\\\":[\\\"__PAGE__\\\",{}]}]},\\\"$undefined\\\",\\\"$undefined\\\",true],[\\\"\\\",[\\\"$\\\",\\\"$1\\\",\\\"c\\\",{\\\"children\\\":[null,[\\\"$\\\",\\\"html\\\",null,{\\\"lang\\\":\\\"en\\\",\\\"children\\\":[\\\"$\\\",\\\"body\\\",null,{\\\"style\\\":{\\\"fontFamily\\\":\\\"system-ui, sans-serif\\\",\\\"margin\\\":0,\\\"padding\\\":\\\"2rem\\\"},\\\"children\\\":[\\\"$\\\",\\\"$L2\\\",null,{\\\"parallelRouterKey\\\":\\\"children\\\",\\\"error\\\":\\\"$undefined\\\",\\\"errorStyles\\\":\\\"$undefined\\\",\\\"errorScripts\\\":\\\"$undefined\\\",\\\"template\\\":[\\\"$\\\",\\\"$L3\\\",null,{}],\\\"templateStyles\\\":\\\"$undefined\\\",\\\"templateScripts\\\":\\\"$undefined\\\",\\\"notFound\\\":[[[\\\"$\\\",\\\"title\\\",null,{\\\"children\\\":\\\"404: This page could not be found.\\\"}],[\\\"$\\\",\\\"div\\\",null,{\\\"style\\\":{\\\"fontFamily\\\":\\\"system-ui,\\\\\\\"Segoe UI\\\\\\\",Roboto,Helvetica,Arial,sans-serif,\\\\\\\"Apple Color Emoji\\\\\\\",\\\\\\\"Segoe UI Emoji\\\\\\\"\\\",\\\"height\\\":\\\"100vh\\\",\\\"textAlign\\\":\\\"center\\\",\\\"display\\\":\\\"flex\\\",\\\"flexDirection\\\":\\\"column\\\",\\\"alignItems\\\":\\\"center\\\",\\\"justifyContent\\\":\\\"center\\\"},\\\"children\\\":[\\\"$\\\",\\\"div\\\",null,{\\\"children\\\":"
+  },
+  "problems": [
+    "summary line 1 was shortened to fit (293 → 200)"
+  ],
+  "stored_at": "2026-11-22T01:26:14.998Z"
+}
