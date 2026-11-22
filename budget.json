@@ -4,19 +4,9 @@
   "spent_usd": {
     "definition": 1.2283,
     "hardening": 2.3198,
-    "product_work": 2.5508
+    "product_work": 5.7108
   },
-  "inflight": [
-    {
-      "key": "44969818796-1-agent-verification",
-      "pipeline": "product_work",
-      "role": "verifier",
-      "model": "claude-haiku-5-5",
-      "agent_ceiling_usd": 2.33,
-      "detection_ceiling_usd": 0.83,
-      "started_at": "2026-11-22T01:13:19.122Z"
-    }
-  ],
+  "inflight": [],
   "settled": [
     "44961477010-1-score",
     "44964072907-1-score",
@@ -30,7 +20,8 @@
     "44969313735-1-agent-verification",
     "44969401572-1-spec",
     "44969401572-1-build",
-    "44970928392-1-agent-verification"
+    "44970928392-1-agent-verification",
+    "44969818796-1-agent-verification"
   ],
-  "updated_at": "2026-11-22T01:29:05.144Z"
+  "updated_at": "2026-11-22T14:59:31.890Z"
 }
