@@ -14,9 +14,10 @@
   "body": "wrong_scope is something a check can catch, which is cheaper and permanent\n\nRuns:\n- run_01M7YJB23RSE7TZFNCGB2P7E8M",
   "priority": "normal",
   "fingerprint": "sha256:c2c1abb3bca77bebe06b9b96b7f7a5b45a434cb729fe21eb53b8507c22706bfc",
-  "status": "queued",
+  "status": "running",
   "runs": [
-    "run_01M7YJB23RSE7TZFNCGB2P7E8M"
+    "run_01M7YJB23RSE7TZFNCGB2P7E8M",
+    "run_01M80BYVBR1MS2A5HA2VBSBSCT"
   ],
   "pr": null,
   "parent": null,
