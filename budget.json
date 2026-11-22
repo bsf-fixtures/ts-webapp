@@ -5,7 +5,17 @@
     "definition": 1.2283,
     "hardening": 0.606
   },
-  "inflight": [],
+  "inflight": [
+    {
+      "key": "44969401572-1-spec",
+      "pipeline": "hardening",
+      "role": "spec",
+      "model": "claude-opus-5-5",
+      "agent_ceiling_usd": 5.64,
+      "detection_ceiling_usd": 0.83,
+      "started_at": "2026-11-22T01:07:36.014Z"
+    }
+  ],
   "settled": [
     "44961477010-1-score",
     "44964072907-1-score",
@@ -17,5 +27,5 @@
     "44968886884-1-spec",
     "44969401572-1-hardener"
   ],
-  "updated_at": "2026-11-22T01:06:26.825Z"
+  "updated_at": "2026-11-22T01:07:36.014Z"
 }
