@@ -1,13 +1,13 @@
 {
   "schema": "index/1",
-  "updated_at": "2026-11-22T01:01:09.274Z",
+  "updated_at": "2026-11-22T01:01:57.024Z",
   "factory": {
     "runner": "0.1.0 source",
     "harness": "claude-code"
   },
   "metrics": {
     "window_days": 30,
-    "runs": 5,
+    "runs": 6,
     "merged": 0,
     "escalated": 0,
     "automation_rate": 0,
@@ -22,10 +22,17 @@
         "merged": 0,
         "spend_usd": 20.32,
         "revert_rate": 0
+      },
+      "hardening": {
+        "runs": 1,
+        "merged": 0,
+        "spend_usd": 0,
+        "revert_rate": 0
       }
     }
   },
   "recent_runs": [
+    "run_01M80BYRYZF8Y7DVP9JYYC4NS3",
     "run_01M7ZH7RN6A07PB22AE0E3SERW",
     "run_01M7ZGFMV8NX72DCFHP11EPB6Y",
     "run_01M7ZGRNYK6880AFSHRXJW1CN2",
