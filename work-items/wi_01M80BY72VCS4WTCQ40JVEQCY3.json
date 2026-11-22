@@ -1,0 +1,25 @@
+{
+  "schema": "work-item/1",
+  "id": "wi_01M80BY72VCS4WTCQ40JVEQCY3",
+  "created_at": "2026-11-22T00:54:14.363Z",
+  "source": {
+    "kind": "review",
+    "ref": null,
+    "actor": "factory",
+    "via": null
+  },
+  "trigger_class": "self",
+  "pipeline": "hardening",
+  "title": "wrong_scope in app/invoices (1×)",
+  "body": "wrong_scope is something a check can catch, which is cheaper and permanent\n\nRuns:\n- run_01M7YJB23RSE7TZFNCGB2P7E8M",
+  "priority": "normal",
+  "fingerprint": "sha256:c2c1abb3bca77bebe06b9b96b7f7a5b45a434cb729fe21eb53b8507c22706bfc",
+  "status": "queued",
+  "runs": [
+    "run_01M7YJB23RSE7TZFNCGB2P7E8M"
+  ],
+  "pr": null,
+  "parent": null,
+  "related": [],
+  "spec": null
+}

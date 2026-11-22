@@ -1,6 +1,6 @@
 {
   "schema": "ledger/1",
-  "updated_at": "2026-11-22T00:49:09.011Z",
+  "updated_at": "2026-11-22T00:54:14.363Z",
   "open": [
     {
       "work_item": "wi_01M7XDQPVRKWQTQR8C24VB0HJD",
@@ -133,6 +133,39 @@
       "fingerprint": "sha256:289784f558366bf55f7f3769335b723021a138e14e5b028f2f7a80d4082dc7ef",
       "pr": 41,
       "source_ref": "#37"
+    },
+    {
+      "work_item": "wi_01M80BY72V6VV5B241KB47N8ZJ",
+      "pipeline": "definition",
+      "status": "queued",
+      "fingerprint": "sha256:80343130f5f81cb7628269342d37550d2c457c9e6a17548f4262fe58579e87c7",
+      "priority": "high",
+      "created_at": "2026-11-22T00:54:14.363Z",
+      "fixes": [
+        "context_gap"
+      ]
+    },
+    {
+      "work_item": "wi_01M80BY72VJ6VKP60Z8PTCM6XJ",
+      "pipeline": "hardening",
+      "status": "queued",
+      "fingerprint": "sha256:83f0b7bf9c01aa17ea091b118a1eee300955cfb1aa1b5f8ca6a5cdab7d0183ba",
+      "priority": "normal",
+      "created_at": "2026-11-22T00:54:14.363Z",
+      "fixes": [
+        "overclaimed"
+      ]
+    },
+    {
+      "work_item": "wi_01M80BY72VCS4WTCQ40JVEQCY3",
+      "pipeline": "hardening",
+      "status": "queued",
+      "fingerprint": "sha256:c2c1abb3bca77bebe06b9b96b7f7a5b45a434cb729fe21eb53b8507c22706bfc",
+      "priority": "normal",
+      "created_at": "2026-11-22T00:54:14.363Z",
+      "fixes": [
+        "wrong_scope"
+      ]
     }
   ],
   "recent": [

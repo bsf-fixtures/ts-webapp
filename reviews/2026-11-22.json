@@ -1,0 +1,402 @@
+{
+  "schema": "review/1",
+  "id": "rev_20261122",
+  "window": {
+    "from": "2026-11-22T00:54:14.363Z",
+    "to": "2026-11-22T00:54:14.363Z",
+    "runs": 5
+  },
+  "scores": [
+    {
+      "run": "run_01M7YJB23RSE7TZFNCGB2P7E8M",
+      "criterion": "spec:context_gap",
+      "score": 2,
+      "tags": [
+        "context_gap"
+      ],
+      "note": "The spec calls app/invoices/page.test.tsx a new file and says app/invoices/page.tsx has no test today, but main already has that file with two 'Total sent' tests, so the builder had to guess where its tests went."
+    },
+    {
+      "run": "run_01M7YJB23RSE7TZFNCGB2P7E8M",
+      "criterion": "spec:untagged",
+      "score": 5,
+      "tags": [
+        "untagged"
+      ],
+      "note": "Each check names a URL, an exact row set or label, a header, or a command with its exit condition, so a person can check it against the running app."
+    },
+    {
+      "run": "run_01M7YJB23RSE7TZFNCGB2P7E8M",
+      "criterion": "verifier:untagged",
+      "score": 4,
+      "tags": [
+        "untagged"
+      ],
+      "note": "The report describes browser clicks, a downloaded CSV and computed-style reads, but its test description (nine tests in app/invoices/page.filter.test.tsx) matches runs 2 and 3, not this run's diff, so it cannot be confirmed that this run's build was the one verified."
+    },
+    {
+      "run": "run_01M7YJB23RSE7TZFNCGB2P7E8M",
+      "criterion": "builder:wrong_scope",
+      "score": 2,
+      "tags": [
+        "wrong_scope"
+      ],
+      "note": "The diff marks app/invoices/page.test.tsx as 'added' with seven tests, although main already has that file with two 'Total sent' tests, and tests_changed declares no edit to it, which policy.yaml requires."
+    },
+    {
+      "run": "run_01M7YJB23RSE7TZFNCGB2P7E8M",
+      "criterion": "builder:untagged",
+      "score": 4,
+      "tags": [
+        "untagged"
+      ],
+      "note": "The source change is compact (one nav, two pure lib functions, one type alias) and leaves the export route and ExportButton untouched."
+    },
+    {
+      "run": "run_01M7YJB23RSE7TZFNCGB2P7E8M",
+      "criterion": "builder:untagged",
+      "score": 5,
+      "tags": [
+        "untagged"
+      ],
+      "note": "Filtering is pure functions over readonly data in lib/, links use next/link as app/page.tsx does, and styling is inline style objects, all as fundamentals.md describes."
+    },
+    {
+      "run": "run_01M7YJB23RSE7TZFNCGB2P7E8M",
+      "criterion": "builder:untagged",
+      "score": 4,
+      "tags": [
+        "untagged"
+      ],
+      "note": "The lib tests assert concrete outputs (parseStatus('bogus') is undefined, invoicesWithStatus returns [paid]) and the page tests count rendered rows; the diff does not show whether the existing 'Total sent' tests still run."
+    },
+    {
+      "run": "run_01M7YJB23RSE7TZFNCGB2P7E8M",
+      "criterion": "verifier:overclaimed",
+      "score": 2,
+      "tags": [
+        "overclaimed"
+      ],
+      "note": "The report says nine filter tests are in app/invoices/page.filter.test.tsx and that two pre-existing tests still pass, but this run's diff has seven tests in app/invoices/page.test.tsx and no page.filter.test.tsx; the report is identical to runs 2 and 3."
+    },
+    {
+      "run": "run_01M7ZF3SM2EM2C97Z0EQCKDWQ8",
+      "criterion": "spec:context_gap",
+      "score": 2,
+      "tags": [
+        "context_gap"
+      ],
+      "note": "The spec calls app/invoices/page.test.tsx a new file and says app/invoices/page.tsx has no test today, but main already has that file with two 'Total sent' tests, so the builder had to guess where its tests went."
+    },
+    {
+      "run": "run_01M7ZF3SM2EM2C97Z0EQCKDWQ8",
+      "criterion": "spec:untagged",
+      "score": 5,
+      "tags": [
+        "untagged"
+      ],
+      "note": "Each check names a URL, an exact row set or label, a header, or a command with its exit condition, so a person can check it against the running app."
+    },
+    {
+      "run": "run_01M7ZF3SM2EM2C97Z0EQCKDWQ8",
+      "criterion": "verifier:untagged",
+      "score": 5,
+      "tags": [
+        "untagged"
+      ],
+      "note": "The report describes browser journeys (clicks, reloads, back and forward), two byte-compared CSV downloads and a console check, and its test count matches this run's page.filter.test.tsx."
+    },
+    {
+      "run": "run_01M7ZF3SM2EM2C97Z0EQCKDWQ8",
+      "criterion": "builder:untagged",
+      "score": 4,
+      "tags": [
+        "untagged"
+      ],
+      "note": "The filter does what the spec asks and nothing more, but the tests went to app/invoices/page.filter.test.tsx, which is not in the spec's files list; the verifier flagged this."
+    },
+    {
+      "run": "run_01M7ZF3SM2EM2C97Z0EQCKDWQ8",
+      "criterion": "builder:untagged",
+      "score": 3,
+      "tags": [
+        "untagged"
+      ],
+      "note": "The page splits searchParams handling into a non-async wrapper and a view() helper with a Promise branch, where the spec's plain async page would have been smaller."
+    },
+    {
+      "run": "run_01M7ZF3SM2EM2C97Z0EQCKDWQ8",
+      "criterion": "builder:untagged",
+      "score": 3,
+      "tags": [
+        "untagged"
+      ],
+      "note": "The repo has no other searchParams use, and the page resolves the query through a Promise returned from a non-async component, a second way of doing it that the spec did not plan."
+    },
+    {
+      "run": "run_01M7ZF3SM2EM2C97Z0EQCKDWQ8",
+      "criterion": "builder:untagged",
+      "score": 5,
+      "tags": [
+        "untagged"
+      ],
+      "note": "The nine page tests assert rendered rows, link hrefs, aria-current and font-weight, the export label and the total, and the lib tests assert concrete outputs; none rely on mocks."
+    },
+    {
+      "run": "run_01M7ZF3SM2EM2C97Z0EQCKDWQ8",
+      "criterion": "verifier:untagged",
+      "score": 5,
+      "tags": [
+        "untagged"
+      ],
+      "note": "The report names the file-placement deviation and the switch to dynamic rendering, and both match the diff."
+    },
+    {
+      "run": "run_01M7ZGRNYK6880AFSHRXJW1CN2",
+      "criterion": "spec:context_gap",
+      "score": 2,
+      "tags": [
+        "context_gap"
+      ],
+      "note": "The spec calls app/invoices/page.test.tsx a new file and says app/invoices/page.tsx has no test today, but main already has that file with two 'Total sent' tests, so the builder had to guess where its tests went."
+    },
+    {
+      "run": "run_01M7ZGRNYK6880AFSHRXJW1CN2",
+      "criterion": "spec:untagged",
+      "score": 5,
+      "tags": [
+        "untagged"
+      ],
+      "note": "Each check names a URL, an exact row set or label, a header, or a command with its exit condition, so a person can check it against the running app."
+    },
+    {
+      "run": "run_01M7ZGRNYK6880AFSHRXJW1CN2",
+      "criterion": "verifier:untagged",
+      "score": 5,
+      "tags": [
+        "untagged"
+      ],
+      "note": "The report describes browser journeys (clicks, reloads, back and forward), two byte-compared CSV downloads and a console check, and its test count matches this run's page.filter.test.tsx."
+    },
+    {
+      "run": "run_01M7ZGRNYK6880AFSHRXJW1CN2",
+      "criterion": "builder:untagged",
+      "score": 4,
+      "tags": [
+        "untagged"
+      ],
+      "note": "The filter does what the spec asks and nothing more, but the tests went to app/invoices/page.filter.test.tsx, which is not in the spec's files list; the verifier flagged this."
+    },
+    {
+      "run": "run_01M7ZGRNYK6880AFSHRXJW1CN2",
+      "criterion": "builder:untagged",
+      "score": 3,
+      "tags": [
+        "untagged"
+      ],
+      "note": "The page splits searchParams handling into a non-async wrapper and a view() helper with a Promise branch, where the spec's plain async page would have been smaller."
+    },
+    {
+      "run": "run_01M7ZGRNYK6880AFSHRXJW1CN2",
+      "criterion": "builder:untagged",
+      "score": 3,
+      "tags": [
+        "untagged"
+      ],
+      "note": "The repo has no other searchParams use, and the page resolves the query through a Promise returned from a non-async component, a second way of doing it that the spec did not plan."
+    },
+    {
+      "run": "run_01M7ZGRNYK6880AFSHRXJW1CN2",
+      "criterion": "builder:untagged",
+      "score": 5,
+      "tags": [
+        "untagged"
+      ],
+      "note": "The nine page tests assert rendered rows, link hrefs, aria-current and font-weight, the export label and the total, and the lib tests assert concrete outputs; none rely on mocks."
+    },
+    {
+      "run": "run_01M7ZGRNYK6880AFSHRXJW1CN2",
+      "criterion": "verifier:untagged",
+      "score": 5,
+      "tags": [
+        "untagged"
+      ],
+      "note": "The report names the file-placement deviation and the switch to dynamic rendering, and both match this run's diff."
+    },
+    {
+      "run": "run_01M7ZGFMV8NX72DCFHP11EPB6Y",
+      "criterion": "spec:untagged",
+      "score": 5,
+      "tags": [
+        "untagged"
+      ],
+      "note": "The spec fixes the heading text, the single-template-literal rule (probed with renderToString), the file placement against the existing page.test.tsx, and the reason no lib function is added, so the builder decided nothing."
+    },
+    {
+      "run": "run_01M7ZGFMV8NX72DCFHP11EPB6Y",
+      "criterion": "spec:untagged",
+      "score": 5,
+      "tags": [
+        "untagged"
+      ],
+      "note": "Each check is a visible heading string, a counted row set, a curl grep for the literal string, or the export label and download, so each can be checked in the running app."
+    },
+    {
+      "run": "run_01M7ZGFMV8NX72DCFHP11EPB6Y",
+      "criterion": "verifier:untagged",
+      "score": 5,
+      "tags": [
+        "untagged"
+      ],
+      "note": "The report describes a served-HTML curl with zero comment markers, a hydrated-DOM comparison, a Chromium download clicked twice, and a client-side navigation from /, so the app was used rather than the code read."
+    },
+    {
+      "run": "run_01M7ZGFMV8NX72DCFHP11EPB6Y",
+      "criterion": "builder:untagged",
+      "score": 5,
+      "tags": [
+        "untagged"
+      ],
+      "note": "The heading now reads Invoices (5) from invoices.length, and the export button and total are left alone, as the request and spec require."
+    },
+    {
+      "run": "run_01M7ZGFMV8NX72DCFHP11EPB6Y",
+      "criterion": "builder:untagged",
+      "score": 5,
+      "tags": [
+        "untagged"
+      ],
+      "note": "The source change is two lines in app/invoices/page.tsx (a template literal and a comment) and no new module."
+    },
+    {
+      "run": "run_01M7ZGFMV8NX72DCFHP11EPB6Y",
+      "criterion": "builder:untagged",
+      "score": 5,
+      "tags": [
+        "untagged"
+      ],
+      "note": "The count uses the same single-template-literal form as the existing 'Total sent:' line, and the tests were added to the existing app/invoices/page.test.tsx."
+    },
+    {
+      "run": "run_01M7ZGFMV8NX72DCFHP11EPB6Y",
+      "criterion": "builder:untagged",
+      "score": 4,
+      "tags": [
+        "untagged"
+      ],
+      "note": "The first test asserts the heading against the rendered tbody row count and would fail on the pre-change page; the second asserts the heading is not 'Invoices (3)' and that the export label is unchanged, which passes on the pre-change page and so guards one regression only."
+    },
+    {
+      "run": "run_01M7ZGFMV8NX72DCFHP11EPB6Y",
+      "criterion": "verifier:untagged",
+      "score": 5,
+      "tags": [
+        "untagged"
+      ],
+      "note": "The builder and verifier both say the heading counts rows shown (5) and the button counts rows exported (3), and both match the diff."
+    },
+    {
+      "run": "run_01M7ZH7RN6A07PB22AE0E3SERW",
+      "criterion": "spec:untagged",
+      "score": 5,
+      "tags": [
+        "untagged"
+      ],
+      "note": "The spec fixes the comparator, the copy-before-sort, the ES2022 constraint against toSorted, the localeCompare ban, the file for each change, and the out-of-scope CSV, so the builder decided nothing."
+    },
+    {
+      "run": "run_01M7ZH7RN6A07PB22AE0E3SERW",
+      "criterion": "spec:untagged",
+      "score": 5,
+      "tags": [
+        "untagged"
+      ],
+      "note": "Each check names the exact row order, the export label and total strings, the exact CSV body, or the npm test case, so a person can check each one."
+    },
+    {
+      "run": "run_01M7ZH7RN6A07PB22AE0E3SERW",
+      "criterion": "verifier:untagged",
+      "score": 5,
+      "tags": [
+        "untagged"
+      ],
+      "note": "The report describes a browser row-order check against a before build, a Chromium export download, curl of the CSV, and interleaved table and export requests checking the sort does not leak into the CSV."
+    },
+    {
+      "run": "run_01M7ZH7RN6A07PB22AE0E3SERW",
+      "criterion": "builder:untagged",
+      "score": 5,
+      "tags": [
+        "untagged"
+      ],
+      "note": "The table is sorted newest first, the export route and totals are left alone, and no column was added, as the request and spec require."
+    },
+    {
+      "run": "run_01M7ZH7RN6A07PB22AE0E3SERW",
+      "criterion": "builder:untagged",
+      "score": 5,
+      "tags": [
+        "untagged"
+      ],
+      "note": "The change is one pure function in lib/invoices.ts, one call in the page, and tests, with no change to listInvoices() or the export route."
+    },
+    {
+      "run": "run_01M7ZH7RN6A07PB22AE0E3SERW",
+      "criterion": "builder:untagged",
+      "score": 5,
+      "tags": [
+        "untagged"
+      ],
+      "note": "newestFirst takes a readonly Invoice[] and returns a derived readonly array, the same shape as exportableInvoices, and its tests use the existing invoice() factory."
+    },
+    {
+      "run": "run_01M7ZH7RN6A07PB22AE0E3SERW",
+      "criterion": "builder:untagged",
+      "score": 5,
+      "tags": [
+        "untagged"
+      ],
+      "note": "The tie test fails if the comparator is not stable, the non-mutation test fails if the seeded list is sorted in place, and the page test asserts the exact id sequence in the rendered rows."
+    },
+    {
+      "run": "run_01M7ZH7RN6A07PB22AE0E3SERW",
+      "criterion": "verifier:untagged",
+      "score": 5,
+      "tags": [
+        "untagged"
+      ],
+      "note": "The report says the CSV and the table now disagree on row order, which is deliberate under the spec, and that the test count went from 28 to 32, which is consistent with the four added tests in the diff."
+    }
+  ],
+  "problems": [
+    {
+      "title": "context_gap in app/invoices (3×)",
+      "runs": [
+        "run_01M7YJB23RSE7TZFNCGB2P7E8M",
+        "run_01M7ZF3SM2EM2C97Z0EQCKDWQ8",
+        "run_01M7ZGRNYK6880AFSHRXJW1CN2"
+      ],
+      "route": "definition",
+      "work_item": "wi_01M80BY72V6VV5B241KB47N8ZJ",
+      "change": "context_gap is something the agent did not know, which a context or model change addresses"
+    },
+    {
+      "title": "overclaimed in app/invoices (1×)",
+      "runs": [
+        "run_01M7YJB23RSE7TZFNCGB2P7E8M"
+      ],
+      "route": "hardening",
+      "work_item": "wi_01M80BY72VJ6VKP60Z8PTCM6XJ",
+      "change": "overclaimed is something a check can catch, which is cheaper and permanent"
+    },
+    {
+      "title": "wrong_scope in app/invoices (1×)",
+      "runs": [
+        "run_01M7YJB23RSE7TZFNCGB2P7E8M"
+      ],
+      "route": "hardening",
+      "work_item": "wi_01M80BY72VCS4WTCQ40JVEQCY3",
+      "change": "wrong_scope is something a check can catch, which is cheaper and permanent"
+    }
+  ]
+}
