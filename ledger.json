@@ -1,6 +1,6 @@
 {
   "schema": "ledger/1",
-  "updated_at": "2026-11-22T01:43:56.667Z",
+  "updated_at": "2026-11-22T01:44:25.418Z",
   "open": [
     {
       "work_item": "wi_01M7XDQPVRKWQTQR8C24VB0HJD",
@@ -135,14 +135,6 @@
       "source_ref": "#37"
     },
     {
-      "work_item": "wi_01M80BY72V6VV5B241KB47N8ZJ",
-      "pipeline": "definition",
-      "status": "queued",
-      "priority": "high",
-      "created_at": "2026-11-22T00:54:14.363Z",
-      "fingerprint": "sha256:80343130f5f81cb7628269342d37550d2c457c9e6a17548f4262fe58579e87c7"
-    },
-    {
       "work_item": "wi_01M80BY72VCS4WTCQ40JVEQCY3",
       "pipeline": "hardening",
       "status": "running",
@@ -186,6 +178,10 @@
       "work_item": "wi_01M80C5V55D8925GZQ786R0KX9",
       "status": "rejected",
       "fingerprint": "sha256:93b6cb4e581c5f2df9896c853b5eb753d5606bd8dec5ad1edd0c15def6d1bc3e"
+    },
+    {
+      "work_item": "wi_01M80BY72V6VV5B241KB47N8ZJ",
+      "status": "rejected"
     }
   ],
   "merge_queue": []

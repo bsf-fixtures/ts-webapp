@@ -14,7 +14,7 @@
   "body": "context_gap is something the agent did not know, which a context or model change addresses\n\nRuns:\n- run_01M7YJB23RSE7TZFNCGB2P7E8M\n- run_01M7ZF3SM2EM2C97Z0EQCKDWQ8\n- run_01M7ZGRNYK6880AFSHRXJW1CN2",
   "priority": "high",
   "fingerprint": "sha256:80343130f5f81cb7628269342d37550d2c457c9e6a17548f4262fe58579e87c7",
-  "status": "queued",
+  "status": "rejected",
   "runs": [
     "run_01M7YJB23RSE7TZFNCGB2P7E8M",
     "run_01M7ZF3SM2EM2C97Z0EQCKDWQ8",
@@ -23,5 +23,6 @@
   "pr": null,
   "parent": null,
   "related": [],
-  "spec": null
+  "spec": null,
+  "closed_at": "2026-11-22T01:44:25.418Z"
 }
