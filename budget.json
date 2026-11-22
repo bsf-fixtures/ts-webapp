@@ -15,6 +15,15 @@
       "agent_ceiling_usd": 2.33,
       "detection_ceiling_usd": 0.83,
       "started_at": "2026-11-22T01:13:19.122Z"
+    },
+    {
+      "key": "44969401572-1-build",
+      "pipeline": "hardening",
+      "role": "builder",
+      "model": "claude-sonnet-5-5",
+      "agent_ceiling_usd": 5.32,
+      "detection_ceiling_usd": 0.83,
+      "started_at": "2026-11-22T01:15:45.863Z"
     }
   ],
   "settled": [
@@ -30,5 +39,5 @@
     "44969313735-1-agent-verification",
     "44969401572-1-spec"
   ],
-  "updated_at": "2026-11-22T01:14:21.587Z"
+  "updated_at": "2026-11-22T01:15:45.863Z"
 }
