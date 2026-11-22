@@ -1,6 +1,6 @@
 {
   "schema": "ledger/1",
-  "updated_at": "2026-11-22T01:28:52.937Z",
+  "updated_at": "2026-11-22T01:29:52.375Z",
   "open": [
     {
       "work_item": "wi_01M7XDQPVRKWQTQR8C24VB0HJD",
@@ -161,7 +161,7 @@
     {
       "work_item": "wi_01M80C78JJB85VVCQNNY85ET1B",
       "pipeline": "hardening",
-      "status": "running",
+      "status": "in_review",
       "priority": "normal",
       "created_at": "2026-11-22T00:59:10.802Z",
       "fingerprint": "sha256:93b6cb4e581c5f2df9896c853b5eb753d5606bd8dec5ad1edd0c15def6d1bc3e",
