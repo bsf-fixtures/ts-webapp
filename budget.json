@@ -3,19 +3,10 @@
   "month": "2026-11",
   "spent_usd": {
     "definition": 1.2283,
-    "hardening": 0.606,
+    "hardening": 2.1052,
     "product_work": 2.3733
   },
   "inflight": [
-    {
-      "key": "44969401572-1-spec",
-      "pipeline": "hardening",
-      "role": "spec",
-      "model": "claude-opus-5-5",
-      "agent_ceiling_usd": 5.64,
-      "detection_ceiling_usd": 0.83,
-      "started_at": "2026-11-22T01:07:36.014Z"
-    },
     {
       "key": "44969818796-1-agent-verification",
       "pipeline": "product_work",
@@ -36,7 +27,8 @@
     "44968884453-1-hardener",
     "44968886884-1-spec",
     "44969401572-1-hardener",
-    "44969313735-1-agent-verification"
+    "44969313735-1-agent-verification",
+    "44969401572-1-spec"
   ],
-  "updated_at": "2026-11-22T01:13:19.122Z"
+  "updated_at": "2026-11-22T01:14:21.587Z"
 }
