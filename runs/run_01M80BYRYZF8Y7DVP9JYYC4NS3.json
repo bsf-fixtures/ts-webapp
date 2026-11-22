@@ -1,0 +1,19 @@
+{
+  "schema": "run/1",
+  "id": "run_01M80BYRYZF8Y7DVP9JYYC4NS3",
+  "work_item": "wi_01M80BY72VJ6VKP60Z8PTCM6XJ",
+  "pipeline": "hardening",
+  "actor": {
+    "kind": "agent",
+    "harness": "claude-code"
+  },
+  "started_at": "2026-11-22T00:54:32.671Z",
+  "ended_at": "2026-11-22T01:01:41.168Z",
+  "duration_sec": 428,
+  "outcome": "failed",
+  "pr": null,
+  "steps": [],
+  "gates": [],
+  "cost_usd": 0,
+  "escalated": false
+}
