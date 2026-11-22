@@ -299,7 +299,13 @@ too; the review routes only the 1s and 2s, by their `tag`.
 - `tag`: required for a 1 or 2, from the rubric's `failure_tags`. Leave it out
   for a 3–5.
 - `score`: `null` with a `detail` saying what was missing, when
-  `to-score.json` does not carry what the criterion needs.
+  `to-score.json` does not carry what the criterion needs. A null score is a
+  complete answer for that criterion: do **not** call `report_incomplete` for
+  it. Call `report_incomplete` only when you could score nothing at all.
+
+Each run in `to-score.json` carries its `request`, `spec`, `diff`, `gates`,
+`steps` and `reports` (the roles' PR reports: their summaries, the proof they
+attached and any problems with it), and the file carries the `rubrics`.
 
 ## What you are actually judging
 
