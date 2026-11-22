@@ -1,0 +1,8 @@
+
+/home/runner/work/ts-webapp/ts-webapp/components/ExportButton.tsx
+  11:9   error  'fmt' is assigned a value but never used                                                                                                             @typescript-eslint/no-unused-vars
+  11:19  error  Amounts are integer cents: format them with formatAmount or formatCurrency from @/lib/invoices, so the page rounds the same way the CSV export does  no-restricted-syntax
+
+✖ 2 problems (2 errors, 0 warnings)
+
+lint exit=1

@@ -1,0 +1,14 @@
+HTTP/1.1 200 OK
+vary: rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch
+cache-control: no-store
+content-disposition: attachment; filename="invoices.csv"
+content-type: text/csv; charset=utf-8
+Date: Sun, 22 Nov 2026 01:25:33 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+Transfer-Encoding: chunked
+
+id,customer,amount,issued_on,status
+INV-1001,Acme Bakery,245.00,2026-10-02,paid
+INV-1002,Northwind Books,1180.00,2026-10-11,sent
+INV-1003,Globex Coffee,72.50,2026-10-19,paid

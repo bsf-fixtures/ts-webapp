@@ -1,0 +1,21 @@
+
+> ts-webapp@0.1.0 test
+> vitest run
+
+[33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
+
+[1m[7m[36m RUN [39m[27m[22m [36mv2.1.9 [39m[90m/home/runner/work/ts-webapp/ts-webapp[39m
+
+ [32m✓[39m lib/invoices.test.ts [2m([22m[2m17 tests[22m[2m)[22m[90m 9[2mms[22m[39m
+ [32m✓[39m app/invoices/export/route.test.ts [2m([22m[2m5 tests[22m[2m)[22m[90m 10[2mms[22m[39m
+ [32m✓[39m components/ExportButton.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[90m 154[2mms[22m[39m
+ [32m✓[39m app/invoices/page.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[90m 54[2mms[22m[39m
+ [32m✓[39m lint-rules.test.ts [2m([22m[2m4 tests[22m[2m)[22m[33m 567[2mms[22m[39m
+   [33m[2m✓[22m[39m money formatting rule[2m > [22mfails a page that formats cents inline, so an amount cannot round differently from the CSV [33m549[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m5 passed[39m[22m[90m (5)[39m
+[2m      Tests [22m [1m[32m32 passed[39m[22m[90m (32)[39m
+[2m   Start at [22m 01:25:48
+[2m   Duration [22m 2.10s[2m (transform 164ms, setup 0ms, collect 609ms, tests 794ms, environment 1.85s, prepare 455ms)[22m
+
+test exit=0

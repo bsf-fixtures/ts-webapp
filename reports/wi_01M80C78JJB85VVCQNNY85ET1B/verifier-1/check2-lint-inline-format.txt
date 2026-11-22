@@ -1,0 +1,9 @@
+
+/home/runner/work/ts-webapp/ts-webapp/app/invoices/page.tsx
+   1:44  error  'formatAmount' is defined but never used                                                                                                             @typescript-eslint/no-unused-vars
+  27:75  error  Amounts are integer cents: format them with formatAmount or formatCurrency from @/lib/invoices, so the page rounds the same way the CSV export does  no-restricted-syntax
+  27:76  error  Amounts are integer cents: format them with formatAmount or formatCurrency from @/lib/invoices, so the page rounds the same way the CSV export does  no-restricted-syntax
+
+✖ 3 problems (3 errors, 0 warnings)
+
+lint exit=1
