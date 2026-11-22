@@ -271,6 +271,36 @@ Use the rubric's `failure_tags` for anything you score 1–2, and add a note
 saying what specifically went wrong — one sentence a human can act on, naming
 the file or the check, not "could be better".
 
+## Write `scores.json` in exactly this shape
+
+One record per run and criterion. Every criterion is a record, good scores
+too; the review routes only the 1s and 2s, by their `tag`.
+
+```json
+{
+  "scores": [
+    {
+      "run": "run_01M7…",
+      "role": "builder",
+      "area": "src/invoices",
+      "criterion": "meaningful tests",
+      "score": 2,
+      "tag": "test_asserts_on_mock",
+      "detail": "invoices.test.ts asserts on the mock's return value, so it cannot fail."
+    }
+  ]
+}
+```
+
+- `run`: the run's `id` from `to-score.json`.
+- `role`: the role whose work the criterion judges (`builder` for most,
+  `spec` for the spec, `verifier` for the evidence).
+- `area`: the directory most of the change touched.
+- `tag`: required for a 1 or 2, from the rubric's `failure_tags`. Leave it out
+  for a 3–5.
+- `score`: `null` with a `detail` saying what was missing, when
+  `to-score.json` does not carry what the criterion needs.
+
 ## What you are actually judging
 
 - **followed the intent** — did it do what was asked, *and nothing else*? Extra
