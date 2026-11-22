@@ -3,7 +3,7 @@
   "month": "2026-11",
   "spent_usd": {
     "definition": 1.2283,
-    "hardening": 2.1052,
+    "hardening": 2.3198,
     "product_work": 2.3733
   },
   "inflight": [
@@ -15,15 +15,6 @@
       "agent_ceiling_usd": 2.33,
       "detection_ceiling_usd": 0.83,
       "started_at": "2026-11-22T01:13:19.122Z"
-    },
-    {
-      "key": "44969401572-1-build",
-      "pipeline": "hardening",
-      "role": "builder",
-      "model": "claude-sonnet-5-5",
-      "agent_ceiling_usd": 5.32,
-      "detection_ceiling_usd": 0.83,
-      "started_at": "2026-11-22T01:15:45.863Z"
     }
   ],
   "settled": [
@@ -37,7 +28,8 @@
     "44968886884-1-spec",
     "44969401572-1-hardener",
     "44969313735-1-agent-verification",
-    "44969401572-1-spec"
+    "44969401572-1-spec",
+    "44969401572-1-build"
   ],
-  "updated_at": "2026-11-22T01:15:45.863Z"
+  "updated_at": "2026-11-22T01:20:09.672Z"
 }
