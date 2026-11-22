@@ -72,7 +72,7 @@ describe("toCsv", () => {
   });
 
   it("writes one row per invoice, in order", () => {
-    const csv = toCsv([invoice({ id: "A" }), invoice({ id: "B" })]);
+    const csv = toCsv(exportableInvoices([invoice({ id: "A" }), invoice({ id: "B" })]));
     const lines = csv.trimEnd().split("\n");
     expect(lines).toHaveLength(3);
     expect(lines[1]).toContain("A");
@@ -80,19 +80,19 @@ describe("toCsv", () => {
   });
 
   it("quotes a customer name containing a comma, so the row keeps its columns", () => {
-    const csv = toCsv([invoice({ customer: "Smith, Jones & Co" })]);
+    const csv = toCsv(exportableInvoices([invoice({ customer: "Smith, Jones & Co" })]));
     const row = csv.trimEnd().split("\n")[1] ?? "";
     expect(row).toContain('"Smith, Jones & Co"');
     expect(row.split(",")).toHaveLength(6); // the quoted comma does not split a column
   });
 
   it("doubles a quote inside a customer name", () => {
-    const csv = toCsv([invoice({ customer: 'The "Good" Bakery' })]);
+    const csv = toCsv(exportableInvoices([invoice({ customer: 'The "Good" Bakery' })]));
     expect(csv).toContain('"The ""Good"" Bakery"');
   });
 
   it("ends with a newline, so appending does not join two rows", () => {
-    expect(toCsv([invoice()]).endsWith("\n")).toBe(true);
+    expect(toCsv(exportableInvoices([invoice()])).endsWith("\n")).toBe(true);
   });
 });
 
