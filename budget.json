@@ -2,21 +2,11 @@
   "schema": "budget/2",
   "month": "2026-11",
   "spent_usd": {
-    "definition": 1.5913,
+    "definition": 1.6819,
     "hardening": 2.3198,
     "product_work": 5.7108
   },
-  "inflight": [
-    {
-      "key": "45873279906-1-score",
-      "pipeline": "definition",
-      "role": "scorer",
-      "model": "claude-haiku-5-5",
-      "agent_ceiling_usd": 1.83,
-      "detection_ceiling_usd": 0.83,
-      "started_at": "2026-11-26T18:08:01.923Z"
-    }
-  ],
+  "inflight": [],
   "settled": [
     "44961477010-1-score",
     "44964072907-1-score",
@@ -35,7 +25,8 @@
     "45040850878-1-score",
     "45252777839-1-score",
     "45468993999-1-score",
-    "45674936330-1-score"
+    "45674936330-1-score",
+    "45873279906-1-score"
   ],
-  "updated_at": "2026-11-26T18:08:01.923Z"
+  "updated_at": "2026-11-26T18:11:56.838Z"
 }
