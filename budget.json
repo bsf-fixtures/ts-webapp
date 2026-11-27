@@ -6,7 +6,17 @@
     "hardening": 2.3198,
     "product_work": 5.7108
   },
-  "inflight": [],
+  "inflight": [
+    {
+      "key": "46044883696-1-score",
+      "pipeline": "definition",
+      "role": "scorer",
+      "model": "claude-haiku-5-5",
+      "agent_ceiling_usd": 1.83,
+      "detection_ceiling_usd": 0.83,
+      "started_at": "2026-11-27T17:51:29.643Z"
+    }
+  ],
   "settled": [
     "44961477010-1-score",
     "44964072907-1-score",
@@ -28,5 +38,5 @@
     "45674936330-1-score",
     "45873279906-1-score"
   ],
-  "updated_at": "2026-11-26T18:11:56.838Z"
+  "updated_at": "2026-11-27T17:51:29.643Z"
 }
